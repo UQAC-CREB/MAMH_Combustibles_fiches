@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fiches municipales — Québec</title>
+
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --header-bg:    #2C3E50;
+      --accent:       #2980b9;
+      --panel-bg:     #f9f9f9;
+      --panel-border: #dde2e8;
+      --box-bg:       #ffffff;
+      --box-shadow:   0 2px 8px rgba(0,0,0,0.08);
+      --text-main:    #2a2a2a;
+      --text-muted:   #6b7280;
+      --text-label:   #374151;
+    }
+
+    html { height: 100%; overflow: hidden; }
+    body {
+      height: 100%; overflow: hidden;
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--panel-bg); color: var(--text-main);
+      display: flex; flex-direction: column;
+    }
+
+    #header {
+      flex-shrink: 0; height: 48px; background: var(--header-bg);
+      display: flex; align-items: center; padding: 0 16px; gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10;
+    }
+    #header .icon { font-size: 20px; flex-shrink: 0; }
+    #header h1 {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      letter-spacing: 1.2px; text-transform: uppercase; color: #fff; line-height: 1.25;
+    }
+
+    #app { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+
+    /* ── Panel gauche ── */
+    #panel {
+      width: 320px; min-width: 320px; flex-shrink: 0;
+      background: var(--panel-bg); border-right: 1px solid var(--panel-border);
+      display: flex; flex-direction: column;
+      overflow: hidden; padding: 14px 12px; gap: 12px;
+    }
+    .panel-section { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .panel-label {
+      font-family: 'Oswald', sans-serif; font-size: 10px;
+      letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-muted);
+    }
+
+    select {
+      width: 100%; background: var(--box-bg);
+      border: 1px solid var(--panel-border); border-radius: 6px;
+      color: var(--text-main); font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px; padding: 7px 9px;
+      cursor: pointer; outline: none; transition: border-color 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+    select:focus, select:hover { border-color: var(--accent); }
+    select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider { border: none; border-top: 1px solid var(--panel-border); flex-shrink: 0; }
+
+    /* Info box */
+    #info-box {
+      background: var(--box-bg); border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 10px 12px; box-shadow: var(--box-shadow);
+      flex-shrink: 0;
+    }
+    .info-empty { color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+    .info-nom-mun {
+      font-family: 'Oswald', sans-serif; font-size: 16px; color: var(--accent);
+      font-weight: 600; margin-bottom: 2px;
+    }
+    .info-nom-lieu { font-size: 12px; color: var(--text-muted); }
+
+    #btn-fiche {
+      background: var(--accent); border: none; border-radius: 6px;
+      color: #fff; font-family: 'Oswald', sans-serif;
+      font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+      padding: 8px 12px; cursor: pointer; transition: background 0.2s; width: 100%;
+      flex-shrink: 0; display: none;
+    }
+    #btn-fiche:hover { background: #2471a3; }
+    #btn-fiche.visible { display: block; }
+
+    /* ── Resizer ── */
+    #resizer {
+      width: 6px; flex-shrink: 0; background: var(--panel-border);
+      cursor: col-resize; transition: background 0.15s; position: relative; z-index: 5;
+    }
+    #resizer:hover, #resizer.dragging { background: var(--accent); }
+    #resizer::after {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px; height: 32px; background: rgba(0,0,0,0.15); border-radius: 2px;
+    }
+
+    /* ── Map ── */
+    #map { flex: 1; position: relative; overflow: hidden; }
+    #map-container { width: 100%; height: 100%; }
+
+    /* Tooltip carte */
+    #map-tooltip {
+      position: absolute; z-index: 20;
+      background: rgba(255,255,255,0.97); border: 1px solid var(--panel-border);
+      border-radius: 6px; padding: 6px 12px; pointer-events: none; display: none;
+      font-family: 'Oswald', sans-serif; font-size: 13px; color: var(--text-main);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12); white-space: nowrap;
+    }
+
+    /* Basemap switch */
+    #basemap-switch {
+      position: absolute; top: 8px; right: 8px; z-index: 5;
+      display: flex; background: rgba(255,255,255,0.95);
+      border: 1px solid #d1d5db; border-radius: 5px;
+      overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .bm-btn {
+      padding: 5px 10px; font-family: 'Source Sans 3', sans-serif;
+      font-size: 11px; color: var(--text-muted); cursor: pointer;
+      border: none; background: transparent; border-right: 1px solid #d1d5db;
+      transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .bm-btn:last-child { border-right: none; }
+    .bm-btn.active { background: var(--header-bg); color: #fff; }
+    .bm-btn:hover:not(.active) { background: #f3f4f6; color: var(--text-main); }
+
+    /* ── Modal fiche ── */
+    #modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.65);
+      align-items: center; justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal-box {
+      background: #fff; border-radius: 10px;
+      width: min(90vw, 900px); max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 16px 60px rgba(0,0,0,0.3);
+      overflow: hidden; position: relative;
+    }
+    #modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: var(--header-bg); flex-shrink: 0;
+    }
+    #modal-title {
+      font-family: 'Oswald', sans-serif; font-size: 14px;
+      letter-spacing: 1px; color: #fff; text-transform: uppercase;
+    }
+    #modal-actions { display: flex; gap: 8px; align-items: center; }
+    #btn-download {
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 5px; color: #fff; font-family: 'Source Sans 3', sans-serif;
+      font-size: 11px; padding: 4px 10px; cursor: pointer;
+      text-decoration: none; transition: background 0.15s;
+    }
+    #btn-download:hover { background: rgba(255,255,255,0.35); }
+    #btn-close-modal {
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px;
+      transition: color 0.15s;
+    }
+    #btn-close-modal:hover { color: #fff; }
+    #modal-img-wrap {
+      flex: 1; min-height: 0; overflow: auto;
+      display: flex; align-items: center; justify-content: center;
+      background: #f0f0f0; padding: 8px;
+    }
+    #modal-img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain; border-radius: 4px;
+    }
+    #modal-img-loading {
+      font-family: 'Oswald', sans-serif; color: var(--text-muted);
+      letter-spacing: 2px; font-size: 12px; text-transform: uppercase;
+    }
+    #modal-img-error {
+      display: none; font-family: 'Source Sans 3', sans-serif;
+      color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;
+    }
+
+    /* Loading */
+    #loading {
+      position: absolute; inset: 0; background: #f9f9f9;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; z-index: 100; transition: opacity 0.5s;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading-msg { font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid #e5e7eb;
+      border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #panel::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p id="loading-msg">Chargement des données…</p>
+</div>
+
+<div id="header">
+  <span class="icon">🗺️</span>
+  <h1>Fiches municipales — Québec</h1>
+</div>
+
+<div id="app">
+  <div id="panel">
+
+    <div class="panel-section">
+      <span class="panel-label">MRC</span>
+      <select id="sel-mrc">
+        <option value="">— Sélectionnez une MRC —</option>
+      </select>
+    </div>
+
+    <div class="panel-section">
+      <span class="panel-label">Municipalité</span>
+      <select id="sel-mun" disabled>
+        <option value="">— Sélectionnez d'abord une MRC —</option>
+      </select>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="panel-section">
+      <div id="info-box">
+        <span class="info-empty">Sélectionnez une MRC puis une municipalité</span>
+      </div>
+    </div>
+
+    <button id="btn-fiche">📄 Voir la fiche municipale</button>
+
+  </div>
+
+  <div id="resizer"></div>
+
+  <div id="map">
+    <div id="map-container"></div>
+    <div id="map-tooltip"></div>
+    <div id="basemap-switch">
+      <button class="bm-btn active" data-bm="neutre">Neutre</button>
+      <button class="bm-btn"        data-bm="satellite">Satellite</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal fiche -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div id="modal-header">
+      <span id="modal-title">Fiche municipale</span>
+      <div id="modal-actions">
+        <a id="btn-download" href="#" download>⬇ Télécharger</a>
+        <button id="btn-close-modal">✕</button>
+      </div>
+    </div>
+    <div id="modal-img-wrap">
+      <span id="modal-img-loading">Chargement…</span>
+      <img id="modal-img" src="" alt="" style="display:none;" />
+      <div id="modal-img-error">Fiche non disponible pour cette municipalité.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLOUDFLARE_URL = 'https://pub-c92ff49002054c36a259cd1ea61e1b45.r2.dev';
+
+function googleSatStyle() {
+  return {
+    version: 8,
+    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+    sources: { 'gsat': { type:'raster', tiles:[
+      'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    ], tileSize:256, attribution:'© Google' }},
+    layers: [{ id:'gsat-layer', type:'raster', source:'gsat', paint:{ 'raster-opacity': 0.85 } }]
+  };
+}
+const STYLE_URLS = {
+  neutre:    'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  satellite: googleSatStyle(),
+};
+
+let map;
+let currentBm      = 'neutre';
+let mrcGJ          = null;
+let zonesGJ        = null;
+let pointsGJ       = null;
+let lutData        = [];
+let selectedMRC    = null;
+let selectedMUN    = null;
+
+// ── Données ──
+async function loadData() {
+  document.getElementById('loading-msg').textContent = 'Chargement des données…';
+  const [mrc, zones, points, lut] = await Promise.all([
+    fetch('data/mrc.geojson').then(r => r.json()),
+    fetch('data/zones.geojson').then(r => r.json()),
+    fetch('data/points.geojson').then(r => r.json()),
+    fetch('data/lut.json').then(r => r.json()),
+  ]);
+  mrcGJ   = mrc;
+  zonesGJ = zones;
+  pointsGJ = points;
+  lutData  = lut;
+}
+
+// ── Menu MRC ──
+function populateMRC() {
+  const sel = document.getElementById('sel-mrc');
+  const mrcList = mrcGJ.features
+    .map(f => ({ id: f.properties.MRC_ID, nom: f.properties.MRS_NM_MRC }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  mrcList.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.id; o.textContent = m.nom;
+    sel.appendChild(o);
+  });
+}
+
+// ── Menu Municipalité ──
+function populateMUN(mrcId) {
+  const sel = document.getElementById('sel-mun');
+  sel.innerHTML = '<option value="">— Sélectionnez une municipalité —</option>';
+  if (!mrcId) { sel.disabled = true; return; }
+
+  const munis = lutData
+    .filter(r => r.MRC_ID === mrcId)
+    .sort((a, b) => (a.mus_nm_mun || a.nomcartrou).localeCompare(b.mus_nm_mun || b.nomcartrou, 'fr'));
+
+  munis.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.MUN_ID;
+    o.textContent = m.mus_nm_mun || m.nomcartrou;
+    sel.appendChild(o);
+  });
+  sel.disabled = false;
+}
+
+// ── Info box ──
+function updateInfoBox(munId) {
+  const box = document.getElementById('info-box');
+  const btn  = document.getElementById('btn-fiche');
+  if (!munId) {
+    box.innerHTML = '<span class="info-empty">Sélectionnez une MRC puis une municipalité</span>';
+    btn.classList.remove('visible');
+    return;
+  }
+  const row = lutData.find(r => r.MUN_ID === munId);
+  if (!row) { box.innerHTML = '<span class="info-empty">Données non disponibles</span>'; return; }
+  box.innerHTML = `
+    <div class="info-nom-mun">${row.mus_nm_mun || '—'}</div>
+    <div class="info-nom-lieu">${row.nomcartrou || ''}</div>`;
+  btn.classList.add('visible');
+}
+
+// ── Fiche JPEG ──
+function ouvrirFiche(munId) {
+  if (!munId) return;
+  const url = `${CLOUDFLARE_URL}/FBP_carte_${munId}.jpeg`;
+  const row  = lutData.find(r => r.MUN_ID === munId);
+  const nom  = row ? (row.mus_nm_mun || munId) : munId;
+
+  document.getElementById('modal-title').textContent = nom;
+  document.getElementById('modal-img-loading').style.display = 'block';
+  document.getElementById('modal-img').style.display = 'none';
+  document.getElementById('modal-img-error').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+
+  const img = document.getElementById('modal-img');
+  img.onload = () => {
+    document.getElementById('modal-img-loading').style.display = 'none';
+    img.style.display = 'block';
+    document.getElementById('btn-download').href = url;
+    document.getElementById('btn-download').download = `FBP_carte_${munId}.jpeg`;
+  };
+  img.onerror = () => {
+    document.getElementById('modal-img-loading').style.display = 'none';
+    document.getElementById('modal-img-error').style.display = 'block';
+  };
+  img.src = url;
+}
+
+// ── Carte ──
+function getStyle(bm) { return bm === 'satellite' ? googleSatStyle() : STYLE_URLS[bm]; }
+
+function addMRCLayer() {
+  if (!mrcGJ || !map.getSource) return;
+  if (!map.getSource('mrc')) map.addSource('mrc', { type:'geojson', data: mrcGJ });
+  if (!map.getLayer('mrc-fill')) {
+    map.addLayer({ id:'mrc-fill', type:'fill', source:'mrc',
+      paint:{ 'fill-color':'#2980b9', 'fill-opacity': 0.08 }
+    });
+    map.addLayer({ id:'mrc-line', type:'line', source:'mrc',
+      paint:{ 'line-color':'#2980b9', 'line-width': 1, 'line-opacity': 0.6 }
+    });
+    map.addLayer({ id:'mrc-selected', type:'fill', source:'mrc',
+      filter: ['==', ['get','MRC_ID'], '___NONE___'],
+      paint:{ 'fill-color':'#2980b9', 'fill-opacity': 0.15 }
+    });
+  }
+}
+
+function addZonesLayer() {
+  if (!zonesGJ) return;
+  if (!map.getSource('zones')) map.addSource('zones', { type:'geojson', data: zonesGJ });
+  if (!map.getLayer('zones-fill')) {
+    map.addLayer({ id:'zones-fill', type:'fill', source:'zones',
+      layout:{ visibility:'none' },
+      paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.15 }
+    });
+    map.addLayer({ id:'zones-line', type:'line', source:'zones',
+      layout:{ visibility:'none' },
+      paint:{ 'line-color':'#e67e22', 'line-width': 1.2, 'line-opacity': 0.7 }
+    });
+    map.addLayer({ id:'zones-selected', type:'fill', source:'zones',
+      filter: ['==', ['get','MUN_ID'], '___NONE___'],
+      layout:{ visibility:'none' },
+      paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.4 }
+    });
+
+    // Clic sur zone tampon
+    map.on('click', 'zones-fill', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const munId = e.features[0].properties.MUN_ID;
+      selectMUN(munId);
+    });
+    map.on('mouseenter', 'zones-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'zones-fill', () => { map.getCanvas().style.cursor = ''; });
+  }
+}
+
+function addPointsLayer() {
+  if (!pointsGJ) return;
+  if (!map.getSource('points')) map.addSource('points', { type:'geojson', data: pointsGJ });
+  if (!map.getLayer('points-circle')) {
+    map.addLayer({ id:'points-circle', type:'circle', source:'points',
+      layout:{ visibility:'none' },
+      paint:{ 'circle-radius': 4, 'circle-color':'#e67e22', 'circle-stroke-width':1.5, 'circle-stroke-color':'#fff' }
+    });
+    map.addLayer({ id:'points-label', type:'symbol', source:'points',
+      layout:{
+        visibility: 'none',
+        'text-field': ['get','nomcartrou'],
+        'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+        'text-size': 11,
+        'text-offset': [0, 1.2],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+      },
+      paint:{
+        'text-color': '#2a2a2a',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 2,
+      }
+    });
+  }
+}
+
+function addAllLayers() {
+  addMRCLayer();
+  addZonesLayer();
+  addPointsLayer();
+  setupMRCInteraction();
+}
+
+function setupMRCInteraction() {
+  const tooltip = document.getElementById('map-tooltip');
+
+  map.on('mouseenter', 'mrc-fill', (e) => {
+    map.getCanvas().style.cursor = 'pointer';
+    if (e.features && e.features.length > 0) {
+      tooltip.textContent = e.features[0].properties.MRS_NM_MRC;
+      tooltip.style.display = 'block';
+    }
+  });
+  map.on('mousemove', 'mrc-fill', (e) => {
+    const rect = document.getElementById('map').getBoundingClientRect();
+    let x = e.originalEvent.clientX - rect.left + 12;
+    let y = e.originalEvent.clientY - rect.top + 12;
+    if (x + 200 > rect.width) x -= 180;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top  = y + 'px';
+  });
+  map.on('mouseleave', 'mrc-fill', () => {
+    map.getCanvas().style.cursor = '';
+    tooltip.style.display = 'none';
+  });
+  map.on('click', 'mrc-fill', (e) => {
+    if (!e.features || e.features.length === 0) return;
+    const mrcId = e.features[0].properties.MRC_ID;
+    selectMRC(mrcId);
+  });
+}
+
+function selectMRC(mrcId) {
+  selectedMRC = mrcId;
+  selectedMUN = null;
+
+  // Mettre à jour le select
+  document.getElementById('sel-mrc').value = mrcId;
+  populateMUN(mrcId);
+  updateInfoBox(null);
+
+  // Highlight MRC
+  if (map.getLayer('mrc-selected')) {
+    map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], mrcId]);
+  }
+
+  // Masquer zones/points d'abord
+  ['zones-fill','zones-line','zones-selected','points-circle','points-label'].forEach(l => {
+    if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
+  });
+
+  // Zoom sur la MRC
+  const feat = mrcGJ.features.find(f => f.properties.MRC_ID === mrcId);
+  if (feat) {
+    const coords = feat.geometry.type === 'Polygon'
+      ? feat.geometry.coordinates[0]
+      : feat.geometry.coordinates.flat(2);
+    const lngs = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 40, duration: 800 }
+    );
+  }
+
+  // Filtrer zones/points pour cette MRC et afficher
+  const munIds = lutData.filter(r => r.MRC_ID === mrcId).map(r => r.MUN_ID);
+
+  if (map.getSource('zones')) {
+    const filteredZones = { type:'FeatureCollection', features: zonesGJ.features.filter(f => munIds.includes(f.properties.MUN_ID)) };
+    map.getSource('zones').setData(filteredZones);
+    ['zones-fill','zones-line','zones-selected'].forEach(l => {
+      if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'visible');
+    });
+  }
+  if (map.getSource('points')) {
+    const filteredPts = { type:'FeatureCollection', features: pointsGJ.features.filter(f => f.properties.MRC_ID === mrcId) };
+    map.getSource('points').setData(filteredPts);
+    ['points-circle','points-label'].forEach(l => {
+      if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'visible');
+    });
+  }
+}
+
+function selectMUN(munId) {
+  selectedMUN = munId;
+
+  // Sync select
+  document.getElementById('sel-mun').value = munId;
+  updateInfoBox(munId);
+
+  // Highlight zone
+  if (map.getLayer('zones-selected')) {
+    map.setFilter('zones-selected', ['==', ['get','MUN_ID'], munId]);
+  }
+
+  // Zoom sur la zone
+  const feat = zonesGJ.features.find(f => f.properties.MUN_ID === munId);
+  if (feat) {
+    const coords = feat.geometry.type === 'Polygon'
+      ? feat.geometry.coordinates[0]
+      : feat.geometry.coordinates.flat(2);
+    const lngs = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 60, duration: 600, maxZoom: 11 }
+    );
+  }
+
+  // Ouvrir fiche directement
+  ouvrirFiche(munId);
+}
+
+function switchBasemap(bm) {
+  if (bm === currentBm) return;
+  currentBm = bm;
+  const center = map.getCenter(), zoom = map.getZoom();
+  map.setStyle(getStyle(bm));
+  map.once('styledata', () => { map.jumpTo({ center, zoom }); addAllLayers(); });
+}
+
+// ── Listeners UI ──
+document.getElementById('sel-mrc').addEventListener('change', (e) => {
+  if (e.target.value) selectMRC(e.target.value);
+  else {
+    selectedMRC = null; selectedMUN = null;
+    populateMUN(null);
+    updateInfoBox(null);
+    if (map.getLayer('mrc-selected')) map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], '___NONE___']);
+    ['zones-fill','zones-line','zones-selected','points-circle','points-label'].forEach(l => {
+      if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
+    });
+  }
+});
+
+document.getElementById('sel-mun').addEventListener('change', (e) => {
+  if (e.target.value) selectMUN(e.target.value);
+  else { selectedMUN = null; updateInfoBox(null); }
+});
+
+document.getElementById('btn-fiche').addEventListener('click', () => { if (selectedMUN) ouvrirFiche(selectedMUN); });
+
+document.getElementById('btn-close-modal').addEventListener('click', () => {
+  document.getElementById('modal-overlay').classList.remove('open');
+});
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+});
+
+document.querySelectorAll('.bm-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.bm-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); switchBasemap(btn.dataset.bm);
+  });
+});
+
+// ── Resizer ──
+(function() {
+  const resizer = document.getElementById('resizer');
+  const panel   = document.getElementById('panel');
+  let dragging = false, startX = 0, startW = 0;
+  resizer.addEventListener('mousedown', (e) => {
+    dragging = true; startX = e.clientX; startW = panel.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const newW = Math.min(Math.max(startW + (e.clientX - startX), 220), window.innerWidth * 0.6);
+    panel.style.width = newW + 'px';
+    panel.style.minWidth = newW + 'px';
+    if (map) map.resize();
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false; resizer.classList.remove('dragging');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    if (map) map.resize();
+  });
+})();
+
+// ── Init ──
+async function init() {
+  await loadData();
+  populateMRC();
+
+  map = new maplibregl.Map({
+    container: 'map-container',
+    style: getStyle(currentBm),
+    bounds: [[-79.5, 44.5], [-56.5, 62.5]],
+    fitBoundsOptions: { padding: 20 },
+    attributionControl: false,
+  });
+  map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-right');
+  map.addControl(new maplibregl.ScaleControl({ unit:'metric' }), 'bottom-left');
+  map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+  map.on('load', () => {
+    addAllLayers();
+    document.getElementById('loading').classList.add('hidden');
+  });
+}
+
+init();
+</script>
+</body>
+</html>
