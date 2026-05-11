@@ -342,14 +342,22 @@ function populateMUN(mrcId) {
   sel.innerHTML = '<option value="">— Sélectionnez une municipalité —</option>';
   if (!mrcId) { sel.disabled = true; return; }
 
+  // Dédoublonnage : un seul MUN_ID par municipalité
+  // (plusieurs lieux habités peuvent partager le même MUN_ID)
+  const seen = new Set();
   const munis = lutData
-    .filter(r => r.MRC_ID === mrcId)
-    .sort((a, b) => (a.mus_nm_mun || a.nomcartrou).localeCompare(b.mus_nm_mun || b.nomcartrou, 'fr'));
+    .filter(r => {
+      if (r.MRC_ID !== mrcId) return false;
+      if (seen.has(r.MUN_ID)) return false;
+      seen.add(r.MUN_ID);
+      return true;
+    })
+    .sort((a, b) => (a.MUS_NM_MUN || a.mus_nm_mun || '').localeCompare(b.MUS_NM_MUN || b.mus_nm_mun || '', 'fr'));
 
   munis.forEach(m => {
     const o = document.createElement('option');
     o.value = m.MUN_ID;
-    o.textContent = m.mus_nm_mun || m.nomcartrou;
+    o.textContent = m.MUS_NM_MUN || m.mus_nm_mun || m.MUN_ID;
     sel.appendChild(o);
   });
   sel.disabled = false;
@@ -421,44 +429,32 @@ function addMRCLayer() {
 
 function addZonesLayer() {
   if (!zonesGJ) return;
-  if (!map.getSource('zones')) map.addSource('zones', { type:'geojson', data: zonesGJ });
-  if (!map.getLayer('zones-fill')) {
-    map.addLayer({ id:'zones-fill', type:'fill', source:'zones',
-      layout:{ visibility:'none' },
-      paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.15 }
+  // Source pour la zone hover (une seule zone à la fois, au survol d'un point)
+  if (!map.getSource('zones-hover')) {
+    map.addSource('zones-hover', { type:'geojson', data: { type:'FeatureCollection', features:[] } });
+  }
+  if (!map.getLayer('zones-hover-fill')) {
+    map.addLayer({ id:'zones-hover-fill', type:'fill', source:'zones-hover',
+      paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.25 }
     });
-    map.addLayer({ id:'zones-line', type:'line', source:'zones',
-      layout:{ visibility:'none' },
-      paint:{ 'line-color':'#e67e22', 'line-width': 1.2, 'line-opacity': 0.7 }
+    map.addLayer({ id:'zones-hover-line', type:'line', source:'zones-hover',
+      paint:{ 'line-color':'#e67e22', 'line-width': 2, 'line-opacity': 0.9 }
     });
-    map.addLayer({ id:'zones-selected', type:'fill', source:'zones',
-      filter: ['==', ['get','MUN_ID'], '___NONE___'],
-      layout:{ visibility:'none' },
-      paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.4 }
-    });
-
-    // Clic sur zone tampon
-    map.on('click', 'zones-fill', (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const munId = e.features[0].properties.MUN_ID;
-      selectMUN(munId);
-    });
-    map.on('mouseenter', 'zones-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'zones-fill', () => { map.getCanvas().style.cursor = ''; });
   }
 }
 
 function addPointsLayer() {
   if (!pointsGJ) return;
-  if (!map.getSource('points')) map.addSource('points', { type:'geojson', data: pointsGJ });
+  // Source initialisée vide — alimentée par selectMRC
+  if (!map.getSource('points')) {
+    map.addSource('points', { type:'geojson', data: { type:'FeatureCollection', features:[] } });
+  }
   if (!map.getLayer('points-circle')) {
     map.addLayer({ id:'points-circle', type:'circle', source:'points',
-      layout:{ visibility:'none' },
-      paint:{ 'circle-radius': 4, 'circle-color':'#e67e22', 'circle-stroke-width':1.5, 'circle-stroke-color':'#fff' }
+      paint:{ 'circle-radius': 5, 'circle-color':'#e67e22', 'circle-stroke-width':1.5, 'circle-stroke-color':'#fff' }
     });
     map.addLayer({ id:'points-label', type:'symbol', source:'points',
       layout:{
-        visibility: 'none',
         'text-field': ['get','nomcartrou'],
         'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
         'text-size': 11,
@@ -471,6 +467,27 @@ function addPointsLayer() {
         'text-halo-color': '#ffffff',
         'text-halo-width': 2,
       }
+    });
+
+    // Hover sur point → afficher la zone tampon associée (même MUN_ID)
+    map.on('mouseenter', 'points-circle', (e) => {
+      map.getCanvas().style.cursor = 'pointer';
+      if (!e.features || e.features.length === 0) return;
+      const munId = e.features[0].properties.MUN_ID;
+      if (!munId || !zonesGJ) return;
+      const zoneFeats = zonesGJ.features.filter(f => f.properties.MUN_ID === munId);
+      map.getSource('zones-hover').setData({ type:'FeatureCollection', features: zoneFeats });
+    });
+    map.on('mouseleave', 'points-circle', () => {
+      map.getCanvas().style.cursor = '';
+      map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
+    });
+
+    // Clic sur point → sélectionner la municipalité
+    map.on('click', 'points-circle', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const munId = e.features[0].properties.MUN_ID;
+      if (munId) selectMUN(munId);
     });
   }
 }
@@ -515,20 +532,19 @@ function selectMRC(mrcId) {
   selectedMRC = mrcId;
   selectedMUN = null;
 
-  // Mettre à jour le select
   document.getElementById('sel-mrc').value = mrcId;
   populateMUN(mrcId);
   updateInfoBox(null);
 
-  // Highlight MRC
+  // Highlight MRC sélectionnée
   if (map.getLayer('mrc-selected')) {
     map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], mrcId]);
   }
 
-  // Masquer zones/points d'abord
-  ['zones-fill','zones-line','zones-selected','points-circle','points-label'].forEach(l => {
-    if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
-  });
+  // Vider la zone hover (au cas où on change de MRC sans mouseleave)
+  if (map.getSource('zones-hover')) {
+    map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
+  }
 
   // Zoom sur la MRC
   const feat = mrcGJ.features.find(f => f.properties.MRC_ID === mrcId);
@@ -543,51 +559,21 @@ function selectMRC(mrcId) {
     );
   }
 
-  // Filtrer zones/points pour cette MRC et afficher
-  const munIds = lutData.filter(r => r.MRC_ID === mrcId).map(r => r.MUN_ID);
-
-  if (map.getSource('zones')) {
-    const filteredZones = { type:'FeatureCollection', features: zonesGJ.features.filter(f => munIds.includes(f.properties.MUN_ID)) };
-    map.getSource('zones').setData(filteredZones);
-    ['zones-fill','zones-line','zones-selected'].forEach(l => {
-      if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'visible');
-    });
-  }
+  // Charger uniquement les points de cette MRC (les zones restent dans zonesGJ global)
   if (map.getSource('points')) {
     const filteredPts = { type:'FeatureCollection', features: pointsGJ.features.filter(f => f.properties.MRC_ID === mrcId) };
     map.getSource('points').setData(filteredPts);
-    ['points-circle','points-label'].forEach(l => {
-      if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'visible');
-    });
   }
 }
 
 function selectMUN(munId) {
   selectedMUN = munId;
 
-  // Sync select
+  // Sync select + info box
   document.getElementById('sel-mun').value = munId;
   updateInfoBox(munId);
 
-  // Highlight zone
-  if (map.getLayer('zones-selected')) {
-    map.setFilter('zones-selected', ['==', ['get','MUN_ID'], munId]);
-  }
-
-  // Zoom sur la zone
-  const feat = zonesGJ.features.find(f => f.properties.MUN_ID === munId);
-  if (feat) {
-    const coords = feat.geometry.type === 'Polygon'
-      ? feat.geometry.coordinates[0]
-      : feat.geometry.coordinates.flat(2);
-    const lngs = coords.map(c => c[0]), lats = coords.map(c => c[1]);
-    map.fitBounds(
-      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-      { padding: 60, duration: 600, maxZoom: 11 }
-    );
-  }
-
-  // Ouvrir fiche directement
+  // Ouvrir la fiche directement
   ouvrirFiche(munId);
 }
 
@@ -607,9 +593,9 @@ document.getElementById('sel-mrc').addEventListener('change', (e) => {
     populateMUN(null);
     updateInfoBox(null);
     if (map.getLayer('mrc-selected')) map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], '___NONE___']);
-    ['zones-fill','zones-line','zones-selected','points-circle','points-label'].forEach(l => {
-      if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
-    });
+    // Vider les points et la zone hover
+    if (map.getSource('points')) map.getSource('points').setData({ type:'FeatureCollection', features: [] });
+    if (map.getSource('zones-hover')) map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
   }
 });
 
