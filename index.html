@@ -119,22 +119,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.12); white-space: nowrap;
     }
 
-    /* Basemap switch */
-    #basemap-switch {
-      position: absolute; top: 8px; right: 8px; z-index: 5;
-      display: flex; background: rgba(255,255,255,0.95);
-      border: 1px solid #d1d5db; border-radius: 5px;
-      overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-    }
-    .bm-btn {
-      padding: 5px 10px; font-family: 'Source Sans 3', sans-serif;
-      font-size: 11px; color: var(--text-muted); cursor: pointer;
-      border: none; background: transparent; border-right: 1px solid #d1d5db;
-      transition: background 0.15s, color 0.15s; white-space: nowrap;
-    }
-    .bm-btn:last-child { border-right: none; }
-    .bm-btn.active { background: var(--header-bg); color: #fff; }
-    .bm-btn:hover:not(.active) { background: #f3f4f6; color: var(--text-main); }
+
 
     /* ── Modal fiche ── */
     #modal-overlay {
@@ -254,8 +239,7 @@
     <div id="map-container"></div>
     <div id="map-tooltip"></div>
     <div id="basemap-switch">
-      <button class="bm-btn active" data-bm="neutre">Neutre</button>
-      <button class="bm-btn"        data-bm="satellite">Satellite</button>
+
     </div>
   </div>
 </div>
@@ -280,33 +264,16 @@
 
 <script>
 const CLOUDFLARE_URL = 'https://pub-c92ff49002054c36a259cd1ea61e1b45.r2.dev';
+const STYLE_NEUTRE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
-function googleSatStyle() {
-  return {
-    version: 8,
-    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
-    sources: { 'gsat': { type:'raster', tiles:[
-      'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-      'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-      'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-      'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    ], tileSize:256, attribution:'© Google' }},
-    layers: [{ id:'gsat-layer', type:'raster', source:'gsat', paint:{ 'raster-opacity': 0.85 } }]
-  };
-}
-const STYLE_URLS = {
-  neutre:    'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  satellite: googleSatStyle(),
-};
 
 let map;
-let currentBm      = 'neutre';
-let mrcGJ          = null;
-let zonesGJ        = null;
-let pointsGJ       = null;
-let lutData        = [];
-let selectedMRC    = null;
-let selectedMUN    = null;
+let mrcGJ       = null;
+let zonesGJ     = null;
+let pointsGJ    = null;
+let lutData     = [];
+let selectedMRC = null;
+let selectedMUN = null;
 
 // ── Données ──
 async function loadData() {
@@ -317,8 +284,8 @@ async function loadData() {
     fetch('data/points.geojson').then(r => r.json()),
     fetch('data/lut.json').then(r => r.json()),
   ]);
-  mrcGJ   = mrc;
-  zonesGJ = zones;
+  mrcGJ    = mrc;
+  zonesGJ  = zones;
   pointsGJ = points;
   lutData  = lut;
 }
@@ -336,14 +303,12 @@ function populateMRC() {
   });
 }
 
-// ── Menu Municipalité ──
+// ── Menu Municipalité — sans doublons de MUN_ID ──
 function populateMUN(mrcId) {
   const sel = document.getElementById('sel-mun');
   sel.innerHTML = '<option value="">— Sélectionnez une municipalité —</option>';
   if (!mrcId) { sel.disabled = true; return; }
 
-  // Dédoublonnage : un seul MUN_ID par municipalité
-  // (plusieurs lieux habités peuvent partager le même MUN_ID)
   const seen = new Set();
   const munis = lutData
     .filter(r => {
@@ -366,7 +331,7 @@ function populateMUN(mrcId) {
 // ── Info box ──
 function updateInfoBox(munId) {
   const box = document.getElementById('info-box');
-  const btn  = document.getElementById('btn-fiche');
+  const btn = document.getElementById('btn-fiche');
   if (!munId) {
     box.innerHTML = '<span class="info-empty">Sélectionnez une MRC puis une municipalité</span>';
     btn.classList.remove('visible');
@@ -375,7 +340,7 @@ function updateInfoBox(munId) {
   const row = lutData.find(r => r.MUN_ID === munId);
   if (!row) { box.innerHTML = '<span class="info-empty">Données non disponibles</span>'; return; }
   box.innerHTML = `
-    <div class="info-nom-mun">${row.mus_nm_mun || '—'}</div>
+    <div class="info-nom-mun">${row.MUS_NM_MUN || row.mus_nm_mun || '—'}</div>
     <div class="info-nom-lieu">${row.nomcartrou || ''}</div>`;
   btn.classList.add('visible');
 }
@@ -385,7 +350,7 @@ function ouvrirFiche(munId) {
   if (!munId) return;
   const url = `${CLOUDFLARE_URL}/FBP_carte_${munId}.jpeg`;
   const row  = lutData.find(r => r.MUN_ID === munId);
-  const nom  = row ? (row.mus_nm_mun || munId) : munId;
+  const nom  = row ? (row.MUS_NM_MUN || row.mus_nm_mun || munId) : munId;
 
   document.getElementById('modal-title').textContent = nom;
   document.getElementById('modal-img-loading').style.display = 'block';
@@ -408,100 +373,52 @@ function ouvrirFiche(munId) {
 }
 
 // ── Carte ──
-function getStyle(bm) { return bm === 'satellite' ? googleSatStyle() : STYLE_URLS[bm]; }
-
-function addMRCLayer() {
-  if (!mrcGJ || !map.getSource) return;
-  if (!map.getSource('mrc')) map.addSource('mrc', { type:'geojson', data: mrcGJ });
-  if (!map.getLayer('mrc-fill')) {
-    map.addLayer({ id:'mrc-fill', type:'fill', source:'mrc',
-      paint:{ 'fill-color':'#2980b9', 'fill-opacity': 0.08 }
-    });
-    map.addLayer({ id:'mrc-line', type:'line', source:'mrc',
-      paint:{ 'line-color':'#2980b9', 'line-width': 1, 'line-opacity': 0.6 }
-    });
-    map.addLayer({ id:'mrc-selected', type:'fill', source:'mrc',
-      filter: ['==', ['get','MRC_ID'], '___NONE___'],
-      paint:{ 'fill-color':'#2980b9', 'fill-opacity': 0.15 }
-    });
-  }
-}
-
-function addZonesLayer() {
-  if (!zonesGJ) return;
-  // Source pour la zone hover (une seule zone à la fois, au survol d'un point)
-  if (!map.getSource('zones-hover')) {
-    map.addSource('zones-hover', { type:'geojson', data: { type:'FeatureCollection', features:[] } });
-  }
-  if (!map.getLayer('zones-hover-fill')) {
-    map.addLayer({ id:'zones-hover-fill', type:'fill', source:'zones-hover',
-      paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.25 }
-    });
-    map.addLayer({ id:'zones-hover-line', type:'line', source:'zones-hover',
-      paint:{ 'line-color':'#e67e22', 'line-width': 2, 'line-opacity': 0.9 }
-    });
-  }
-}
-
-function addPointsLayer() {
-  if (!pointsGJ) return;
-  // Source initialisée vide — alimentée par selectMRC
-  if (!map.getSource('points')) {
-    map.addSource('points', { type:'geojson', data: { type:'FeatureCollection', features:[] } });
-  }
-  if (!map.getLayer('points-circle')) {
-    map.addLayer({ id:'points-circle', type:'circle', source:'points',
-      paint:{ 'circle-radius': 5, 'circle-color':'#e67e22', 'circle-stroke-width':1.5, 'circle-stroke-color':'#fff' }
-    });
-    map.addLayer({ id:'points-label', type:'symbol', source:'points',
-      layout:{
-        'text-field': ['get','nomcartrou'],
-        'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
-        'text-size': 11,
-        'text-offset': [0, 1.2],
-        'text-anchor': 'top',
-        'text-allow-overlap': false,
-      },
-      paint:{
-        'text-color': '#2a2a2a',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 2,
-      }
-    });
-
-    // Hover sur point → afficher la zone tampon associée (même MUN_ID)
-    map.on('mouseenter', 'points-circle', (e) => {
-      map.getCanvas().style.cursor = 'pointer';
-      if (!e.features || e.features.length === 0) return;
-      const munId = e.features[0].properties.MUN_ID;
-      if (!munId || !zonesGJ) return;
-      const zoneFeats = zonesGJ.features.filter(f => f.properties.MUN_ID === munId);
-      map.getSource('zones-hover').setData({ type:'FeatureCollection', features: zoneFeats });
-    });
-    map.on('mouseleave', 'points-circle', () => {
-      map.getCanvas().style.cursor = '';
-      map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
-    });
-
-    // Clic sur point → sélectionner la municipalité
-    map.on('click', 'points-circle', (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const munId = e.features[0].properties.MUN_ID;
-      if (munId) selectMUN(munId);
-    });
-  }
-}
-
+// Ajoute TOUTES les sources et layers — appelé à chaque (re)chargement de style
 function addAllLayers() {
-  addMRCLayer();
-  addZonesLayer();
-  addPointsLayer();
-  setupMRCInteraction();
-}
 
-function setupMRCInteraction() {
+  // ── Sources ──
+  map.addSource('mrc',        { type:'geojson', data: mrcGJ });
+  map.addSource('zones-hover',{ type:'geojson', data: { type:'FeatureCollection', features:[] } });
+  map.addSource('points',     { type:'geojson', data: { type:'FeatureCollection', features:[] } });
+
+  // ── Layers MRC ──
+  map.addLayer({ id:'mrc-fill', type:'fill', source:'mrc',
+    paint:{ 'fill-color':'#2980b9', 'fill-opacity': 0.08 }
+  });
+  map.addLayer({ id:'mrc-line', type:'line', source:'mrc',
+    paint:{ 'line-color':'#2980b9', 'line-width': 1, 'line-opacity': 0.6 }
+  });
+  map.addLayer({ id:'mrc-selected', type:'fill', source:'mrc',
+    filter: ['==', ['get','MRC_ID'], '___NONE___'],
+    paint:{ 'fill-color':'#2980b9', 'fill-opacity': 0.18 }
+  });
+
+  // ── Layers zone tampon hover ──
+  map.addLayer({ id:'zones-hover-fill', type:'fill', source:'zones-hover',
+    paint:{ 'fill-color':'#e67e22', 'fill-opacity': 0.25 }
+  });
+  map.addLayer({ id:'zones-hover-line', type:'line', source:'zones-hover',
+    paint:{ 'line-color':'#e67e22', 'line-width': 2, 'line-opacity': 0.9 }
+  });
+
+  // ── Layers points ──
+  map.addLayer({ id:'points-circle', type:'circle', source:'points',
+    paint:{ 'circle-radius': 5, 'circle-color':'#e67e22',
+            'circle-stroke-width': 1.5, 'circle-stroke-color':'#fff' }
+  });
+  map.addLayer({ id:'points-label', type:'symbol', source:'points',
+    layout:{
+      'text-field': ['get','nomcartrou'],
+      'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+      'text-size': 11, 'text-offset': [0, 1.2], 'text-anchor': 'top',
+      'text-allow-overlap': false,
+      'text-optional': true,
+    },
+    paint:{ 'text-color':'#2a2a2a', 'text-halo-color':'#ffffff', 'text-halo-width': 2 }
+  });
+
+  // ── Interactions MRC (tooltip + clic) ──
   const tooltip = document.getElementById('map-tooltip');
-
   map.on('mouseenter', 'mrc-fill', (e) => {
     map.getCanvas().style.cursor = 'pointer';
     if (e.features && e.features.length > 0) {
@@ -523,11 +440,40 @@ function setupMRCInteraction() {
   });
   map.on('click', 'mrc-fill', (e) => {
     if (!e.features || e.features.length === 0) return;
-    const mrcId = e.features[0].properties.MRC_ID;
-    selectMRC(mrcId);
+    selectMRC(e.features[0].properties.MRC_ID);
   });
+
+  // ── Interactions points (hover → zone tampon, clic → fiche) ──
+  map.on('mouseenter', 'points-circle', (e) => {
+    map.getCanvas().style.cursor = 'pointer';
+    if (!e.features || e.features.length === 0) return;
+    const munId = e.features[0].properties.MUN_ID;
+    if (!munId) return;
+    const feats = zonesGJ.features.filter(f => f.properties.MUN_ID === munId);
+    map.getSource('zones-hover').setData({ type:'FeatureCollection', features: feats });
+  });
+  map.on('mouseleave', 'points-circle', () => {
+    map.getCanvas().style.cursor = '';
+    map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
+  });
+  map.on('click', 'points-circle', (e) => {
+    if (!e.features || e.features.length === 0) return;
+    const munId = e.features[0].properties.MUN_ID;
+    if (munId) selectMUN(munId);
+  });
+
+  // ── Réappliquer l'état MRC si on revient d'un changement de basemap ──
+  if (selectedMRC) {
+    map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], selectedMRC]);
+    const filteredPts = {
+      type:'FeatureCollection',
+      features: pointsGJ.features.filter(f => f.properties.MRC_ID === selectedMRC)
+    };
+    map.getSource('points').setData(filteredPts);
+  }
 }
 
+// ── Sélection MRC ──
 function selectMRC(mrcId) {
   selectedMRC = mrcId;
   selectedMUN = null;
@@ -536,15 +482,10 @@ function selectMRC(mrcId) {
   populateMUN(mrcId);
   updateInfoBox(null);
 
-  // Highlight MRC sélectionnée
-  if (map.getLayer('mrc-selected')) {
-    map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], mrcId]);
-  }
+  map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], mrcId]);
 
-  // Vider la zone hover (au cas où on change de MRC sans mouseleave)
-  if (map.getSource('zones-hover')) {
-    map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
-  }
+  // Vider la zone hover
+  map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
 
   // Zoom sur la MRC
   const feat = mrcGJ.features.find(f => f.properties.MRC_ID === mrcId);
@@ -559,43 +500,35 @@ function selectMRC(mrcId) {
     );
   }
 
-  // Charger uniquement les points de cette MRC (les zones restent dans zonesGJ global)
-  if (map.getSource('points')) {
-    const filteredPts = { type:'FeatureCollection', features: pointsGJ.features.filter(f => f.properties.MRC_ID === mrcId) };
-    map.getSource('points').setData(filteredPts);
-  }
+  // Charger les points de cette MRC
+  const filteredPts = {
+    type:'FeatureCollection',
+    features: pointsGJ.features.filter(f => f.properties.MRC_ID === mrcId)
+  };
+  map.getSource('points').setData(filteredPts);
 }
 
+// ── Sélection Municipalité ──
 function selectMUN(munId) {
   selectedMUN = munId;
-
-  // Sync select + info box
   document.getElementById('sel-mun').value = munId;
   updateInfoBox(munId);
-
-  // Ouvrir la fiche directement
   ouvrirFiche(munId);
 }
 
-function switchBasemap(bm) {
-  if (bm === currentBm) return;
-  currentBm = bm;
-  const center = map.getCenter(), zoom = map.getZoom();
-  map.setStyle(getStyle(bm));
-  map.once('styledata', () => { map.jumpTo({ center, zoom }); addAllLayers(); });
-}
+
 
 // ── Listeners UI ──
 document.getElementById('sel-mrc').addEventListener('change', (e) => {
-  if (e.target.value) selectMRC(e.target.value);
-  else {
+  if (e.target.value) {
+    selectMRC(e.target.value);
+  } else {
     selectedMRC = null; selectedMUN = null;
     populateMUN(null);
     updateInfoBox(null);
-    if (map.getLayer('mrc-selected')) map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], '___NONE___']);
-    // Vider les points et la zone hover
-    if (map.getSource('points')) map.getSource('points').setData({ type:'FeatureCollection', features: [] });
-    if (map.getSource('zones-hover')) map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
+    map.setFilter('mrc-selected', ['==', ['get','MRC_ID'], '___NONE___']);
+    map.getSource('points').setData({ type:'FeatureCollection', features: [] });
+    map.getSource('zones-hover').setData({ type:'FeatureCollection', features: [] });
   }
 });
 
@@ -604,7 +537,9 @@ document.getElementById('sel-mun').addEventListener('change', (e) => {
   else { selectedMUN = null; updateInfoBox(null); }
 });
 
-document.getElementById('btn-fiche').addEventListener('click', () => { if (selectedMUN) ouvrirFiche(selectedMUN); });
+document.getElementById('btn-fiche').addEventListener('click', () => {
+  if (selectedMUN) ouvrirFiche(selectedMUN);
+});
 
 document.getElementById('btn-close-modal').addEventListener('click', () => {
   document.getElementById('modal-overlay').classList.remove('open');
@@ -614,12 +549,7 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
     document.getElementById('modal-overlay').classList.remove('open');
 });
 
-document.querySelectorAll('.bm-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.bm-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); switchBasemap(btn.dataset.bm);
-  });
-});
+
 
 // ── Resizer ──
 (function() {
@@ -654,7 +584,7 @@ async function init() {
 
   map = new maplibregl.Map({
     container: 'map-container',
-    style: getStyle(currentBm),
+    style: STYLE_NEUTRE,
     bounds: [[-79.5, 44.5], [-56.5, 62.5]],
     fitBoundsOptions: { padding: 20 },
     attributionControl: false,
