@@ -38,20 +38,22 @@
     #header {
       flex-shrink: 0;
       background: var(--header-bg);
-      display: flex; align-items: center;
-      padding: 4px 16px; gap: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 24px; gap: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.10); z-index: 10;
       border-bottom: 2px solid #c5d5c5;
-      min-height: 52px;
+      min-height: 80px;
     }
     #header-title { flex: 1; display: flex; align-items: center; }
     #header h1 {
-      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600;
       letter-spacing: 0.8px; text-transform: uppercase;
       color: var(--header-text); line-height: 1.3;
     }
-    #header-logo { flex-shrink: 0; display: flex; align-items: center; }
-    #header-logo img { height: 52px; width: auto; display: block; }
+    #header-logo {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+    }
+    #header-logo img { height: 68px; width: auto; display: block; }
 
     #app { flex: 1; min-height: 0; display: flex; overflow: hidden; }
 
@@ -118,12 +120,30 @@
     #btn-fiche:hover { background: var(--accent-dark); }
     #btn-fiche.visible { display: block; }
 
+    #btn-legende {
+      background: #5d6d7e; border: none; border-radius: 6px;
+      color: #fff; font-family: 'Oswald', sans-serif;
+      font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+      padding: 8px 12px; cursor: pointer; transition: background 0.2s; width: 100%;
+      flex-shrink: 0; display: none;
+    }
+    #btn-legende:hover { background: #4a5568; }
+    #btn-legende.visible { display: block; }
+
     /* Légende EXPO */
     #expo-legend {
       background: var(--box-bg); border: 1px solid var(--panel-border);
       border-radius: 8px; padding: 10px 12px; box-shadow: var(--box-shadow);
-      flex-shrink: 0;
+      flex-shrink: 0; position: relative; cursor: help;
     }
+    #expo-tooltip {
+      display: none; position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
+      background: rgba(30,40,30,0.97); color: #f0f4f0;
+      font-family: 'Source Sans 3', sans-serif; font-size: 11.5px; line-height: 1.55;
+      padding: 10px 12px; border-radius: 8px; z-index: 50;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: none;
+    }
+    #expo-legend:hover #expo-tooltip { display: block; }
     .legend-bar {
       height: 14px; border-radius: 4px; margin: 6px 0 4px;
       background: linear-gradient(to right, #2d7a2d, #8db840, #d4c240, #d4821a, #c0392b);
@@ -185,12 +205,12 @@
     }
 
     /* ── Modal fiche ── */
-    #modal-overlay-mrc, #modal-overlay {
+    #modal-legende, #modal-overlay-mrc, #modal-overlay {
       display: none; position: fixed; inset: 0; z-index: 300;
       background: rgba(0,0,0,0.65);
       align-items: center; justify-content: center;
     }
-    #modal-overlay-mrc.open, #modal-overlay.open { display: flex; }
+    #modal-legende.open, #modal-overlay-mrc.open, #modal-overlay.open { display: flex; }
     #modal-box {
       background: #fff; border-radius: 10px;
       width: min(90vw, 900px); max-height: 90vh;
@@ -239,6 +259,64 @@
       color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;
     }
 
+    /* ── Popup accueil ── */
+    #popup-accueil {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,0.55);
+      align-items: center; justify-content: center;
+    }
+    #popup-accueil.open { display: flex; }
+    #popup-box {
+      background: #fff; border-radius: 12px;
+      width: min(88vw, 680px); max-height: 75vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      overflow: hidden; position: relative;
+    }
+    #popup-header {
+      background: #2C3E50; padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #popup-header h2 {
+      font-family: 'Oswald', sans-serif; font-size: 15px;
+      letter-spacing: 1px; text-transform: uppercase; color: #fff; margin: 0;
+    }
+    #btn-close-popup {
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px;
+    }
+    #btn-close-popup:hover { color: #fff; }
+    #popup-body {
+      padding: 20px 22px; overflow-y: auto; flex: 1;
+      font-family: 'Source Sans 3', sans-serif; font-size: 13.5px;
+      line-height: 1.7; color: #333;
+    }
+    #popup-body p { margin-bottom: 12px; }
+    #popup-footer {
+      padding: 12px 22px; border-top: 1px solid #e5e7eb;
+      display: flex; justify-content: flex-end; flex-shrink: 0;
+      background: #f9f9f9;
+    }
+    #btn-fermer-popup {
+      background: #2C3E50; color: #fff; border: none; border-radius: 6px;
+      font-family: 'Oswald', sans-serif; font-size: 12px;
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 8px 20px; cursor: pointer; transition: background 0.2s;
+    }
+    #btn-fermer-popup:hover { background: #1a252f; }
+
+    /* Icône i */
+    #btn-info {
+      position: fixed; bottom: 48px; right: 14px; z-index: 200;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: #2C3E50; border: 2px solid #fff;
+      color: #fff; font-family: Georgia, serif; font-size: 16px; font-style: italic;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: background 0.2s;
+    }
+    #btn-info:hover { background: #1a252f; }
+
     /* Loading */
     #loading {
       position: absolute; inset: 0; background: #f9f9f9;
@@ -260,6 +338,28 @@
   </style>
 </head>
 <body>
+
+<!-- Popup accueil -->
+<div id="popup-accueil">
+  <div id="popup-box">
+    <div id="popup-header">
+      <h2>Bienvenue — Prédisposition aux feux de forêts</h2>
+      <button id="btn-close-popup">✕</button>
+    </div>
+    <div id="popup-body">
+      <p>asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd</p>
+      <p>asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd</p>
+      <p>asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd</p>
+      <p>asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd asdjf;lasjdf;asjdf;asjd</p>
+    </div>
+    <div id="popup-footer">
+      <button id="btn-fermer-popup">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Icône i -->
+<button id="btn-info" title="À propos de l'application">i</button>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -302,16 +402,18 @@
 
     <button id="btn-fiche-mrc">🗂 Voir la fiche MRC</button>
     <button id="btn-fiche">📄 Voir la fiche municipale</button>
+    <button id="btn-legende">📋 Légende fiche municipalité</button>
 
     <hr class="divider" />
 
     <div id="expo-legend">
-      <span class="panel-label">Indice d'exposition aux feux (EXPO)</span>
+      <span class="panel-label">Indice d'exposition aux feux (EXPO) ℹ</span>
+      <div id="expo-tooltip">L'indice composite d'exposition est le résultat de la combinaison des 4 variables suivantes : taux de brûlage, taux d'occurrences, proportion de conifère et taux de météo extrême (toutes normalisées sur une échelle de 0 à 1). L'indice aura une valeur entre 0 et 4 puisqu'il est le résultat de la sommation des 4 variables de 0 à 1. Plus l'indice est élevé, plus on assume que la MRC est prédisposée à avoir des feux de grande taille et intensité.</div>
       <div class="legend-bar"></div>
       <div class="legend-labels">
-        <span id="expo-min-label">—</span>
+        <span id="expo-min-label">0</span>
         <span>Faible → Élevé</span>
-        <span id="expo-max-label">—</span>
+        <span id="expo-max-label">4</span>
       </div>
     </div>
 
@@ -361,12 +463,31 @@
   </div>
 </div>
 
+<!-- Modal légende fiche municipalité -->
+<div id="modal-legende">
+  <div id="modal-box">
+    <div id="modal-header">
+      <span id="modal-title" style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:1px;color:#fff;text-transform:uppercase;">Légende — Fiche municipalité</span>
+      <div id="modal-actions">
+        <a id="btn-download-legende" href="legende_fiche_munic.png" download="legende_fiche_munic.png" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
+        <button id="btn-close-legende" style="background:none;border:none;color:rgba(255,255,255,0.8);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>
+      </div>
+    </div>
+    <div id="modal-img-wrap">
+      <img id="modal-img-legende" src="legende_fiche_munic.png" alt="Légende fiche municipalité"
+           style="max-width:calc(100% - 16px);max-height:calc(85vh - 60px);width:auto;height:auto;object-fit:contain;border-radius:4px;display:block;" />
+      <div id="modal-img-error-legende" style="display:none;font-family:'Source Sans 3',sans-serif;color:#6b7280;font-size:13px;text-align:center;padding:20px;">Légende non disponible — fichier legende_fiche_munic.png manquant dans le dossier web/.</div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal fiche MRC -->
 <div id="modal-overlay-mrc">
   <div id="modal-box">
     <div id="modal-header">
       <span id="modal-title-mrc">Fiche MRC</span>
       <div id="modal-actions">
+        <a id="btn-download-mrc" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
         <button id="btn-close-modal-mrc">✕</button>
       </div>
     </div>
@@ -384,6 +505,7 @@
     <div id="modal-header">
       <span id="modal-title">Fiche municipale</span>
       <div id="modal-actions">
+        <a id="btn-download" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
         <button id="btn-close-modal">✕</button>
       </div>
     </div>
@@ -430,6 +552,8 @@ function ouvrirFicheMRC(mrcIdm) {
   img.onload = () => {
     document.getElementById('modal-img-loading-mrc').style.display = 'none';
     img.style.display = 'block';
+    const dl = document.getElementById('btn-download-mrc');
+    dl.href = url; dl.download = `Portrait_feux_${mrcIdm}.jpeg`; dl.style.display = 'inline-block';
   };
   img.onerror = () => {
     document.getElementById('modal-img-loading-mrc').style.display = 'none';
@@ -489,8 +613,11 @@ async function loadData() {
   expoMin = Math.min(...expos);
   expoMax = Math.max(...expos);
 
-  document.getElementById('expo-min-label').textContent = expoMin.toFixed(2);
-  document.getElementById('expo-max-label').textContent = expoMax.toFixed(2);
+  document.getElementById('expo-min-label').textContent = '0';
+  document.getElementById('expo-max-label').textContent = '4';
+  // Bornes fixes pour l'affichage (0-4) mais plage réelle utilisée pour la colorisation
+  expoMin = 0;
+  expoMax = 4;
 
   // Construire la map MRC_IDm → MRC_NOM_AFFICHAGE
   lutData.forEach(r => {
@@ -549,6 +676,7 @@ function updateInfoBox(munId) {
   if (!munId) {
     box.innerHTML = '<span class="info-empty">Sélectionnez une MRC puis une municipalité</span>';
     btn.classList.remove('visible');
+  document.getElementById('btn-legende').classList.remove('visible');
     return;
   }
   const row = lutData.find(r => r.MUN_ID === munId);
@@ -557,6 +685,7 @@ function updateInfoBox(munId) {
     <div class="info-nom-mun">${row.mus_nm_mun || '—'}</div>
     <div class="info-nom-lieu">${row.nomcartrou || ''}</div>`;
   btn.classList.add('visible');
+  document.getElementById('btn-legende').classList.add('visible');
 }
 
 // ── Fiche JPEG ──
@@ -576,6 +705,8 @@ function ouvrirFiche(munId) {
   img.onload = () => {
     document.getElementById('modal-img-loading').style.display = 'none';
     img.style.display = 'block';
+    const dl = document.getElementById('btn-download');
+    dl.href = url; dl.download = `FBP_carte_${munId}.jpeg`; dl.style.display = 'inline-block';
   };
   img.onerror = () => {
     document.getElementById('modal-img-loading').style.display = 'none';
@@ -764,6 +895,7 @@ document.getElementById('btn-fiche').addEventListener('click', () => {
 });
 document.getElementById('btn-close-modal-mrc').addEventListener('click', () => {
   document.getElementById('modal-overlay-mrc').classList.remove('open');
+  document.getElementById('btn-download-mrc').style.display = 'none';
 });
 document.getElementById('modal-overlay-mrc').addEventListener('click', (e) => {
   if (e.target === document.getElementById('modal-overlay-mrc'))
@@ -771,6 +903,7 @@ document.getElementById('modal-overlay-mrc').addEventListener('click', (e) => {
 });
 document.getElementById('btn-close-modal').addEventListener('click', () => {
   document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('btn-download').style.display = 'none';
 });
 document.getElementById('modal-overlay').addEventListener('click', (e) => {
   if (e.target === document.getElementById('modal-overlay'))
@@ -828,7 +961,41 @@ async function init() {
   }
 }
 
-init();
+// ── Popup accueil ──
+function ouvrirPopup() {
+  document.getElementById('popup-accueil').classList.add('open');
+}
+function fermerPopup() {
+  document.getElementById('popup-accueil').classList.remove('open');
+}
+
+document.getElementById('btn-close-popup').addEventListener('click', fermerPopup);
+document.getElementById('btn-fermer-popup').addEventListener('click', fermerPopup);
+document.getElementById('popup-accueil').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('popup-accueil')) fermerPopup();
+});
+document.getElementById('btn-info').addEventListener('click', ouvrirPopup);
+
+// ── Légende fiche municipalité ──
+document.getElementById('btn-legende').addEventListener('click', () => {
+  const img = document.getElementById('modal-img-legende');
+  const err = document.getElementById('modal-img-error-legende');
+  img.style.display = 'block'; err.style.display = 'none';
+  img.onerror = () => { img.style.display = 'none'; err.style.display = 'block'; };
+  document.getElementById('modal-legende').classList.add('open');
+});
+document.getElementById('btn-close-legende').addEventListener('click', () => {
+  document.getElementById('modal-legende').classList.remove('open');
+});
+document.getElementById('modal-legende').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-legende'))
+    document.getElementById('modal-legende').classList.remove('open');
+});
+
+init().then(() => {
+  // Ouvrir le popup après chargement des données
+  ouvrirPopup();
+});
 </script>
 </body>
 </html>
