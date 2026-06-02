@@ -60,14 +60,34 @@
 
     /* ── Panel gauche ── */
     #panel {
-      width: 320px; min-width: 320px; flex-shrink: 0;
+      width: 420px; min-width: 280px; flex-shrink: 0;
       background: var(--panel-bg); border-right: 1px solid var(--panel-border);
       display: flex; flex-direction: column;
-      overflow-y: auto; overflow-x: hidden;
-      padding: 14px 12px; gap: 12px;
+      overflow: hidden;
     }
-    #panel::-webkit-scrollbar { width: 4px; }
-    #panel::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 2px; }
+
+    /* ── Onglets ── */
+    #panel-tabs {
+      display: flex; flex-shrink: 0;
+      border-bottom: 2px solid var(--panel-border);
+      background: var(--box-bg);
+    }
+    .tab-btn {
+      flex: 1; padding: 9px 6px;
+      font-family: 'Oswald', sans-serif; font-size: 11px;
+      letter-spacing: 0.9px; text-transform: uppercase;
+      color: var(--text-muted); background: none; border: none;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      cursor: pointer; transition: color 0.18s, border-color 0.18s;
+      line-height: 1.3;
+    }
+    .tab-btn:hover { color: var(--accent); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-pane { display: none; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 12px; gap: 12px; flex-direction: column; }
+    .tab-pane.active { display: flex; }
+    .tab-pane::-webkit-scrollbar { width: 4px; }
+    .tab-pane::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 2px; }
 
     .panel-section { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
     .panel-label {
@@ -121,16 +141,6 @@
     #btn-fiche:hover { background: var(--accent-dark); }
     #btn-fiche.visible { display: block; }
 
-    #btn-legende {
-      background: #5d6d7e; border: none; border-radius: 6px;
-      color: #fff; font-family: 'Oswald', sans-serif;
-      font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
-      padding: 8px 12px; cursor: pointer; transition: background 0.2s; width: 100%;
-      flex-shrink: 0; display: none;
-    }
-    #btn-legende:hover { background: #4a5568; }
-    #btn-legende.visible { display: block; }
-
     /* Légende EXPO */
     #expo-legend {
       background: var(--box-bg); border: 1px solid var(--panel-border);
@@ -181,6 +191,29 @@
       color: var(--text-muted); margin-bottom: 4px;
     }
 
+    /* ── Onglet Ressources utiles ── */
+    #tab-ressources {
+      gap: 14px;
+    }
+    .ressource-card {
+      background: var(--box-bg); border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 12px 14px; box-shadow: var(--box-shadow);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .ressource-card .res-label {
+      font-family: 'Source Sans 3', sans-serif; font-size: 12.5px;
+      color: var(--text-main); line-height: 1.5;
+    }
+    .ressource-card a.res-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--accent); color: #fff;
+      font-family: 'Oswald', sans-serif; font-size: 11px;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      padding: 5px 11px; border-radius: 5px; text-decoration: none;
+      align-self: flex-start; transition: background 0.18s;
+    }
+    .ressource-card a.res-link:hover { background: var(--accent-dark); }
+
     /* ── Resizer ── */
     #resizer {
       width: 6px; flex-shrink: 0; background: var(--panel-border);
@@ -203,15 +236,27 @@
       border-radius: 6px; padding: 6px 12px; pointer-events: none; display: none;
       font-family: 'Oswald', sans-serif; font-size: 13px; color: var(--text-main);
       box-shadow: 0 4px 12px rgba(0,0,0,0.12); white-space: nowrap;
+      line-height: 1.5;
+    }
+    #map-tooltip .tt-expo {
+      font-size: 11px; color: var(--text-muted);
+      font-family: 'Source Sans 3', sans-serif; font-weight: 400;
     }
 
     /* ── Modal fiche ── */
-    #modal-legende, #modal-overlay-mrc, #modal-overlay {
+    #modal-overlay-mrc, #modal-overlay {
       display: none; position: fixed; inset: 0; z-index: 300;
       background: rgba(0,0,0,0.65);
       align-items: center; justify-content: center;
     }
-    #modal-legende.open, #modal-overlay-mrc.open, #modal-overlay.open { display: flex; }
+    #modal-overlay-mrc.open, #modal-overlay.open { display: flex; }
+
+    #modal-legende {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.65);
+      align-items: center; justify-content: center;
+    }
+    #modal-legende.open { display: flex; }
     #modal-box {
       background: #fff; border-radius: 10px;
       width: min(90vw, 900px); max-height: 90vh;
@@ -235,6 +280,16 @@
       text-decoration: none; transition: background 0.15s;
     }
     #btn-download:hover { background: rgba(255,255,255,0.35); }
+
+    /* Bouton légende dans le modal municipalité */
+    #btn-legende-modal {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 5px; color: rgba(255,255,255,0.9); font-family: 'Source Sans 3', sans-serif;
+      font-size: 11px; padding: 4px 10px; cursor: pointer;
+      text-decoration: none; transition: background 0.15s; white-space: nowrap;
+    }
+    #btn-legende-modal:hover { background: rgba(255,255,255,0.28); }
+
     #btn-close-modal {
       background: none; border: none; color: rgba(255,255,255,0.8);
       font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px;
@@ -258,6 +313,69 @@
     #modal-img-error {
       display: none; font-family: 'Source Sans 3', sans-serif;
       color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;
+    }
+
+    /* ── Modal légende HTML ── */
+    #modal-legende-box {
+      background: #fff; border-radius: 10px;
+      width: min(90vw, 920px); max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 16px 60px rgba(0,0,0,0.3); overflow: hidden;
+    }
+    #modal-legende-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: #2C3E50; flex-shrink: 0;
+    }
+    #modal-legende-header .ml-title {
+      font-family: 'Oswald', sans-serif; font-size: 14px;
+      letter-spacing: 1px; color: #fff; text-transform: uppercase;
+    }
+    #modal-legende-header .ml-actions { display: flex; gap: 8px; align-items: center; }
+    #btn-close-legende {
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px;
+    }
+    #btn-close-legende:hover { color: #fff; }
+    #modal-legende-body {
+      flex: 1; overflow-y: auto; padding: 20px 24px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px;
+    }
+
+    /* Légende groupée */
+    .leg-section { margin-bottom: 16px; }
+    .leg-section-title {
+      font-family: 'Oswald', sans-serif; font-size: 12px;
+      letter-spacing: 1.1px; text-transform: uppercase;
+      color: var(--text-muted); border-bottom: 1.5px solid var(--panel-border);
+      padding-bottom: 4px; margin-bottom: 7px;
+    }
+    .leg-intro {
+      font-family: 'Source Sans 3', sans-serif; font-size: 12px;
+      color: #444; line-height: 1.55; margin-bottom: 10px;
+    }
+    .leg-intro a { color: var(--accent); text-decoration: none; }
+    .leg-intro a:hover { text-decoration: underline; }
+    .leg-row {
+      display: flex; align-items: center; gap: 9px;
+      margin-bottom: 5px; font-size: 12.5px; color: var(--text-main);
+    }
+    .leg-swatch {
+      width: 22px; height: 14px; border-radius: 3px; flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.12);
+    }
+    .leg-col-title {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      letter-spacing: 0.5px; color: var(--text-main); margin-bottom: 12px;
+    }
+    .leg-col-intro {
+      font-family: 'Source Sans 3', sans-serif; font-size: 12px;
+      color: #444; line-height: 1.55; margin-bottom: 10px;
+    }
+    .leg-col-intro a { color: var(--accent); text-decoration: none; }
+    .leg-col-intro a:hover { text-decoration: underline; }
+    .leg-col-sub {
+      font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 0.8px;
+      color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;
     }
 
     /* ── Popup accueil ── */
@@ -348,10 +466,10 @@
       <button id="btn-close-popup">✕</button>
     </div>
     <div id="popup-body">
-      <p> Cette application sert de catalogue pour télécharger les fiches d'historiques de feu (superficie et occurence) à l'échelle des MRC ainsi que la composition en combustible à proximité des municipalités du Québec </p>
-      <p> - </p>
-      <p> - </p>
-      <p> - </p>
+      <p> Cette application sert de point d'accès pour télécharger les fiches d'historique de feu à l'échelle des MRC (superficie et occurence) ainsi que la composition en combustible et l'évaluation du potentiel d'intensité et de propagation des feux de forêt à proximité des municipalités du Québec </p>
+      <p> Pour consulter et télécharger les fiches à l'échelle des MRC, il est possible d'utiliser directement la carte en cliquant sur une MRC donnée ou en sélectionnant le nom de la MRC dans le menu déroulant «&nbsp;MRC&nbsp;» situé dans le coin supérieur gauche de l'écran. Une fois sélectionnée un bouton «&nbsp;Voir la fiche MRC&nbsp;» apparaîtra pour la consulter. </p>
+      <p> Une fois cette étape complétée, il sera possible de sélectionner les municipalités dans l'emprise de la MRC en utilisant à nouveau la carte, ou le menu déroulant «&nbsp;Municipalité&nbsp;». Une fois la municipalité sélectionnée, la fiche s'affichera automatiquement à l'écran avec sa légende associée. </p>
+      <p> De plus, en fond d'écran, vous pourrez consulter sur une échelle de couleur de vert à rouge, l'indice de prédisposition des MRC face aux feux de forêt. Plus l'indice est élevé, plus cela signifie qu'il est probable que cette MRC soit affecté par un grand nombre de feux de grande superficie. </p>
     </div>
     <div id="popup-footer">
       <button id="btn-fermer-popup">Fermer</button>
@@ -379,80 +497,110 @@
 <div id="app">
   <div id="panel">
 
-    <div class="panel-section">
-      <span class="panel-label">MRC</span>
-      <select id="sel-mrc">
-        <option value="">— Sélectionnez une MRC —</option>
-      </select>
+    <!-- Onglets -->
+    <div id="panel-tabs">
+      <button class="tab-btn active" data-tab="fiches">Fiches à télécharger</button>
+      <button class="tab-btn" data-tab="ressources">Ressources utiles</button>
     </div>
 
-    <div class="panel-section">
-      <span class="panel-label">Municipalité</span>
-      <select id="sel-mun" disabled>
-        <option value="">— Sélectionnez d'abord une MRC —</option>
-      </select>
-    </div>
+    <!-- Onglet 1 : Fiches -->
+    <div id="tab-fiches" class="tab-pane active">
 
-    <hr class="divider" />
-
-    <div class="panel-section">
-      <div id="info-box">
-        <span class="info-empty">Sélectionnez une MRC puis une municipalité</span>
-      </div>
-    </div>
-
-    <button id="btn-fiche-mrc">🗂 Voir la fiche MRC</button>
-    <button id="btn-fiche">📄 Voir la fiche municipale</button>
-    <button id="btn-legende">📋 Légende fiche municipalité</button>
-
-    <hr class="divider" />
-
-    <div id="expo-legend">
-      <span class="panel-label">Indice d'exposition aux feux (EXPO) ℹ</span>
-      <div id="expo-tooltip">L'indice composite d'exposition est le résultat de la combinaison des 4 variables suivantes : taux de brûlage, taux d'occurrences, proportion de conifère et taux de météo extrême (toutes normalisées sur une échelle de 0 à 1). L'indice aura une valeur entre 0 et 4 puisqu'il est le résultat de la sommation des 4 variables de 0 à 1. Plus l'indice est élevé, plus on assume que la MRC est prédisposée à avoir des feux de grande taille et intensité.</div>
-      <div class="legend-bar"></div>
-      <div class="legend-labels">
-        <span id="expo-min-label">0</span>
-        <span>Faible → Élevé</span>
-        <span id="expo-max-label">4</span>
-      </div>
-    </div>
-
-    <hr class="divider" />
-
-    <div id="sources-section">
-      <div class="src-title">Sources des données</div>
-
-      <div class="src-group">
-        <div class="src-group-title">Feux de forêts</div>
-        <a href="https://www.donneesquebec.ca/recherche/fr/dataset/feux-de-foret" target="_blank" rel="noopener">Données Québec — Feux de forêt</a><br/>
-        Cartographie des points d'origine · Feux de forêts (depuis 1976) · Régime de feux du Québec méridional
+      <div class="panel-section">
+        <span class="panel-label">MRC</span>
+        <select id="sel-mrc">
+          <option value="">— Sélectionnez une MRC —</option>
+        </select>
       </div>
 
-      <div class="src-group">
-        <div class="src-group-title">Combustibles forestiers</div>
-        <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">Données Québec — Potentiel d'intensité et de propagation</a><br/>
-        Combustible 2025
+      <div class="panel-section">
+        <span class="panel-label">Municipalité</span>
+        <select id="sel-mun" disabled>
+          <option value="">— Sélectionnez d'abord une MRC —</option>
+        </select>
       </div>
 
-      <div class="src-group">
-        <div class="src-group-title">Découpages administratifs</div>
-        <a href="https://www.donneesquebec.ca/recherche/dataset/decoupages-administratifs" target="_blank" rel="noopener">Données Québec — Découpages administratifs 1/20 000 (FGDB)</a><br/>
-        MRC · Municipalité
+      <hr class="divider" />
+
+      <div class="panel-section">
+        <div id="info-box">
+          <span class="info-empty">Sélectionnez une MRC puis une municipalité</span>
+        </div>
       </div>
 
-      <div class="src-group">
-        <div class="src-group-title">Lieux habités</div>
-        <a href="https://www.donneesquebec.ca/recherche/dataset/lieu-habite" target="_blank" rel="noopener">Données Québec — Lieu habité</a>
+      <button id="btn-fiche-mrc">🗂 Voir la fiche "MRC"</button>
+      <button id="btn-fiche">📄 Voir la fiche "Municipalité"</button>
+
+      <hr class="divider" />
+
+      <div id="expo-legend">
+        <span class="panel-label">Indice de prédisposition aux feux ℹ</span>
+        <div id="expo-tooltip">L'indice composite d'exposition est le résultat de la combinaison des 4 variables suivantes : taux de brûlage, taux d'occurrences, proportion de conifère et taux de météo extrême (toutes normalisées sur une échelle de 0 à 1). L'indice aura une valeur entre 0 et 4 puisqu'il est le résultat de la sommation des 4 variables de 0 à 1. Plus l'indice est élevé, plus on assume que la MRC est prédisposée à avoir des feux de grande taille et intensité.</div>
+        <div class="legend-bar"></div>
+        <div class="legend-labels">
+          <span id="expo-min-label">0</span>
+          <span>Faible → Élevé</span>
+          <span id="expo-max-label">4</span>
+        </div>
       </div>
 
-      <div class="auteurs">
-        <div class="auteur-title">Auteurs</div>
-        Yan Boucher — <a href="mailto:yboucher@uqac.ca">yboucher@uqac.ca</a><br/>
-        Victor Danneyrolles — <a href="mailto:vdanneyr@uqac.ca">vdanneyr@uqac.ca</a><br/>
-        Hugues Dorion — <a href="mailto:hdorion@uqac.ca">hdorion@uqac.ca</a>
+      <hr class="divider" />
+
+      <div id="sources-section">
+        <div class="src-title">Sources des données</div>
+
+        <div class="src-group">
+          <div class="src-group-title">Feux de forêts</div>
+          <a href="https://www.donneesquebec.ca/recherche/fr/dataset/feux-de-foret" target="_blank" rel="noopener">Données Québec — Feux de forêt</a><br/>
+          Cartographie des points d'origine · Feux de forêts (depuis 1976) · Régime de feux du Québec méridional
+        </div>
+
+        <div class="src-group">
+          <div class="src-group-title">Combustibles forestiers</div>
+          <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">Données Québec — Potentiel d'intensité et de propagation</a><br/>
+          Combustible 2025
+        </div>
+
+        <div class="src-group">
+          <div class="src-group-title">Découpages administratifs</div>
+          <a href="https://www.donneesquebec.ca/recherche/dataset/decoupages-administratifs" target="_blank" rel="noopener">Données Québec — Découpages administratifs 1/20 000 (FGDB)</a><br/>
+          MRC · Municipalité
+        </div>
+
+        <div class="src-group">
+          <div class="src-group-title">Lieux habités</div>
+          <a href="https://www.donneesquebec.ca/recherche/dataset/lieu-habite" target="_blank" rel="noopener">Données Québec — Lieu habité</a>
+        </div>
+
+        <div class="auteurs">
+          <div class="auteur-title">Auteurs</div>
+          Yan Boucher — <a href="mailto:yboucher@uqac.ca">yboucher@uqac.ca</a><br/>
+          Victor Danneyrolles — <a href="mailto:vdanneyr@uqac.ca">vdanneyr@uqac.ca</a><br/>
+          Hugues Dorion — <a href="mailto:hdorion@uqac.ca">hdorion@uqac.ca</a>
+        </div>
       </div>
-    </div>
+
+    </div><!-- /tab-fiches -->
+
+    <!-- Onglet 2 : Ressources utiles -->
+    <div id="tab-ressources" class="tab-pane">
+
+      <div class="ressource-card">
+        <div class="res-label">Préparez-vous à faire face à un feu de forêt, connaissez les gestes à poser pour assurer votre sécurité et celle de vos proches ainsi que pour protéger votre maison et vos biens.</div>
+        <a class="res-link" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret" target="_blank" rel="noopener">→ Consulter</a>
+      </div>
+
+      <div class="ressource-card">
+        <div class="res-label">Prévenir les feux de forêt</div>
+        <a class="res-link" href="https://www.sopfeu.qc.ca/prevention/prevenir-les-feux-de-foret/" target="_blank" rel="noopener">→ Consulter</a>
+      </div>
+
+      <div class="ressource-card">
+        <div class="res-label">Protégez votre habitation</div>
+        <a class="res-link" href="https://www.sopfeu.qc.ca/prevention/protegez-votre-habitation/" target="_blank" rel="noopener">→ Consulter</a>
+      </div>
+
+    </div><!-- /tab-ressources -->
 
   </div><!-- /panel -->
 
@@ -460,25 +608,105 @@
 
   <div id="map">
     <div id="map-container"></div>
-    <div id="map-tooltip"></div>
+    <div id="map-tooltip">
+      <div id="tt-nom"></div>
+      <div id="tt-expo" class="tt-expo"></div>
+    </div>
   </div>
 </div>
 
-<!-- Modal légende fiche municipalité -->
+<!-- Modal légende fiche municipalité (HTML interne) -->
 <div id="modal-legende">
-  <div id="modal-box">
-    <div id="modal-header">
-      <span id="modal-title" style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:1px;color:#fff;text-transform:uppercase;">Légende — Fiche municipalité</span>
-      <div id="modal-actions">
-        <a id="btn-download-legende" href="legende_fiche_munic.png" download="legende_fiche_munic.png" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
-        <button id="btn-close-legende" style="background:none;border:none;color:rgba(255,255,255,0.8);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>
+  <div id="modal-legende-box">
+    <div id="modal-legende-header">
+      <span class="ml-title">Légende — Fiche municipalité</span>
+      <div class="ml-actions">
+        <a href="legende_fiche_munic.png" download="legende_fiche_munic.png"
+           style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger PNG</a>
+        <button id="btn-close-legende">✕</button>
       </div>
     </div>
-    <div id="modal-img-wrap">
-      <img id="modal-img-legende" src="legende_fiche_munic.png" alt="Légende fiche municipalité"
-           style="max-width:calc(100% - 16px);max-height:calc(85vh - 60px);width:auto;height:auto;object-fit:contain;border-radius:4px;display:block;" />
-      <div id="modal-img-error-legende" style="display:none;font-family:'Source Sans 3',sans-serif;color:#6b7280;font-size:13px;text-align:center;padding:20px;">Légende non disponible — fichier legende_fiche_munic.png manquant dans le dossier web/.</div>
-    </div>
+    <div id="modal-legende-body">
+
+      <!-- Colonne gauche : Combustibles -->
+      <div>
+        <div class="leg-col-title">Combustible MRNF 2025</div>
+        <div class="leg-col-intro">
+          Les types de combustibles végétaux sont issus de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI). Chaque type de combustibles présente une structure et une composition différente et influence grandement le potentiel d'intensité et de propagation des feux de forêt.<br/>
+          <a href="https://ressources-naturelles.canada.ca" target="_blank" rel="noopener">→ Combustibles MCPCI (ressources-naturelles.canada.ca)</a>
+        </div>
+
+        <!-- Résineux -->
+        <div class="leg-section">
+          <div class="leg-section-title">Résineux</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#D1FF73;"></div><span>C1 — Pessière à lichens</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#226633;"></div><span>C2 — Pessière boréale</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#83C795;"></div><span>C3 — Pin gris à maturité</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#DFB8E6;"></div><span>C5 — Pins rouges et pins blancs</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AC66ED;"></div><span>C6 — Plantation de conifères</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#700CF2;"></div><span>C7 — Pins (ponderosa)</span></div>
+        </div>
+
+        <!-- Feuillus -->
+        <div class="leg-section">
+          <div class="leg-section-title">Feuillus</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#C4BD97;"></div><span>D1 — Peupliers faux-trembles</span></div>
+        </div>
+
+        <!-- Mixtes -->
+        <div class="leg-section">
+          <div class="leg-section-title">Mixtes</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-25 — Forêt boréale mixte &lt;50% conifère</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFD37F;"></div><span>M1-75 — Forêt boréale mixte &gt;50% conifère</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FBBEB9;"></div><span>M3-25 — Forêt mixte sapin baumier mort &lt;50%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-75 — Forêt mixte sapin baumier mort &gt;50%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#630000;"></div><span>M3-100 — Forêt mixte sapin baumier mort 100%</span></div>
+        </div>
+
+        <!-- Herbes basses -->
+        <div class="leg-section">
+          <div class="leg-section-title">Herbes basses</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFFFBE;"></div><span>O1a — Herbes aplaties</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#E6E600;"></div><span>O1b — Herbes mortes</span></div>
+        </div>
+
+        <!-- Rémanents forestiers -->
+        <div class="leg-section">
+          <div class="leg-section-title">Rémanents forestiers</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#F768A1;"></div><span>S2 — Rémanents EPN/SAB</span></div>
+        </div>
+
+        <!-- Autres -->
+        <div class="leg-section">
+          <div class="leg-section-title">Brûlis / Dénudé / Eau / Urbain</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#828282;"></div><span>BR — Brûlis</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#CCCCCC;"></div><span>DH — Dénudé humide</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#CCCCCC;"></div><span>DS — Dénudé sec</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#73DFFF;"></div><span>EAU — Eau</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#DED9D9;"></div><span>URBAIN — Urbain - Non-combustible</span></div>
+        </div>
+      </div>
+
+      <!-- Colonne droite : Potentiel d'intensité -->
+      <div>
+        <div class="leg-col-title">Potentiel d'intensité MRNF 2025</div>
+        <div class="leg-col-intro">
+          Cette couche fournit de l'information sur le niveau potentiel d'intensité et de propagation du feu dans le cas d'une ignition dans un endroit donné. Cette carte n'informe pas l'utilisateur sur la probabilité d'ignition.<br/>
+          <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">→ Potentiel d'intensité (donneesquebec.ca)</a>
+        </div>
+
+        <div class="leg-section">
+          <div class="leg-section-title">Légende</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#B2B2B2;"></div><span>Absence combustible</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#147218;"></div><span>Faible</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FBDE16;"></div><span>Modéré</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FE990D;"></div><span>Considérable</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#A80000;"></div><span>Élevé</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#4F0000;"></div><span>Extrême</span></div>
+        </div>
+      </div>
+
+    </div><!-- /modal-legende-body -->
   </div>
 </div>
 
@@ -504,8 +732,9 @@
 <div id="modal-overlay">
   <div id="modal-box">
     <div id="modal-header">
-      <span id="modal-title">Fiche municipale</span>
+      <span id="modal-title">Fiche municipalité</span>
       <div id="modal-actions">
+        <button id="btn-legende-modal" title="Ouvrir la légende des combustibles">📋 Légende</button>
         <a id="btn-download" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
         <button id="btn-close-modal">✕</button>
       </div>
@@ -526,16 +755,28 @@ const STYLE_NEUTRE   = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style
 // Palier de couleurs EXPO (vert → jaune-vert → jaune → orange → rouge)
 const EXPO_PALETTE = [
   [0.00, '#2d7a2d'],
-  [0.25, '#8db840'],
-  [0.50, '#d4c240'],
-  [0.75, '#d4821a'],
-  [1.00, '#c0392b'],
+  [0.10, '#8db840'],
+  [0.20, '#d4c240'],
+  [0.40, '#d4821a'],
+  [0.60, '#c70e0e'],
+  [1.00, '#900000'],
 ];
 
 let map, mrcGJ, zonesGJ, pointsGJ, lutData;
 let expoMin = 0, expoMax = 4;
 let selectedMRC = null, selectedMUN = null;
 let nomOverride = new Map(); // MRC_IDm → MRC_NOM_AFFICHAGE
+
+// ── Onglets panneau ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  });
+});
 
 // ── Fiche MRC ──
 function ouvrirFicheMRC(mrcIdm) {
@@ -585,7 +826,7 @@ function expoToColor(val) {
 
 // Expression MapLibre « step » pour fill-color basée sur EXPO
 function buildExpoExpression() {
-  const N = 30;
+  const N = 10;
   const expr = ['step', ['get', 'EXPO'], expoToColor(expoMin)];
   for (let i = 1; i <= N; i++) {
     const val = expoMin + (expoMax - expoMin) * i / N;
@@ -596,7 +837,6 @@ function buildExpoExpression() {
 
 // ── Chargement données ──
 async function loadData() {
-  // Chargement initial : MRC + points + LUT seulement (zones tampons en lazy)
   const [mrc, points, lut] = await Promise.all([
     fetch('data/mrc_s.geojson').then(r => r.json()),
     fetch('data/lh_p.geojson').then(r => r.json()),
@@ -605,9 +845,8 @@ async function loadData() {
   mrcGJ    = mrc;
   pointsGJ = points;
   lutData  = lut;
-  zonesGJ  = null; // sera chargé en lazy
+  zonesGJ  = null;
 
-  // Plage EXPO réelle
   const expos = mrcGJ.features
     .map(f => f.properties.EXPO)
     .filter(v => v != null && isFinite(v));
@@ -616,11 +855,9 @@ async function loadData() {
 
   document.getElementById('expo-min-label').textContent = '0';
   document.getElementById('expo-max-label').textContent = '4';
-  // Bornes fixes pour l'affichage (0-4) mais plage réelle utilisée pour la colorisation
   expoMin = 0;
   expoMax = 4;
 
-  // Construire la map MRC_IDm → MRC_NOM_AFFICHAGE
   lutData.forEach(r => {
     if (r.MRC_IDm && r.MRC_NOM_AFFICHAGE) nomOverride.set(r.MRC_IDm, r.MRC_NOM_AFFICHAGE);
   });
@@ -633,7 +870,6 @@ async function loadZonesLazy() {
   zonesLoading = true;
   try {
     const topo = await fetch('data/lh_25km_s.topojson').then(r => r.json());
-    // Décoder le TopoJSON en GeoJSON
     const layerName = Object.keys(topo.objects)[0];
     zonesGJ = topojson.feature(topo, topo.objects[layerName]);
     zonesLoading = false;
@@ -643,7 +879,6 @@ async function loadZonesLazy() {
   }
 }
 
-// Précharger les zones en arrière-plan dès que la carte est prête
 function preloadZones() {
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => loadZonesLazy(), { timeout: 3000 });
@@ -652,10 +887,9 @@ function preloadZones() {
   }
 }
 
-// ── Menu MRC (basé sur mrc_s uniquement) ──
+// ── Menu MRC ──
 function populateMRC() {
   const sel = document.getElementById('sel-mrc');
-  // Dédupliquer par MRC_IDm (plusieurs polygones peuvent avoir le même)
   const seen = new Map();
   mrcGJ.features.forEach(f => {
     const id  = f.properties.MRC_IDm;
@@ -672,7 +906,7 @@ function populateMRC() {
     });
 }
 
-// ── Menu Municipalité (depuis LUT filtrée) ──
+// ── Menu Municipalité ──
 function populateMUN(mrcIdm) {
   const sel = document.getElementById('sel-mun');
   sel.innerHTML = '<option value="">— Sélectionnez une municipalité —</option>';
@@ -703,7 +937,6 @@ function updateInfoBox(munId) {
   if (!munId) {
     box.innerHTML = '<span class="info-empty">Sélectionnez une MRC puis une municipalité</span>';
     btn.classList.remove('visible');
-  document.getElementById('btn-legende').classList.remove('visible');
     return;
   }
   const row = lutData.find(r => r.MUN_ID === munId);
@@ -712,7 +945,6 @@ function updateInfoBox(munId) {
     <div class="info-nom-mun">${row.mus_nm_mun || '—'}</div>
     <div class="info-nom-lieu">${row.nomcartrou || ''}</div>`;
   btn.classList.add('visible');
-  document.getElementById('btn-legende').classList.add('visible');
 }
 
 // ── Fiche JPEG ──
@@ -748,26 +980,22 @@ function addAllLayers() {
   map.addSource('zones-hover', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   map.addSource('points',      { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
-  // Remplissage MRC coloré par EXPO
   map.addLayer({
     id: 'mrc-expo-fill', type: 'fill', source: 'mrc',
     paint: { 'fill-color': buildExpoExpression(), 'fill-opacity': 0.55 }
   });
 
-  // Contours MRC
   map.addLayer({
     id: 'mrc-line', type: 'line', source: 'mrc',
     paint: { 'line-color': '#555', 'line-width': 0.8, 'line-opacity': 0.6 }
   });
 
-  // Contour MRC sélectionnée
   map.addLayer({
     id: 'mrc-selected-line', type: 'line', source: 'mrc',
     filter: ['==', ['get', 'MRC_IDm'], '___NONE___'],
     paint: { 'line-color': '#2980b9', 'line-width': 3, 'line-opacity': 1 }
   });
 
-  // Zone tampon (hover sur point)
   map.addLayer({
     id: 'zones-hover-fill', type: 'fill', source: 'zones-hover',
     paint: { 'fill-color': '#e67e22', 'fill-opacity': 0.22 }
@@ -777,7 +1005,6 @@ function addAllLayers() {
     paint: { 'line-color': '#e67e22', 'line-width': 2, 'line-opacity': 0.9 }
   });
 
-  // Points lieux habités
   map.addLayer({
     id: 'points-circle', type: 'circle', source: 'points',
     paint: {
@@ -797,12 +1024,17 @@ function addAllLayers() {
   });
 
   // ── Interactions MRC ──
-  const tooltip = document.getElementById('map-tooltip');
+  const tooltip   = document.getElementById('map-tooltip');
+  const ttNom     = document.getElementById('tt-nom');
+  const ttExpo    = document.getElementById('tt-expo');
+
   map.on('mouseenter', 'mrc-expo-fill', (e) => {
     map.getCanvas().style.cursor = 'pointer';
     if (e.features && e.features.length > 0) {
       const p0 = e.features[0].properties;
-      tooltip.textContent = (nomOverride && nomOverride.get(p0.MRC_IDm)) || p0.MRS_NM_MRC || '';
+      ttNom.textContent  = (nomOverride && nomOverride.get(p0.MRC_IDm)) || p0.MRS_NM_MRC || '';
+      const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
+      ttExpo.textContent = expoVal != null ? `Indice prédisposition : ${expoVal.toFixed(2)}` : '';
       tooltip.style.display = 'block';
     }
   });
@@ -810,12 +1042,13 @@ function addAllLayers() {
     const rect = document.getElementById('map').getBoundingClientRect();
     let x = e.originalEvent.clientX - rect.left + 12;
     let y = e.originalEvent.clientY - rect.top  + 12;
-    if (x + 220 > rect.width) x -= 200;
+    if (x + 240 > rect.width) x -= 220;
     tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
-    // Mettre à jour le texte dynamiquement à chaque mouvement
     if (e.features && e.features.length > 0) {
       const p0 = e.features[0].properties;
-      tooltip.textContent = (nomOverride && nomOverride.get(p0.MRC_IDm)) || p0.MRS_NM_MRC || '';
+      ttNom.textContent  = (nomOverride && nomOverride.get(p0.MRC_IDm)) || p0.MRS_NM_MRC || '';
+      const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
+      ttExpo.textContent = expoVal != null ? `Indice prédisposition : ${expoVal.toFixed(2)}` : '';
     }
   });
   map.on('mouseleave', 'mrc-expo-fill', () => {
@@ -832,9 +1065,8 @@ function addAllLayers() {
     if (!e.features || !e.features.length) return;
     const munId = e.features[0].properties.MUN_ID;
     if (!munId) return;
-    // Si les zones ne sont pas encore chargées, les charger maintenant
     if (!zonesGJ) await loadZonesLazy();
-    if (!zonesGJ) return; // échec de chargement
+    if (!zonesGJ) return;
     const feats = zonesGJ.features.filter(f => f.properties.MUN_ID === munId);
     map.getSource('zones-hover').setData({ type: 'FeatureCollection', features: feats });
   });
@@ -867,7 +1099,6 @@ function selectMRC(mrcIdm) {
   map.setFilter('mrc-selected-line', ['==', ['get', 'MRC_IDm'], mrcIdm]);
   map.getSource('zones-hover').setData({ type: 'FeatureCollection', features: [] });
 
-  // Zoom sur tous les polygones de cette MRC_IDm
   const feats = mrcGJ.features.filter(f => f.properties.MRC_IDm === mrcIdm);
   if (feats.length > 0) {
     const allCoords = feats.flatMap(f => {
@@ -940,6 +1171,11 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
     document.getElementById('modal-overlay').classList.remove('open');
 });
 
+// Bouton légende dans le modal municipalité
+document.getElementById('btn-legende-modal').addEventListener('click', () => {
+  document.getElementById('modal-legende').classList.add('open');
+});
+
 // ── Resizer ──
 (function() {
   const resizer = document.getElementById('resizer');
@@ -984,7 +1220,7 @@ async function init() {
     map.on('load', () => {
       addAllLayers();
       document.getElementById('loading').classList.add('hidden');
-      preloadZones(); // Chargement zones tampons en arrière-plan
+      preloadZones();
     });
   } catch (err) {
     console.error('Erreur init:', err);
@@ -1008,13 +1244,6 @@ document.getElementById('popup-accueil').addEventListener('click', (e) => {
 document.getElementById('btn-info').addEventListener('click', ouvrirPopup);
 
 // ── Légende fiche municipalité ──
-document.getElementById('btn-legende').addEventListener('click', () => {
-  const img = document.getElementById('modal-img-legende');
-  const err = document.getElementById('modal-img-error-legende');
-  img.style.display = 'block'; err.style.display = 'none';
-  img.onerror = () => { img.style.display = 'none'; err.style.display = 'block'; };
-  document.getElementById('modal-legende').classList.add('open');
-});
 document.getElementById('btn-close-legende').addEventListener('click', () => {
   document.getElementById('modal-legende').classList.remove('open');
 });
@@ -1024,7 +1253,6 @@ document.getElementById('modal-legende').addEventListener('click', (e) => {
 });
 
 init().then(() => {
-  // Ouvrir le popup après chargement des données
   ouvrirPopup();
 });
 </script>
