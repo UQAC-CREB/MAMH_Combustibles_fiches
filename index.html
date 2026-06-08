@@ -272,11 +272,15 @@
       font-family: 'Oswald', sans-serif; font-size: 14px;
       letter-spacing: 1px; color: #fff; text-transform: uppercase;
     }
+    #modal-title-mrc {
+      font-family: 'Oswald', sans-serif; font-size: 14px;
+      letter-spacing: 1px; color: #fff; text-transform: uppercase;
+    }
     #modal-actions { display: flex; gap: 8px; align-items: center; }
     #btn-download {
       background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
       border-radius: 5px; color: #fff; font-family: 'Source Sans 3', sans-serif;
-      font-size: 11px; padding: 4px 10px; cursor: pointer;
+      font-size: 20px; padding: 7px 16px; cursor: pointer;
       text-decoration: none; transition: background 0.15s;
     }
     #btn-download:hover { background: rgba(255,255,255,0.35); }
@@ -285,7 +289,7 @@
     #btn-legende-modal {
       background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.35);
       border-radius: 5px; color: rgba(255,255,255,0.9); font-family: 'Source Sans 3', sans-serif;
-      font-size: 11px; padding: 4px 10px; cursor: pointer;
+      font-size: 20px; padding: 7px 16px; cursor: pointer;
       text-decoration: none; transition: background 0.15s; white-space: nowrap;
     }
     #btn-legende-modal:hover { background: rgba(255,255,255,0.28); }
@@ -716,7 +720,7 @@
     <div id="modal-header">
       <span id="modal-title-mrc">Fiche MRC</span>
       <div id="modal-actions">
-        <a id="btn-download-mrc" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
+        <a id="btn-download-mrc" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:20px;padding:7px 16px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
         <button id="btn-close-modal-mrc">✕</button>
       </div>
     </div>
@@ -735,7 +739,7 @@
       <span id="modal-title">Fiche municipalité</span>
       <div id="modal-actions">
         <button id="btn-legende-modal" title="Ouvrir la légende des combustibles">📋 Légende</button>
-        <a id="btn-download" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
+        <a id="btn-download" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:20px;padding:7px 16px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
         <button id="btn-close-modal">✕</button>
       </div>
     </div>
@@ -757,13 +761,14 @@ const EXPO_PALETTE = [
   [0.00, '#2d7a2d'],
   [0.10, '#8db840'],
   [0.20, '#d4c240'],
-  [0.40, '#d4821a'],
-  [0.60, '#c70e0e'],
-  [1.00, '#900000'],
+  [0.30, '#d4821a'],
+  [0.40, '#c70e0e'],
+  [0.60, '#900000'],
+  [1.00, '#7d0404'],
 ];
 
 let map, mrcGJ, zonesGJ, pointsGJ, lutData;
-let expoMin = 0, expoMax = 4;
+let expoMin = 0, expoMax = 6;
 let selectedMRC = null, selectedMUN = null;
 let nomOverride = new Map(); // MRC_IDm → MRC_NOM_AFFICHAGE
 
@@ -782,7 +787,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 function ouvrirFicheMRC(mrcIdm) {
   if (!mrcIdm) return;
   const url = `${CLOUDFLARE_URL_MRC}/Portrait_feux_${mrcIdm}.jpeg`;
-  const nom = nomOverride.get(mrcIdm) || mrcIdm;
+  const feat = mrcGJ && mrcGJ.features.find(f => f.properties.MRC_IDm === mrcIdm);
+  const nom = (feat && feat.properties.MOD_NM_MRC) || mrcIdm;
 
   document.getElementById('modal-title-mrc').textContent = nom;
   document.getElementById('modal-img-loading-mrc').style.display = 'block';
@@ -854,9 +860,9 @@ async function loadData() {
   expoMax = Math.max(...expos);
 
   document.getElementById('expo-min-label').textContent = '0';
-  document.getElementById('expo-max-label').textContent = '4';
+  document.getElementById('expo-max-label').textContent = '6';
   expoMin = 0;
-  expoMax = 4;
+  expoMax = 6;
 
   lutData.forEach(r => {
     if (r.MRC_IDm && r.MRC_NOM_AFFICHAGE) nomOverride.set(r.MRC_IDm, r.MRC_NOM_AFFICHAGE);
@@ -893,7 +899,7 @@ function populateMRC() {
   const seen = new Map();
   mrcGJ.features.forEach(f => {
     const id  = f.properties.MRC_IDm;
-    const nom = f.properties.MRS_NM_MRC;
+    const nom = f.properties.MOD_NM_MRC;
     if (id && nom && !seen.has(id)) seen.set(id, nom);
   });
 
@@ -901,7 +907,7 @@ function populateMRC() {
     .sort((a, b) => a[1].localeCompare(b[1], 'fr'))
     .forEach(([id, nom]) => {
       const o = document.createElement('option');
-      o.value = id; o.textContent = nomOverride.get(id) || nom;
+      o.value = id; o.textContent = nom;
       sel.appendChild(o);
     });
 }
@@ -1032,7 +1038,7 @@ function addAllLayers() {
     map.getCanvas().style.cursor = 'pointer';
     if (e.features && e.features.length > 0) {
       const p0 = e.features[0].properties;
-      ttNom.textContent  = (nomOverride && nomOverride.get(p0.MRC_IDm)) || p0.MRS_NM_MRC || '';
+      ttNom.textContent  = p0.MOD_NM_MRC || '';
       const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
       ttExpo.textContent = expoVal != null ? `Indice prédisposition : ${expoVal.toFixed(2)}` : '';
       tooltip.style.display = 'block';
@@ -1046,7 +1052,7 @@ function addAllLayers() {
     tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
     if (e.features && e.features.length > 0) {
       const p0 = e.features[0].properties;
-      ttNom.textContent  = (nomOverride && nomOverride.get(p0.MRC_IDm)) || p0.MRS_NM_MRC || '';
+      ttNom.textContent  = p0.MOD_NM_MRC || '';
       const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
       ttExpo.textContent = expoVal != null ? `Indice prédisposition : ${expoVal.toFixed(2)}` : '';
     }
