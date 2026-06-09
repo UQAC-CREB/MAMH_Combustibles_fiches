@@ -285,7 +285,7 @@
     }
     #btn-download:hover { background: rgba(255,255,255,0.35); }
 
-    /* Bouton légende dans le modal municipalité */
+    /* Bouton légende dans le modal communauté */
     #btn-legende-modal {
       background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.35);
       border-radius: 5px; color: rgba(255,255,255,0.9); font-family: 'Source Sans 3', sans-serif;
@@ -349,8 +349,8 @@
     .leg-section { margin-bottom: 16px; }
     .leg-section-title {
       font-family: 'Oswald', sans-serif; font-size: 12px;
-      letter-spacing: 1.1px; text-transform: uppercase;
-      color: var(--text-muted); border-bottom: 1.5px solid var(--panel-border);
+      letter-spacing: 1.1px; text-transform: uppercase; font-weight: 700;
+      color: #000000; border-bottom: 1.5px solid var(--panel-border);
       padding-bottom: 4px; margin-bottom: 7px;
     }
     .leg-intro {
@@ -470,10 +470,10 @@
       <button id="btn-close-popup">✕</button>
     </div>
     <div id="popup-body">
-      <p> Cette application sert de point d'accès pour télécharger les fiches d'historique de feu à l'échelle des MRC (superficie et occurence) ainsi que la composition en combustible et l'évaluation du potentiel d'intensité et de propagation des feux de forêt à proximité des municipalités du Québec </p>
-      <p> Pour consulter et télécharger les fiches à l'échelle des MRC, il est possible d'utiliser directement la carte en cliquant sur une MRC donnée ou en sélectionnant le nom de la MRC dans le menu déroulant «&nbsp;MRC&nbsp;» situé dans le coin supérieur gauche de l'écran. Une fois sélectionnée un bouton «&nbsp;Voir la fiche MRC&nbsp;» apparaîtra pour la consulter. </p>
-      <p> Une fois cette étape complétée, il sera possible de sélectionner les municipalités dans l'emprise de la MRC en utilisant à nouveau la carte, ou le menu déroulant «&nbsp;Municipalité&nbsp;». Une fois la municipalité sélectionnée, la fiche s'affichera automatiquement à l'écran avec sa légende associée. </p>
-      <p> De plus, en fond d'écran, vous pourrez consulter sur une échelle de couleur de vert à rouge, l'indice de prédisposition des MRC face aux feux de forêt. Plus l'indice est élevé, plus cela signifie qu'une MRC est prédisposée à être affecté par de grands feux. </p>
+      <p> Cette application sert de point d'accès pour télécharger les fiches de composition en combustible et d'évaluation du potentiel d'intensité et de propagation des feux de forêt à proximité des communautés du Québec, ainsi que les fiches historiques de feu à l'échelle des MRC. </p>
+      <p> Pour consulter les fiches à l'échelle des MRC, cliquez directement sur une MRC dans la carte ou sélectionnez-la dans le menu déroulant «&nbsp;MRC&nbsp;». Un bouton «&nbsp;Voir la fiche MRC&nbsp;» apparaîtra ensuite. </p>
+      <p> Une fois une MRC sélectionnée, choisissez la <strong>Communauté</strong> dans le second menu déroulant, puis sélectionnez le <strong>Lieu habité</strong> dans le troisième menu. La fiche s'affichera automatiquement. Vous pouvez aussi cliquer directement sur un point dans la carte pour accéder à la fiche du lieu habité correspondant. </p>
+      <p> En fond d'écran, une échelle de couleur de vert à rouge indique l'indice de prédisposition des MRC aux feux de forêt. Plus l'indice est élevé, plus la MRC est prédisposée aux grands feux. </p>
     </div>
     <div id="popup-footer">
       <button id="btn-fermer-popup">Fermer</button>
@@ -518,9 +518,16 @@
       </div>
 
       <div class="panel-section">
-        <span class="panel-label">Municipalité</span>
+        <span class="panel-label">Communauté</span>
         <select id="sel-mun" disabled>
           <option value="">— Sélectionnez d'abord une MRC —</option>
+        </select>
+      </div>
+
+      <div class="panel-section">
+        <span class="panel-label">Lieu habité</span>
+        <select id="sel-lh" disabled>
+          <option value="">— Sélectionnez d'abord une communauté —</option>
         </select>
       </div>
 
@@ -528,12 +535,12 @@
 
       <div class="panel-section">
         <div id="info-box">
-          <span class="info-empty">Sélectionnez une MRC puis une municipalité</span>
+          <span class="info-empty">Sélectionnez une MRC, une communauté puis un lieu habité</span>
         </div>
       </div>
 
       <button id="btn-fiche-mrc">🗂 Voir la fiche "MRC"</button>
-      <button id="btn-fiche">📄 Voir la fiche "Municipalité"</button>
+      <button id="btn-fiche">📄 Voir la fiche "Communauté"</button>
 
       <hr class="divider" />
 
@@ -568,7 +575,7 @@
         <div class="src-group">
           <div class="src-group-title">Découpages administratifs</div>
           <a href="https://www.donneesquebec.ca/recherche/dataset/decoupages-administratifs" target="_blank" rel="noopener">Données Québec — Découpages administratifs 1/20 000 (FGDB)</a><br/>
-          MRC · Municipalité
+          MRC · Municipalité · Lieux habités
         </div>
 
         <div class="src-group">
@@ -619,13 +626,13 @@
   </div>
 </div>
 
-<!-- Modal légende fiche municipalité (HTML interne) -->
+<!-- Modal légende fiche communauté (HTML interne) -->
 <div id="modal-legende">
   <div id="modal-legende-box">
     <div id="modal-legende-header">
-      <span class="ml-title">Légende — Fiche municipalité</span>
+      <span class="ml-title">Légende — Fiche communauté</span>
       <div class="ml-actions">
-        <a href="legende_fiche_munic.png" download="legende_fiche_munic.png"
+        <a href="legende_fiche_commun.png" download="legende_fiche_commun.png"
            style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:11px;padding:4px 10px;cursor:pointer;text-decoration:none;">⬇ Télécharger PNG</a>
         <button id="btn-close-legende">✕</button>
       </div>
@@ -643,51 +650,66 @@
         <!-- Résineux -->
         <div class="leg-section">
           <div class="leg-section-title">Résineux</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#D1FF73;"></div><span>C1 — Pessière à lichens</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#D1FF73;"></div><span>C1 — Pessière à cladonie</span></div>
           <div class="leg-row"><div class="leg-swatch" style="background:#226633;"></div><span>C2 — Pessière boréale</span></div>
           <div class="leg-row"><div class="leg-swatch" style="background:#83C795;"></div><span>C3 — Pin gris à maturité</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#DFB8E6;"></div><span>C5 — Pins rouges et pins blancs</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#DFB8E6;"></div><span>C5 — Pins rouges - pins blancs</span></div>
           <div class="leg-row"><div class="leg-swatch" style="background:#AC66ED;"></div><span>C6 — Plantation de conifères</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#700CF2;"></div><span>C7 — Pins (ponderosa)</span></div>
-        </div>
-
-        <!-- Feuillus -->
-        <div class="leg-section">
-          <div class="leg-section-title">Feuillus</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#C4BD97;"></div><span>D1 — Peupliers faux-trembles</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#700CF2;"></div><span>C7 — Herbes avec résineux (pin ponderosas)</span></div>
         </div>
 
         <!-- Mixtes -->
         <div class="leg-section">
           <div class="leg-section-title">Mixtes</div>
           <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-25 — Forêt boréale mixte &lt;50% conifère</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#FFD37F;"></div><span>M1-75 — Forêt boréale mixte &gt;50% conifère</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#FBBEB9;"></div><span>M3-25 — Forêt mixte sapin baumier mort &lt;50%</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-75 — Forêt mixte sapin baumier mort &gt;50%</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#630000;"></div><span>M3-100 — Forêt mixte sapin baumier mort 100%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-75 — Forêt boréale mixte &gt;50% conifère</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-25 — Forêt mixte à sapins baumiers morts &lt;50%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-75 — Forêt mixte à sapins baumiers morts &gt;50%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-100 — Forêt mixte à sapins baumiers morts 100%</span></div>
         </div>
 
-        <!-- Herbes basses -->
+        <!-- Feuillus -->
         <div class="leg-section">
-          <div class="leg-section-title">Herbes basses</div>
+          <div class="leg-section-title">Feuillus</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#C4BD97;"></div><span>D1 — Peuplements feuillus</span></div>
+        </div>
+
+        <!-- Rémanents -->
+        <div class="leg-section">
+          <div class="leg-section-title">Rémanents</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FBBEB9;"></div><span>S2 — Rémanents</span></div>
+        </div>
+
+        <!-- Herbes -->
+        <div class="leg-section">
+          <div class="leg-section-title">Herbes</div>
           <div class="leg-row"><div class="leg-swatch" style="background:#FFFFBE;"></div><span>O1a — Herbes aplaties</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#E6E600;"></div><span>O1b — Herbes mortes</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFFFBE;"></div><span>O1b — Herbes mortes</span></div>
         </div>
 
-        <!-- Rémanents forestiers -->
+        <!-- Brûlis -->
         <div class="leg-section">
-          <div class="leg-section-title">Rémanents forestiers</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#F768A1;"></div><span>S2 — Rémanents EPN/SAB</span></div>
+          <div class="leg-section-title">Brûlis</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FF1CFC;"></div><span>BR — Brûlis</span></div>
         </div>
 
-        <!-- Autres -->
+        <!-- Dénudé -->
         <div class="leg-section">
-          <div class="leg-section-title">Brûlis / Dénudé / Eau / Urbain</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#828282;"></div><span>BR — Brûlis</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#CCCCCC;"></div><span>DH — Dénudé humide</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#CCCCCC;"></div><span>DS — Dénudé sec</span></div>
+          <div class="leg-section-title">Dénudé</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#828282;"></div><span>DH — Dénudé humide, terrain agricole, urbain</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FF91FF;"></div><span>DS — Dénudé sec</span></div>
+        </div>
+
+        <!-- Eau -->
+        <div class="leg-section">
+          <div class="leg-section-title">Eau</div>
           <div class="leg-row"><div class="leg-swatch" style="background:#73DFFF;"></div><span>EAU — Eau</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#DED9D9;"></div><span>URBAIN — Urbain - Non-combustible</span></div>
+        </div>
+
+        <!-- Urbain -->
+        <div class="leg-section">
+          <div class="leg-section-title">Urbain</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#DED9D9;"></div><span>URBAIN — Urbain</span></div>
         </div>
       </div>
 
@@ -732,11 +754,11 @@
   </div>
 </div>
 
-<!-- Modal fiche municipalité -->
+<!-- Modal fiche communauté -->
 <div id="modal-overlay">
   <div id="modal-box">
     <div id="modal-header">
-      <span id="modal-title">Fiche municipalité</span>
+      <span id="modal-title">Fiche communauté</span>
       <div id="modal-actions">
         <button id="btn-legende-modal" title="Ouvrir la légende des combustibles">📋 Légende</button>
         <a id="btn-download" href="#" download style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:20px;padding:7px 16px;cursor:pointer;text-decoration:none;">⬇ Télécharger</a>
@@ -746,13 +768,15 @@
     <div id="modal-img-wrap">
       <span id="modal-img-loading">Chargement…</span>
       <img id="modal-img" src="" alt="" style="display:none;" />
-      <div id="modal-img-error">Fiche non disponible pour cette municipalité.</div>
+      <div id="modal-img-error">Fiche non disponible pour cette communauté.</div>
     </div>
   </div>
 </div>
 
 <script>
-const CLOUDFLARE_URL     = 'https://pub-c92ff49002054c36a259cd1ea61e1b45.r2.dev';
+// Ancien chemin pour bucket munic  
+// const CLOUDFLARE_URL     = 'https://pub-c92ff49002054c36a259cd1ea61e1b45.r2.dev';
+const CLOUDFLARE_URL = 'https://pub-7685fd1e38384bd5b20c2481e8e26963.r2.dev';
 const CLOUDFLARE_URL_MRC = 'https://pub-f2a93385f57b458d9df6612af09e15de.r2.dev';
 const STYLE_NEUTRE   = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
@@ -769,8 +793,8 @@ const EXPO_PALETTE = [
 
 let map, mrcGJ, zonesGJ, pointsGJ, lutData;
 let expoMin = 0, expoMax = 6;
-let selectedMRC = null, selectedMUN = null;
-let nomOverride = new Map(); // MRC_IDm → MRC_NOM_AFFICHAGE
+let selectedMRC = null, selectedMUN = null, selectedLH = null;
+let nomOverride = new Map(); // MRC_IDm → MOD_NM_MRC
 
 // ── Onglets panneau ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -865,7 +889,7 @@ async function loadData() {
   expoMax = 6;
 
   lutData.forEach(r => {
-    if (r.MRC_IDm && r.MRC_NOM_AFFICHAGE) nomOverride.set(r.MRC_IDm, r.MRC_NOM_AFFICHAGE);
+    if (r.MRC_IDm && r.MOD_NM_MRC) nomOverride.set(r.MRC_IDm, r.MOD_NM_MRC);
   });
 }
 
@@ -912,10 +936,10 @@ function populateMRC() {
     });
 }
 
-// ── Menu Municipalité ──
+// ── Menu Communauté ──
 function populateMUN(mrcIdm) {
   const sel = document.getElementById('sel-mun');
-  sel.innerHTML = '<option value="">— Sélectionnez une municipalité —</option>';
+  sel.innerHTML = '<option value="">— Sélectionnez une communauté —</option>';
   if (!mrcIdm) { sel.disabled = true; return; }
 
   const seen = new Set();
@@ -925,40 +949,65 @@ function populateMUN(mrcIdm) {
       seen.add(r.MUN_ID);
       return true;
     })
-    .sort((a, b) => (a.mus_nm_mun || '').localeCompare(b.mus_nm_mun || '', 'fr'));
+    .sort((a, b) => (a.MUS_NM_MUN || '').localeCompare(b.MUS_NM_MUN || '', 'fr'));
 
   munis.forEach(m => {
     const o = document.createElement('option');
     o.value = m.MUN_ID;
-    o.textContent = m.mus_nm_mun || m.nomcartrou || m.MUN_ID;
+    o.textContent = m.MUS_NM_MUN || m.MUN_ID;
     sel.appendChild(o);
   });
   sel.disabled = (munis.length === 0);
 }
 
+// ── Menu Lieu habité ──
+function populateLH(munId) {
+  const sel = document.getElementById('sel-lh');
+  sel.innerHTML = '<option value="">— Sélectionnez un lieu habité —</option>';
+  selectedLH = null;
+  updateInfoBox(null);
+
+  if (!munId) { sel.disabled = true; return; }
+
+  const lieux = lutData
+    .filter(r => r.MUN_ID === munId)
+    .sort((a, b) => (a.nomcartrou || '').localeCompare(b.nomcartrou || '', 'fr'));
+
+  lieux.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.lH_ID;
+    o.textContent = m.nomcartrou || m.lH_ID;
+    sel.appendChild(o);
+  });
+  sel.disabled = (lieux.length === 0);
+
+  // Auto-sélection si un seul lieu habité dans la communauté
+  if (lieux.length === 1) selectLH(lieux[0].lH_ID);
+}
+
 // ── Info box ──
-function updateInfoBox(munId) {
+function updateInfoBox(lhId) {
   const box = document.getElementById('info-box');
   const btn = document.getElementById('btn-fiche');
-  if (!munId) {
-    box.innerHTML = '<span class="info-empty">Sélectionnez une MRC puis une municipalité</span>';
+  if (!lhId) {
+    box.innerHTML = '<span class="info-empty">Sélectionnez une MRC, une communauté puis un lieu habité</span>';
     btn.classList.remove('visible');
     return;
   }
-  const row = lutData.find(r => r.MUN_ID === munId);
+  const row = lutData.find(r => r.lH_ID === lhId);
   if (!row) { box.innerHTML = '<span class="info-empty">Données non disponibles</span>'; return; }
   box.innerHTML = `
-    <div class="info-nom-mun">${row.mus_nm_mun || '—'}</div>
-    <div class="info-nom-lieu">${row.nomcartrou || ''}</div>`;
+    <div class="info-nom-mun">${row.nomcartrou || '—'}</div>
+    <div class="info-nom-lieu">${row.MUS_NM_MUN || ''}</div>`;
   btn.classList.add('visible');
 }
 
-// ── Fiche JPEG ──
-function ouvrirFiche(munId) {
-  if (!munId) return;
-  const url = `${CLOUDFLARE_URL}/FBP_carte_${munId}.jpeg`;
-  const row  = lutData.find(r => r.MUN_ID === munId);
-  const nom  = row ? (row.mus_nm_mun || munId) : munId;
+// ── Fiche JPEG communauté (lH_ID) ──
+function ouvrirFiche(lhId) {
+  if (!lhId) return;
+  const url  = `${CLOUDFLARE_URL}/FBP_carte_${lhId}.jpeg`;
+  const row  = lutData.find(r => r.lH_ID === lhId);
+  const nom  = row ? (row.nomcartrou || lhId) : lhId;
 
   document.getElementById('modal-title').textContent = nom;
   document.getElementById('modal-img-loading').style.display = 'block';
@@ -971,7 +1020,7 @@ function ouvrirFiche(munId) {
     document.getElementById('modal-img-loading').style.display = 'none';
     img.style.display = 'block';
     const dl = document.getElementById('btn-download');
-    dl.href = url; dl.download = `FBP_carte_${munId}.jpeg`; dl.style.display = 'inline-block';
+    dl.href = url; dl.download = `FBP_carte_${lhId}.jpeg`; dl.style.display = 'inline-block';
   };
   img.onerror = () => {
     document.getElementById('modal-img-loading').style.display = 'none';
@@ -1069,11 +1118,11 @@ function addAllLayers() {
   map.on('mouseenter', 'points-circle', async (e) => {
     map.getCanvas().style.cursor = 'pointer';
     if (!e.features || !e.features.length) return;
-    const munId = e.features[0].properties.MUN_ID;
-    if (!munId) return;
+    const lhId = e.features[0].properties.lH_ID;
+    if (!lhId) return;
     if (!zonesGJ) await loadZonesLazy();
     if (!zonesGJ) return;
-    const feats = zonesGJ.features.filter(f => f.properties.MUN_ID === munId);
+    const feats = zonesGJ.features.filter(f => f.properties.lH_ID === lhId);
     map.getSource('zones-hover').setData({ type: 'FeatureCollection', features: feats });
   });
   map.on('mouseleave', 'points-circle', () => {
@@ -1082,8 +1131,24 @@ function addAllLayers() {
   });
   map.on('click', 'points-circle', (e) => {
     if (!e.features || !e.features.length) return;
-    const munId = e.features[0].properties.MUN_ID;
-    if (munId) selectMUN(munId);
+    const lhId = e.features[0].properties.lH_ID;
+    if (!lhId) return;
+
+    const row = lutData.find(r => r.lH_ID === lhId);
+    if (!row) return;
+
+    // Cascade : sélectionne MRC si nécessaire (zoom)
+    if (row.MRC_IDm !== selectedMRC) selectMRC(row.MRC_IDm);
+
+    // Sélectionne la communauté et peuple le menu lieu habité
+    if (row.MUN_ID !== selectedMUN) {
+      selectedMUN = row.MUN_ID;
+      document.getElementById('sel-mun').value = row.MUN_ID;
+      populateLH(row.MUN_ID);
+    }
+
+    // Sélectionne le lieu habité (ouvre la fiche)
+    selectLH(lhId);
   });
 
   if (selectedMRC) {
@@ -1096,9 +1161,12 @@ function addAllLayers() {
 function selectMRC(mrcIdm) {
   selectedMRC = mrcIdm;
   selectedMUN = null;
+  selectedLH  = null;
 
   document.getElementById('sel-mrc').value = mrcIdm;
   populateMUN(mrcIdm);
+  document.getElementById('sel-lh').innerHTML = '<option value="">— Sélectionnez d\'abord une communauté —</option>';
+  document.getElementById('sel-lh').disabled = true;
   updateInfoBox(null);
   document.getElementById('btn-fiche-mrc').classList.add('visible');
 
@@ -1128,12 +1196,21 @@ function refreshPoints(mrcIdm) {
   map.getSource('points').setData({ type: 'FeatureCollection', features: feats });
 }
 
-// ── Sélection Municipalité ──
+// ── Sélection Communauté ──
 function selectMUN(munId) {
   selectedMUN = munId;
+  selectedLH  = null;
   document.getElementById('sel-mun').value = munId;
-  updateInfoBox(munId);
-  ouvrirFiche(munId);
+  populateLH(munId);
+  // Pas d'ouverture de fiche ici — on attend la sélection du lieu habité
+}
+
+// ── Sélection Lieu habité ──
+function selectLH(lhId) {
+  selectedLH = lhId;
+  document.getElementById('sel-lh').value = lhId;
+  updateInfoBox(lhId);
+  ouvrirFiche(lhId);
 }
 
 // ── Listeners UI ──
@@ -1141,8 +1218,10 @@ document.getElementById('sel-mrc').addEventListener('change', (e) => {
   if (e.target.value) {
     selectMRC(e.target.value);
   } else {
-    selectedMRC = null; selectedMUN = null;
+    selectedMRC = null; selectedMUN = null; selectedLH = null;
     populateMUN(null);
+    document.getElementById('sel-lh').innerHTML = '<option value="">— Sélectionnez d\'abord une communauté —</option>';
+    document.getElementById('sel-lh').disabled = true;
     updateInfoBox(null);
     map.setFilter('mrc-selected-line', ['==', ['get', 'MRC_IDm'], '___NONE___']);
     map.getSource('points').setData({ type: 'FeatureCollection', features: [] });
@@ -1152,13 +1231,22 @@ document.getElementById('sel-mrc').addEventListener('change', (e) => {
 });
 document.getElementById('sel-mun').addEventListener('change', (e) => {
   if (e.target.value) selectMUN(e.target.value);
-  else { selectedMUN = null; updateInfoBox(null); }
+  else {
+    selectedMUN = null; selectedLH = null;
+    document.getElementById('sel-lh').innerHTML = '<option value="">— Sélectionnez d\'abord une communauté —</option>';
+    document.getElementById('sel-lh').disabled = true;
+    updateInfoBox(null);
+  }
+});
+document.getElementById('sel-lh').addEventListener('change', (e) => {
+  if (e.target.value) selectLH(e.target.value);
+  else { selectedLH = null; updateInfoBox(null); }
 });
 document.getElementById('btn-fiche-mrc').addEventListener('click', () => {
   if (selectedMRC) ouvrirFicheMRC(selectedMRC);
 });
 document.getElementById('btn-fiche').addEventListener('click', () => {
-  if (selectedMUN) ouvrirFiche(selectedMUN);
+  if (selectedLH) ouvrirFiche(selectedLH);
 });
 document.getElementById('btn-close-modal-mrc').addEventListener('click', () => {
   document.getElementById('modal-overlay-mrc').classList.remove('open');
@@ -1177,7 +1265,7 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
     document.getElementById('modal-overlay').classList.remove('open');
 });
 
-// Bouton légende dans le modal municipalité
+// Bouton légende dans le modal communauté
 document.getElementById('btn-legende-modal').addEventListener('click', () => {
   document.getElementById('modal-legende').classList.add('open');
 });
@@ -1249,7 +1337,7 @@ document.getElementById('popup-accueil').addEventListener('click', (e) => {
 });
 document.getElementById('btn-info').addEventListener('click', ouvrirPopup);
 
-// ── Légende fiche municipalité ──
+// ── Légende fiche communauté ──
 document.getElementById('btn-close-legende').addEventListener('click', () => {
   document.getElementById('modal-legende').classList.remove('open');
 });
