@@ -123,7 +123,7 @@ La classification des combustibles suit la **Méthode canadienne de prévision d
 
 ### `data/lut.json`
 
-Table de correspondance principale. 1 664 entrées — une par lieu habité (`lH_ID`).
+Table de correspondance principale. 1 660 entrées — une par lieu habité (`lH_ID`).
 
 ```json
 {
