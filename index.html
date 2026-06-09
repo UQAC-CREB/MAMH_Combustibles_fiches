@@ -1,3 +1,22 @@
+/**
+ * MAMH — Application fiches feux de forêt (version communautés)
+ *
+ * HIÉRARCHIE DES DONNÉES
+ *   MRC_IDm → MUN_ID → lH_ID
+ *   Chaque lH_ID correspond à un lieu habité (nomcartrou) avec sa zone tampon 25 km.
+ *
+ * FICHIERS DE DONNÉES  (répertoire data/)
+ *   mrc_s.geojson       — polygones MRC + champ EXPO
+ *   lh_p.geojson        — centroïdes lieux habités
+ *   lh_25km_s.topojson  — zones tampons (layer : "lh_zones")
+ *   lut.json            — table lH_ID ↔ MUN_ID ↔ MRC_IDm
+ *
+ * FICHES JPEG  (Cloudflare R2)
+ *   MRC        : CLOUDFLARE_URL_MRC / Portrait_feux_{MRC_IDm}.jpeg
+ *   Communauté : CLOUDFLARE_URL     / FBP_carte_{lH_ID}.jpeg
+ */
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
