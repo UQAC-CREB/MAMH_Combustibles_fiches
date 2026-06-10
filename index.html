@@ -940,15 +940,20 @@ async function forcerTelechargement(url, filename) {
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    const blob = await response.blob();
+    const rawBlob = await response.blob();
+    // Forcer le type octet-stream pour que le navigateur télécharge au lieu d'afficher
+    const blob = new Blob([rawBlob], { type: 'application/octet-stream' });
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
     a.download = filename;
+    a.target = '_self';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 200);
   } catch (err) {
     alert('Impossible de télécharger la fiche : ' + err.message);
   }
