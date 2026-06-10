@@ -955,7 +955,8 @@ async function forcerTelechargement(url, filename) {
       URL.revokeObjectURL(blobUrl);
     }, 200);
   } catch (err) {
-    alert('Impossible de télécharger la fiche : ' + err.message);
+    // Fallback : ouvrir dans un onglet — l'utilisateur peut faire clic droit → Enregistrer
+    window.open(url, '_blank');
   }
 }
 
