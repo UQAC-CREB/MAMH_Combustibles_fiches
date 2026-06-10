@@ -369,10 +369,16 @@
     #modal-legende-mrc-body {
       padding: 20px 24px;
       font-family: 'Source Sans 3', sans-serif; font-size: 21px;
-      line-height: 1.6; color: #333;
+      line-height: 1.3; color: #333;
     }
-    #modal-legende-mrc-body p { margin-bottom: 12px; }
-    #modal-legende-mrc-body p:last-child { margin-bottom: 0; }
+    #modal-legende-mrc-body p { margin-bottom: 0; }
+    #modal-legende-mrc-body .leg-mrc-block { margin-bottom: 20px; }
+    #modal-legende-mrc-body .leg-mrc-block:last-child { margin-bottom: 0; }
+    #modal-legende-mrc-body .leg-mrc-subtitle {
+      font-family: 'Oswald', sans-serif; font-size: 16px;
+      font-weight: 700; color: #2C3E50; letter-spacing: 0.5px;
+      text-transform: uppercase; margin-bottom: 6px;
+    }
 
     /* ── Modal légende HTML ── */
     #modal-legende-box {
@@ -821,8 +827,14 @@
       <button id="btn-close-legende-mrc">✕</button>
     </div>
     <div id="modal-legende-mrc-body">
-      <p>Le premier graphique illustre l'évolution annuelle de la fréquence des départs de feux, en distinguant les causes anthropiques (humain) des causes naturelles (foudre).</p>
-      <p>Le deuxième graphique présente les superficies brûlées annuellement.</p>
+      <div class="leg-mrc-block">
+        <div class="leg-mrc-subtitle">Graphique « Occurrences et causes des feux »</div>
+        <p>Ce graphique illustre l'évolution annuelle de la fréquence des départs de feux, en distinguant les causes anthropiques (humain) des causes naturelles (foudre).</p>
+      </div>
+      <div class="leg-mrc-block">
+        <div class="leg-mrc-subtitle">Graphique « Superficies brûlées annuellement »</div>
+        <p>Ce graphique présente les superficies brûlées annuellement.</p>
+      </div>
     </div>
   </div>
 </div>
