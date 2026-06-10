@@ -304,15 +304,16 @@
     }
     #btn-download:hover { background: rgba(255,255,255,0.35); }
 
-    /* Bouton légende dans le modal communauté */
-    #btn-legende-modal {
+    /* Bouton légende dans les modals MRC et communauté */
+    #btn-legende-modal-mrc, #btn-legende-modal {
       background: #f1c40f; border: 2px solid #d4ac0d;
       border-radius: 5px; color: #1a252f; font-family: 'Oswald', sans-serif;
       font-size: 14px; font-weight: 700; letter-spacing: 0.6px;
-      padding: 7px 16px; cursor: pointer;
+      padding: 0 16px; cursor: pointer;
       text-decoration: none; transition: background 0.15s; white-space: nowrap;
+      align-self: stretch; display: inline-flex; align-items: center;
     }
-    #btn-legende-modal:hover { background: #d4ac0d; }
+    #btn-legende-modal-mrc:hover, #btn-legende-modal:hover { background: #d4ac0d; }
 
     #btn-close-modal {
       background: none; border: none; color: rgba(255,255,255,0.8);
@@ -338,6 +339,40 @@
       display: none; font-family: 'Source Sans 3', sans-serif;
       color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;
     }
+
+    /* ── Modal légende MRC ── */
+    #modal-legende-mrc {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.65);
+      align-items: center; justify-content: center;
+    }
+    #modal-legende-mrc.open { display: flex; }
+    #modal-legende-mrc-box {
+      background: #fff; border-radius: 10px;
+      width: min(90vw, 560px);
+      display: flex; flex-direction: column;
+      box-shadow: 0 16px 60px rgba(0,0,0,0.3); overflow: hidden;
+    }
+    #modal-legende-mrc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: #2C3E50; flex-shrink: 0;
+    }
+    #modal-legende-mrc-header .ml-title {
+      font-family: 'Oswald', sans-serif; font-size: 14px;
+      letter-spacing: 1px; color: #fff; font-weight: 700; text-transform: uppercase;
+    }
+    #btn-close-legende-mrc {
+      background: none; border: none; color: rgba(255,255,255,0.8);
+      font-size: 20px; cursor: pointer; line-height: 1; padding: 0 4px;
+    }
+    #btn-close-legende-mrc:hover { color: #fff; }
+    #modal-legende-mrc-body {
+      padding: 20px 24px;
+      font-family: 'Source Sans 3', sans-serif; font-size: 21px;
+      line-height: 1.6; color: #333;
+    }
+    #modal-legende-mrc-body p { margin-bottom: 12px; }
+    #modal-legende-mrc-body p:last-child { margin-bottom: 0; }
 
     /* ── Modal légende HTML ── */
     #modal-legende-box {
@@ -449,6 +484,21 @@
     }
     #btn-fermer-popup:hover { background: #1a252f; }
 
+    /* Émulation visuelle du bouton Voir la fiche MRC dans le popup */
+    .btn-mock-mrc {
+      display: inline-block;
+      background: #4a7c4e; color: #fff; border-radius: 6px;
+      font-family: 'Oswald', sans-serif; font-size: 0.85em;
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 3px 10px; vertical-align: middle;
+    }
+    /* Lien onglet dans le popup */
+    .lien-onglet {
+      color: var(--accent); font-weight: 600; cursor: pointer;
+      text-decoration: underline;
+    }
+    .lien-onglet:hover { color: var(--accent-dark); }
+
     /* Bouton Instructions (pleine largeur dans le panneau) */
     #btn-info {
       width: 100%; background: #2C3E50; border: none; border-radius: 6px;
@@ -495,10 +545,12 @@
       <p> <strong>Les FICHES COMMUNAUTÉ</strong> : la composition en combustible et l’évaluation du potentiel d’intensité et de propagation des feux de forêt à proximité des communautés. </p>
       <br>
       <p><strong><u>INSTRUCTIONS</u></strong></p>
-      <p> Pour consulter les fiches à l’échelle des MRC, cliquez directement sur une MRC dans la carte ou sélectionnez-la dans le menu déroulant « MRC ». Un bouton <strong>« Voir la fiche MRC »</strong> apparaîtra. </p>
-      <p> Une fois une MRC sélectionnée, choisissez la Communauté dans le second menu déroulant, puis sélectionnez le Lieu habité dans le troisième menu. La fiche s’affichera automatiquement. Vous pouvez aussi cliquer directement sur un point dans la carte pour accéder à la fiche du lieu habité correspondant. </p>
+      <p> Pour consulter les fiches à l’échelle des MRC, cliquez directement sur une MRC dans la carte ou sélectionnez-la dans le menu déroulant <strong>« MRC »</strong>. Un bouton <span class="btn-mock-mrc">🗂 Voir la fiche "MRC"</span> apparaîtra. </p>
+      <p> Une fois une MRC sélectionnée, choisissez la <strong>« Communauté »</strong> dans le second menu déroulant, puis sélectionnez le <strong>« Lieu habité »</strong> dans le troisième menu. La fiche s’affichera automatiquement. Vous pouvez aussi cliquer directement sur un point dans la carte pour accéder à la fiche du lieu habité correspondant. </p>
       <p> La carte affiche une couleur de fond de vert à rouge, indiquant l’indice de prédisposition des MRC aux feux de forêt (0 à 6). Plus l’indice est élevé, plus la MRC est prédisposée aux feux. </p>
       <p> Par exemple : une MRC de couleur rouge (indice 4 à 6) indique qu’elle est prédisposée de manière forte aux feux de forêt. </p>
+      <p> <strong>Note</strong> : Cette étude se base sur des données scientifiques pour évaluer la prédisposition des communautés québécoises et autochtones aux feux de forêt selon deux échelles d'analyse : régionale et locale. Pour envisager des actions concrètes pour protéger les communautés, vous adresser aux autorités compétentes. </p>
+      <p> À cet égard, veuillez consulter l'onglet <span class="lien-onglet" onclick="allerOngletRessources()">"RESSOURCES UTILES"</span>.</p>
     </div>
     <div id="popup-footer">
       <button id="btn-fermer-popup">Fermer</button>
@@ -570,7 +622,7 @@
 
       <div id="expo-legend">
         <span class="panel-label">Indice de prédisposition aux feux ℹ</span>
-        <div id="expo-tooltip">L'indice de prédisposition des MRC aux feux de forêt a été déterminée à partir de quatre indicateurs clés : les superficies brûlées historiques, la fréquence des départs de feux historiques, les indices forêt-météo projetés pour la période 2021-2050, et la nature des combustibles actuels. Plus l'indice s'approche de la valeur seuil de 4, plus la MRC est prédisposée aux grands feux.</div>
+        <div id="expo-tooltip">L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>Plus l'indice s'approche de la valeur seuil de 6, plus la MRC est prédisposée aux grands feux.</div>
         <div class="legend-bar"></div>
         <div class="legend-labels">
           <span id="expo-min-label">0</span>
@@ -667,7 +719,7 @@
       <div>
         <div class="leg-col-title">Combustible MRNF 2025</div>
         <div class="leg-col-intro">
-          Les types de combustibles végétaux sont issus de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI). Chaque type de combustibles présente une structure et une composition différente et influence grandement le potentiel d'intensité et de propagation des feux de forêt.<br/>
+          Cette carte représente les différents types de combustibles végétaux présents dans un rayon de 25 km² autour des lieux habités de la communauté. Chaque type de combustibles présente une structure et une composition différente, qui influence grandement le potentiel d'intensité et de propagation des feux de forêt. Ces données sont issues de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br/>
           <a href="https://ressources-naturelles.canada.ca" target="_blank" rel="noopener">→ Combustibles MCPCI (ressources-naturelles.canada.ca)</a>
         </div>
 
@@ -682,33 +734,33 @@
           <div class="leg-row"><div class="leg-swatch" style="background:#700CF2;"></div><span>C7 — Herbes avec résineux (pin ponderosas)</span></div>
         </div>
 
-        <!-- Mixtes -->
-        <div class="leg-section">
-          <div class="leg-section-title">Mixtes</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-25 — Forêt boréale mixte &lt;50% conifère</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-75 — Forêt boréale mixte &gt;50% conifère</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-25 — Forêt mixte à sapins baumiers morts &lt;50%</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-75 — Forêt mixte à sapins baumiers morts &gt;50%</span></div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-100 — Forêt mixte à sapins baumiers morts 100%</span></div>
-        </div>
-
         <!-- Feuillus -->
         <div class="leg-section">
           <div class="leg-section-title">Feuillus</div>
           <div class="leg-row"><div class="leg-swatch" style="background:#C4BD97;"></div><span>D1 — Peuplements feuillus</span></div>
         </div>
 
-        <!-- Rémanents -->
+        <!-- Mixtes -->
         <div class="leg-section">
-          <div class="leg-section-title">Rémanents</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#FBBEB9;"></div><span>S2 — Rémanents</span></div>
+          <div class="leg-section-title">Mixtes</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-25 — Forêt boréale mixte &lt;50% conifère</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FFAA00;"></div><span>M1-75 — Forêt boréale mixte &gt;50% conifère</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-25 — Forêt mixte à sapins baumiers morts &lt;50%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-75 — Forêt mixte à sapins baumiers morts  &gt;50%</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#AA0000;"></div><span>M3-100 — Forêt mixte à sapins baumiers morts 100%</span></div>
         </div>
 
         <!-- Herbes -->
         <div class="leg-section">
           <div class="leg-section-title">Herbes</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#FFFFBE;"></div><span>O1a — Herbes aplaties</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#E6FFD9;"></div><span>O1a — Herbes aplaties</span></div>
           <div class="leg-row"><div class="leg-swatch" style="background:#FFFFBE;"></div><span>O1b — Herbes mortes</span></div>
+        </div>
+
+        <!-- Rémanents -->
+        <div class="leg-section">
+          <div class="leg-section-title">Rémanents</div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#FBBEB9;"></div><span>S2 — Rémanents</span></div>
         </div>
 
         <!-- Brûlis -->
@@ -720,7 +772,7 @@
         <!-- Dénudé -->
         <div class="leg-section">
           <div class="leg-section-title">Dénudé</div>
-          <div class="leg-row"><div class="leg-swatch" style="background:#828282;"></div><span>DH — Dénudé humide, terrain agricole, urbain</span></div>
+          <div class="leg-row"><div class="leg-swatch" style="background:#828282;"></div><span>DH — Dénudé humide, terrain agricole, urbain.</span></div>
           <div class="leg-row"><div class="leg-swatch" style="background:#FF91FF;"></div><span>DS — Dénudé sec</span></div>
         </div>
 
@@ -741,7 +793,8 @@
       <div>
         <div class="leg-col-title">Potentiel d'intensité MRNF 2025</div>
         <div class="leg-col-intro">
-          Cette couche fournit de l'information sur le niveau potentiel d'intensité et de propagation du feu dans le cas d'une ignition dans un endroit donné. Cette carte n'informe pas l'utilisateur sur la probabilité d'ignition.<br/>
+          Ce graphique fournit de l'information sur le potentiel d'intensité et de propagation du feu (faible à extrême) et sa superficie relative dans la communauté. Le pourcentage indiqué mesure la gravité potentielle et non la probabilité réelle d'ignition ou de propagation du feu.<br/><br/>
+          Par exemple : Si la classe « Élevé » a une valeur de 22%, cela signifie que 22% du combustible présent dans la zone tampon de 25km sur la carte peut mener à un taux de propagation et d'intensité du feu élevé SEULEMENT s'il y a ignition.<br/>
           <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">→ Potentiel d'intensité (donneesquebec.ca)</a>
         </div>
 
@@ -760,12 +813,27 @@
   </div>
 </div>
 
+<!-- Modal légende fiche MRC -->
+<div id="modal-legende-mrc">
+  <div id="modal-legende-mrc-box">
+    <div id="modal-legende-mrc-header">
+      <span class="ml-title">Légende — Fiche MRC</span>
+      <button id="btn-close-legende-mrc">✕</button>
+    </div>
+    <div id="modal-legende-mrc-body">
+      <p>Le premier graphique illustre l'évolution annuelle de la fréquence des départs de feux, en distinguant les causes anthropiques (humain) des causes naturelles (foudre).</p>
+      <p>Le deuxième graphique présente les superficies brûlées annuellement.</p>
+    </div>
+  </div>
+</div>
+
 <!-- Modal fiche MRC -->
 <div id="modal-overlay-mrc">
   <div id="modal-box">
     <div id="modal-header">
       <span id="modal-title-mrc">Fiche MRC</span>
       <div id="modal-actions">
+        <button id="btn-legende-modal-mrc">📋 Légende et explication</button>
         <button id="btn-download-mrc" style="display:none;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:20px;padding:7px 16px;cursor:pointer;">⬇ Télécharger</button>
         <button id="btn-close-modal-mrc">✕</button>
       </div>
@@ -1385,6 +1453,18 @@ document.getElementById('popup-accueil').addEventListener('click', (e) => {
 });
 document.getElementById('btn-info').addEventListener('click', ouvrirPopup);
 
+// ── Légende fiche MRC ──
+document.getElementById('btn-legende-modal-mrc').addEventListener('click', () => {
+  document.getElementById('modal-legende-mrc').classList.add('open');
+});
+document.getElementById('btn-close-legende-mrc').addEventListener('click', () => {
+  document.getElementById('modal-legende-mrc').classList.remove('open');
+});
+document.getElementById('modal-legende-mrc').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-legende-mrc'))
+    document.getElementById('modal-legende-mrc').classList.remove('open');
+});
+
 // ── Légende fiche communauté ──
 document.getElementById('btn-close-legende').addEventListener('click', () => {
   document.getElementById('modal-legende').classList.remove('open');
@@ -1393,6 +1473,14 @@ document.getElementById('modal-legende').addEventListener('click', (e) => {
   if (e.target === document.getElementById('modal-legende'))
     document.getElementById('modal-legende').classList.remove('open');
 });
+
+function allerOngletRessources() {
+  fermerPopup();
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="ressources"]').classList.add('active');
+  document.getElementById('tab-ressources').classList.add('active');
+}
 
 init().then(() => {
   ouvrirPopup();
