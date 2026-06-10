@@ -176,7 +176,7 @@
     #expo-legend:hover #expo-tooltip { display: block; }
     .legend-bar {
       height: 14px; border-radius: 4px; margin: 6px 0 4px;
-      background: linear-gradient(to right, #2d7a2d, #8db840, #d4c240, #d4821a, #c0392b);
+      background: linear-gradient(to right, #2d7a2d 0%, #8db840 7%, #d4c240 15%, #d4821a 25%, #c70e0e 38%, #900000 55%, #7d0404 100%);
     }
     .legend-labels {
       display: flex; justify-content: space-between;
@@ -651,7 +651,9 @@
 
       <div id="expo-legend">
         <span class="panel-label">Indice de prédisposition aux feux ℹ</span>
-        <div id="expo-tooltip">L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>Plus l'indice s'approche de la valeur seuil de 6, plus la MRC est prédisposée aux grands feux.</div>
+        <div id="expo-tooltip">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l’historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d’incendie, qui varie au fil de la saison selon les conditions météorologiques (https://www.sopfeu.qc.ca/carte/).
+        
+          L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>Plus l'indice s'approche de la valeur seuil de 6, plus la MRC est prédisposée aux grands feux.</div>
         <div class="legend-bar"></div>
         <div class="legend-labels">
           <span id="expo-min-label">0</span>
@@ -760,6 +762,7 @@
     <div id="map-container"></div>
     <div id="map-tooltip">
       <div id="tt-nom"></div>
+      <div id="tt-rang" class="tt-expo"></div>
       <div id="tt-expo" class="tt-expo"></div>
     </div>
   </div>
@@ -968,13 +971,13 @@ const STYLE_NEUTRE   = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style
 
 // Palier de couleurs EXPO (vert → jaune-vert → jaune → orange → rouge)
 const EXPO_PALETTE = [
-  [0.00, '#2d7a2d'],
-  [0.10, '#8db840'],
-  [0.20, '#d4c240'],
-  [0.30, '#d4821a'],
-  [0.40, '#c70e0e'],
-  [0.60, '#900000'],
-  [1.00, '#7d0404'],
+  [0.00, '#2d7a2d'],  // EXPO 0.0 — vert
+  [0.07, '#8db840'],  // EXPO 0.4 — vert-jaune
+  [0.15, '#d4c240'],  // EXPO 0.9 — jaune
+  [0.25, '#d4821a'],  // EXPO 1.5 — orange
+  [0.38, '#c70e0e'],  // EXPO 2.3 — rouge
+  [0.55, '#900000'],  // EXPO 3.3 — rouge foncé
+  [1.00, '#7d0404'],  // EXPO 6.0 — très foncé
 ];
 
 let map, mrcGJ, zonesGJ, pointsGJ, lutData;
@@ -1040,13 +1043,12 @@ function expoToColor(val) {
   return EXPO_PALETTE[EXPO_PALETTE.length-1][1];
 }
 
-// Expression MapLibre « step » pour fill-color basée sur EXPO
+// Expression MapLibre « interpolate » pour fill-color continue basée sur EXPO
 function buildExpoExpression() {
-  const N = 10;
-  const expr = ['step', ['get', 'EXPO'], expoToColor(expoMin)];
-  for (let i = 1; i <= N; i++) {
-    const val = expoMin + (expoMax - expoMin) * i / N;
-    expr.push(val, expoToColor(val));
+  const range = expoMax - expoMin;
+  const expr = ['interpolate', ['linear'], ['get', 'EXPO']];
+  for (const [t, color] of EXPO_PALETTE) {
+    expr.push(expoMin + t * range, color);
   }
   return expr;
 }
@@ -1267,15 +1269,21 @@ function addAllLayers() {
   // ── Interactions MRC ──
   const tooltip   = document.getElementById('map-tooltip');
   const ttNom     = document.getElementById('tt-nom');
+  const ttRang    = document.getElementById('tt-rang');
   const ttExpo    = document.getElementById('tt-expo');
+
+  function updateTooltip(p0) {
+    ttNom.textContent  = p0.MOD_NM_MRC || '';
+    const rangVal = p0.RANG != null ? p0.RANG : null;
+    ttRang.textContent = rangVal != null ? `Rang de prédisposition : ${rangVal} / 107` : '';
+    const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
+    ttExpo.textContent = expoVal != null ? `Indice de prédisposition : ${expoVal.toFixed(2)} / 6` : '';
+  }
 
   map.on('mouseenter', 'mrc-expo-fill', (e) => {
     map.getCanvas().style.cursor = 'pointer';
     if (e.features && e.features.length > 0) {
-      const p0 = e.features[0].properties;
-      ttNom.textContent  = p0.MOD_NM_MRC || '';
-      const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
-      ttExpo.textContent = expoVal != null ? `Indice prédisposition : ${expoVal.toFixed(2)}` : '';
+      updateTooltip(e.features[0].properties);
       tooltip.style.display = 'block';
     }
   });
@@ -1285,12 +1293,7 @@ function addAllLayers() {
     let y = e.originalEvent.clientY - rect.top  + 12;
     if (x + 240 > rect.width) x -= 220;
     tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
-    if (e.features && e.features.length > 0) {
-      const p0 = e.features[0].properties;
-      ttNom.textContent  = p0.MOD_NM_MRC || '';
-      const expoVal = p0.EXPO != null ? parseFloat(p0.EXPO) : null;
-      ttExpo.textContent = expoVal != null ? `Indice prédisposition : ${expoVal.toFixed(2)}` : '';
-    }
+    if (e.features && e.features.length > 0) updateTooltip(e.features[0].properties);
   });
   map.on('mouseleave', 'mrc-expo-fill', () => {
     map.getCanvas().style.cursor = ''; tooltip.style.display = 'none';
