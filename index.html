@@ -782,7 +782,7 @@
       <div>
         <div class="leg-col-title">Combustible MRNF 2025</div>
         <div class="leg-col-intro">
-          Cette carte représente les différents types de combustibles végétaux présents dans un rayon de 25 km² autour des lieux habités de la communauté. Chaque type de combustibles présente une structure et une composition différente, qui influence grandement le potentiel d'intensité et de propagation des feux de forêt. Ces données sont issues de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br/>
+          Cette carte représente les différents types de combustibles végétaux présents dans un rayon de 25 km² autour des lieux habités de la communauté. Chaque type de combustible présente une structure et une composition différente, qui influence grandement le potentiel d'intensité et de propagation des feux de forêt. Ces données sont issues de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br/>
           <a href="https://ressources-naturelles.canada.ca" target="_blank" rel="noopener">→ Combustibles MCPCI (ressources-naturelles.canada.ca)</a>
         </div>
 
@@ -936,19 +936,22 @@
 
 <script>
 // Téléchargement forcé via fetch+blob (contourne la restriction cross-origin du download attr)
-function forcerTelechargement(url, filename) {
-  fetch(url)
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
-    .then(blob => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-    })
-    .catch(() => window.open(url, '_blank'));
+async function forcerTelechargement(url, filename) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    alert('Impossible de télécharger la fiche : ' + err.message);
+  }
 }
 
 // Ancien chemin pour bucket munic
