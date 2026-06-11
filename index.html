@@ -210,6 +210,20 @@
       color: var(--text-muted); margin-bottom: 4px;
     }
 
+    /* Boîte auteurs (onglet Introduction) */
+    .auteurs-box {
+      background: var(--box-bg); border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 10px 12px; box-shadow: var(--box-shadow);
+      flex-shrink: 0; font-size: 11px; color: var(--text-muted); line-height: 1.6;
+    }
+    .auteurs-box .auteur-title {
+      font-family: 'Oswald', sans-serif; font-size: 10px;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .auteurs-box a { color: var(--accent); text-decoration: none; }
+    .auteurs-box a:hover { text-decoration: underline; }
+
     /* ── Onglet Ressources utiles ── */
     #tab-ressources {
       gap: 14px;
@@ -621,6 +635,13 @@
         <p>Dans l'optique de rendre disponibles les connaissances scientifiques sur les feux de forêt à la population, l'Observatoire a produit cette application sous forme de carte interactive, incluant des fiches visuelles pour les différentes MRC et communautés du Québec et des territoires autochtones.</p>
         <p style="background:#fff8e1; border-left:3px solid #d4821a; padding:8px 10px; border-radius:0 4px 4px 0;"><strong>Attention</strong> : les indices calculés pour les différentes régions n'indiquent pas un danger réel d'incendie, celui-ci variant quotidiennement au cours de la saison selon les conditions météorologiques.</p>
       </div>
+      <div class="auteurs-box">
+        <div class="auteur-title">Auteurs</div>
+        Hugues Dorion — <a href="mailto:hdorion@uqac.ca">hdorion@uqac.ca</a><br/>
+        Victor Danneyrolles — <a href="mailto:vdanneyr@uqac.ca">vdanneyr@uqac.ca</a><br/>
+        Emmanuelle Bergeron — <a href="mailto:e4berger@uqac.ca">e4berger@uqac.ca</a><br/>
+        Yan Boucher — <a href="mailto:yboucher@uqac.ca">yboucher@uqac.ca</a>
+      </div>
     </div><!-- /tab-intro -->
 
     <div id="tab-fiches" class="tab-pane">
@@ -701,12 +722,6 @@
           <a href="https://www.donneesquebec.ca/recherche/dataset/lieu-habite" target="_blank" rel="noopener">Données Québec — Lieu habité</a>
         </div>
 
-        <div class="auteurs">
-          <div class="auteur-title">Auteurs</div>
-          Hugues Dorion — <a href="mailto:hdorion@uqac.ca">hdorion@uqac.ca</a><br/>
-          Victor Danneyrolles — <a href="mailto:vdanneyr@uqac.ca">vdanneyr@uqac.ca</a><br/>
-          Yan Boucher — <a href="mailto:yboucher@uqac.ca">yboucher@uqac.ca</a>
-        </div>
       </div>
 
     </div><!-- /tab-fiches -->
