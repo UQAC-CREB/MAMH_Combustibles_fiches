@@ -79,7 +79,7 @@
 
     /* ── Panel gauche ── */
     #panel {
-      width: 420px; min-width: 280px; flex-shrink: 0;
+      width: 33vw; min-width: 300px; max-width: 560px; flex-shrink: 0;
       background: var(--panel-bg); border-right: 1px solid var(--panel-border);
       display: flex; flex-direction: column;
       overflow: hidden;
@@ -606,12 +606,24 @@
 
     <!-- Onglets -->
     <div id="panel-tabs">
-      <button class="tab-btn active" data-tab="fiches">Instructions et fiches</button>
+      <button class="tab-btn active" data-tab="intro">Introduction</button>
+      <button class="tab-btn" data-tab="fiches">Fiches</button>
       <button class="tab-btn" data-tab="ressources">Ressources utiles</button>
     </div>
 
     <!-- Onglet 1 : Fiches -->
-    <div id="tab-fiches" class="tab-pane active">
+    <!-- Onglet 0 : Introduction -->
+    <div id="tab-intro" class="tab-pane active">
+      <div style="font-family:'Source Sans 3',sans-serif; font-size:12.5px; line-height:1.55; color:var(--text-main); display:flex; flex-direction:column; gap:14px;">
+        <p>Au Québec, les feux de forêt représentent une menace potentiellement importante pour les populations et les infrastructures. La saison exceptionnelle de 2023, qui a brûlé plus de 4,2 millions d'hectares, a marqué un tournant en raison des pressions majeures qu'elle a exercées, notamment l'évacuation de milliers de personnes — dont plusieurs communautés autochtones — et des dommages matériels importants. Dans un contexte où les changements climatiques devraient intensifier ces phénomènes, il devient essentiel de mieux préparer les communautés à y faire face.</p>
+        <p>L'activité des feux de forêt varie selon les régions et repose sur trois principaux facteurs. Le type de végétation influence leur intensité ; la fragmentation du territoire (plans d'eau, routes, zones agricoles et urbaines) limite les risques. Les conditions météo (chaleur, sécheresse et vent) augmentent l'inflammabilité et la vitesse de propagation. Enfin, les sources d'ignition diffèrent selon qu'elles soient d'origine humaine ou causées par la foudre.</p>
+        <p>Cette étude réalisée par l'Observatoire régional de recherche sur la forêt boréale évalue la prédisposition des communautés allochtones et autochtones du Québec à être touchées par les feux de forêt. L'indice calculé reflète la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt en fonction de sa localisation, de l'historique des feux, du climat régional et de la végétation (combustibles).</p>
+        <p>Dans l'optique de rendre disponibles les connaissances scientifiques sur les feux de forêt à la population, l'Observatoire a produit cette application sous forme de carte interactive, incluant des fiches visuelles pour les différentes MRC et communautés du Québec et des territoires autochtones.</p>
+        <p style="background:#fff8e1; border-left:3px solid #d4821a; padding:8px 10px; border-radius:0 4px 4px 0;"><strong>Attention</strong> : les indices calculés pour les différentes régions n'indiquent pas un danger réel d'incendie, celui-ci variant quotidiennement au cours de la saison selon les conditions météorologiques.</p>
+      </div>
+    </div><!-- /tab-intro -->
+
+    <div id="tab-fiches" class="tab-pane">
 
       <button id="btn-info" title="À propos de l'application">ℹ Instructions</button>
 
@@ -651,8 +663,7 @@
 
       <div id="expo-legend">
         <span class="panel-label">Indice de prédisposition aux feux ℹ</span>
-        <div id="expo-tooltip">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l’historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d’incendie, qui varie au fil de la saison selon les conditions météorologiques (https://www.sopfeu.qc.ca/carte/).
-        
+        <div id="expo-tooltip">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l’historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d’incendie, qui varie au fil de la saison selon les conditions météorologiques (https://www.sopfeu.qc.ca/carte/).<br><br>
           L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>Plus l'indice s'approche de la valeur seuil de 6, plus la MRC est prédisposée aux grands feux.</div>
         <div class="legend-bar"></div>
         <div class="legend-labels">
