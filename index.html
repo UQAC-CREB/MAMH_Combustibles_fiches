@@ -593,7 +593,8 @@
       <p> La carte affiche une couleur de fond de vert à rouge, indiquant l’indice de prédisposition des MRC aux feux de forêt (0 à 6). Plus l’indice est élevé, plus la MRC est prédisposée aux feux. </p>
       <p> Par exemple : une MRC de couleur rouge (indice 4 à 6) indique qu’elle est prédisposée de manière forte aux feux de forêt. </p>
       <p> <strong>Note</strong> : Cette étude se base sur des données scientifiques pour évaluer la prédisposition des communautés québécoises et autochtones aux feux de forêt selon deux échelles d'analyse : régionale et locale. Pour envisager des actions concrètes pour protéger les communautés, vous adresser aux autorités compétentes. </p>
-      <p> À cet égard, veuillez consulter l'onglet <span class="lien-onglet" onclick="allerOngletRessources()">"RESSOURCES UTILES"</span>.</p>
+      <p> À cet égard, veuillez consulter l'onglet <span class="lien-onglet" onclick="allerOngletRessources()">RESSOURCES UTILES</span>.</p>
+      <p> Pour plus de détails, consulter le rapport complet de cette étude en cliquant sur l'onglet <span class="lien-onglet" onclick="allerOngletIntro()">INTRODUCTION</span>.</p>
     </div>
     <div id="popup-footer">
       <button id="btn-fermer-popup">Fermer</button>
@@ -1587,6 +1588,14 @@ function allerOngletRessources() {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelector('.tab-btn[data-tab="ressources"]').classList.add('active');
   document.getElementById('tab-ressources').classList.add('active');
+}
+
+function allerOngletIntro() {
+  fermerPopup();
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="intro"]').classList.add('active');
+  document.getElementById('tab-intro').classList.add('active');
 }
 
 init().then(() => {
