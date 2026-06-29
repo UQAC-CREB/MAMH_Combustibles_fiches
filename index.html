@@ -589,7 +589,7 @@
       <br>
       <p><strong><u>INSTRUCTIONS</u></strong></p>
       <p> Pour consulter les fiches à l’échelle des MRC, cliquez directement sur une MRC dans la carte ou sélectionnez-la dans le menu déroulant <strong>« MRC »</strong>. Un bouton <span class="btn-mock-mrc">🗂 Voir la fiche "MRC"</span> apparaîtra. </p>
-      <p> Une fois une MRC sélectionnée, choisissez la <strong>« Communauté »</strong> dans le second menu déroulant, puis sélectionnez le <strong>« Lieu habité »</strong> dans le troisième menu. La fiche s’affichera automatiquement. Vous pouvez aussi cliquer directement sur un point dans la carte pour accéder à la fiche du lieu habité correspondant. </p>
+      <p> Une fois une MRC sélectionnée, choisissez la <strong>« Communauté »</strong> dans le second menu déroulant. La fiche s’affichera automatiquement. Vous pouvez aussi cliquer directement sur un point dans la carte pour accéder à la fiche du lieu habité correspondant. </p>
       <p> La carte affiche une couleur de fond de vert à rouge, indiquant l’indice de prédisposition des MRC aux feux de forêt (0 à 6). Plus l’indice est élevé, plus la MRC est prédisposée aux feux. </p>
       <p> Par exemple : une MRC de couleur rouge (indice 4 à 6) indique qu’elle est prédisposée de manière forte aux feux de forêt. </p>
       <p> <strong>Note</strong> : Cette étude se base sur des données scientifiques pour évaluer la prédisposition des communautés québécoises et autochtones aux feux de forêt selon deux échelles d'analyse : régionale et locale. Pour envisager des actions concrètes pour protéger les communautés, vous adresser aux autorités compétentes. </p>
@@ -663,18 +663,11 @@
         </select>
       </div>
 
-      <div class="panel-section">
-        <span class="panel-label">Lieu habité</span>
-        <select id="sel-lh" disabled>
-          <option value="">— Sélectionnez d'abord une communauté —</option>
-        </select>
-      </div>
-
       <hr class="divider" />
 
       <div class="panel-section">
         <div id="info-box">
-          <span class="info-empty">Sélectionnez une MRC, une communauté puis un lieu habité</span>
+          <span class="info-empty">Sélectionnez une MRC puis une communauté</span>
         </div>
       </div>
 
@@ -1013,7 +1006,7 @@ const EXPO_PALETTE = [
 
 let map, mrcGJ, zonesGJ, pointsGJ, lutData;
 let expoMin = 0, expoMax = 6;
-let selectedMRC = null, selectedMUN = null, selectedLH = null;
+let selectedMRC = null, selectedLH = null;
 let nomOverride = new Map(); // MRC_IDm → MOD_NM_MRC
 
 // ── Onglets panneau ──
@@ -1155,53 +1148,28 @@ function populateMRC() {
     });
 }
 
-// ── Menu Communauté ──
+// ── Menu Communauté (lieux habités, libellé "Lieu (Municipalité)") ──
 function populateMUN(mrcIdm) {
   const sel = document.getElementById('sel-mun');
   sel.innerHTML = '<option value="">— Sélectionnez une communauté —</option>';
-  if (!mrcIdm) { sel.disabled = true; return; }
-
-  const seen = new Set();
-  const munis = lutData
-    .filter(r => {
-      if (r.MRC_IDm !== mrcIdm || seen.has(r.MUN_ID)) return false;
-      seen.add(r.MUN_ID);
-      return true;
-    })
-    .sort((a, b) => (a.MUS_NM_MUN || '').localeCompare(b.MUS_NM_MUN || '', 'fr'));
-
-  munis.forEach(m => {
-    const o = document.createElement('option');
-    o.value = m.MUN_ID;
-    o.textContent = m.MUS_NM_MUN || m.MUN_ID;
-    sel.appendChild(o);
-  });
-  sel.disabled = (munis.length === 0);
-}
-
-// ── Menu Lieu habité ──
-function populateLH(munId) {
-  const sel = document.getElementById('sel-lh');
-  sel.innerHTML = '<option value="">— Sélectionnez un lieu habité —</option>';
   selectedLH = null;
   updateInfoBox(null);
 
-  if (!munId) { sel.disabled = true; return; }
+  if (!mrcIdm) { sel.disabled = true; return; }
 
   const lieux = lutData
-    .filter(r => r.MUN_ID === munId)
+    .filter(r => r.MRC_IDm === mrcIdm)
     .sort((a, b) => (a.nomcartrou || '').localeCompare(b.nomcartrou || '', 'fr'));
 
   lieux.forEach(m => {
     const o = document.createElement('option');
     o.value = m.lH_ID;
-    o.textContent = m.nomcartrou || m.lH_ID;
+    o.textContent = m.MUS_NM_MUN
+      ? `${m.nomcartrou || m.lH_ID} (${m.MUS_NM_MUN})`
+      : (m.nomcartrou || m.lH_ID);
     sel.appendChild(o);
   });
   sel.disabled = (lieux.length === 0);
-
-  // Auto-sélection si un seul lieu habité dans la communauté
-  if (lieux.length === 1) selectLH(lieux[0].lH_ID);
 }
 
 // ── Info box ──
@@ -1360,14 +1328,7 @@ function addAllLayers() {
     // Cascade : sélectionne MRC si nécessaire (zoom)
     if (row.MRC_IDm !== selectedMRC) selectMRC(row.MRC_IDm);
 
-    // Sélectionne la communauté et peuple le menu lieu habité
-    if (row.MUN_ID !== selectedMUN) {
-      selectedMUN = row.MUN_ID;
-      document.getElementById('sel-mun').value = row.MUN_ID;
-      populateLH(row.MUN_ID);
-    }
-
-    // Sélectionne le lieu habité (ouvre la fiche)
+    // Sélectionne la communauté (lieu habité) et ouvre la fiche
     selectLH(lhId);
   });
 
@@ -1380,14 +1341,9 @@ function addAllLayers() {
 // ── Sélection MRC ──
 function selectMRC(mrcIdm) {
   selectedMRC = mrcIdm;
-  selectedMUN = null;
-  selectedLH  = null;
 
   document.getElementById('sel-mrc').value = mrcIdm;
   populateMUN(mrcIdm);
-  document.getElementById('sel-lh').innerHTML = '<option value="">— Sélectionnez d\'abord une communauté —</option>';
-  document.getElementById('sel-lh').disabled = true;
-  updateInfoBox(null);
   document.getElementById('btn-fiche-mrc').classList.add('visible');
 
   map.setFilter('mrc-selected-line', ['==', ['get', 'MRC_IDm'], mrcIdm]);
@@ -1416,19 +1372,10 @@ function refreshPoints(mrcIdm) {
   map.getSource('points').setData({ type: 'FeatureCollection', features: feats });
 }
 
-// ── Sélection Communauté ──
-function selectMUN(munId) {
-  selectedMUN = munId;
-  selectedLH  = null;
-  document.getElementById('sel-mun').value = munId;
-  populateLH(munId);
-  // Pas d'ouverture de fiche ici — on attend la sélection du lieu habité
-}
-
-// ── Sélection Lieu habité ──
+// ── Sélection Communauté (lieu habité) ──
 function selectLH(lhId) {
   selectedLH = lhId;
-  document.getElementById('sel-lh').value = lhId;
+  document.getElementById('sel-mun').value = lhId;
   updateInfoBox(lhId);
   ouvrirFiche(lhId);
 }
@@ -1438,11 +1385,8 @@ document.getElementById('sel-mrc').addEventListener('change', (e) => {
   if (e.target.value) {
     selectMRC(e.target.value);
   } else {
-    selectedMRC = null; selectedMUN = null; selectedLH = null;
+    selectedMRC = null;
     populateMUN(null);
-    document.getElementById('sel-lh').innerHTML = '<option value="">— Sélectionnez d\'abord une communauté —</option>';
-    document.getElementById('sel-lh').disabled = true;
-    updateInfoBox(null);
     map.setFilter('mrc-selected-line', ['==', ['get', 'MRC_IDm'], '___NONE___']);
     map.getSource('points').setData({ type: 'FeatureCollection', features: [] });
     map.getSource('zones-hover').setData({ type: 'FeatureCollection', features: [] });
@@ -1450,15 +1394,6 @@ document.getElementById('sel-mrc').addEventListener('change', (e) => {
   }
 });
 document.getElementById('sel-mun').addEventListener('change', (e) => {
-  if (e.target.value) selectMUN(e.target.value);
-  else {
-    selectedMUN = null; selectedLH = null;
-    document.getElementById('sel-lh').innerHTML = '<option value="">— Sélectionnez d\'abord une communauté —</option>';
-    document.getElementById('sel-lh').disabled = true;
-    updateInfoBox(null);
-  }
-});
-document.getElementById('sel-lh').addEventListener('change', (e) => {
   if (e.target.value) selectLH(e.target.value);
   else { selectedLH = null; updateInfoBox(null); }
 });
