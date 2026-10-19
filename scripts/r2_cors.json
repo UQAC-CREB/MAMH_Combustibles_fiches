@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["https://uqac-creb.github.io", "http://localhost:8000", "http://127.0.0.1:8000"],
+        "methods": ["GET", "HEAD"],
+        "headers": ["range", "if-match", "if-none-match"]
+      },
+      "exposeHeaders": ["etag", "content-length", "content-range", "accept-ranges"],
+      "maxAgeSeconds": 86400
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# Tuiles raster PMTiles (hébergées sur Cloudflare R2, trop lourdes pour Git)
+tiles_v2/
+# Fichiers intermédiaires des scripts
+scripts/_*
+__pycache__/
+.wrangler/

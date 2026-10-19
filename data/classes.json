@@ -1,0 +1,196 @@
+{
+ "comb": [
+  {
+   "v": 1,
+   "abb": "C1",
+   "lbl": "Pessière à cladonie",
+   "hex": "#D1FF73",
+   "grp": "Résineux",
+   "fuel": true
+  },
+  {
+   "v": 2,
+   "abb": "C2",
+   "lbl": "Pessière boréale",
+   "hex": "#226633",
+   "grp": "Résineux",
+   "fuel": true
+  },
+  {
+   "v": 3,
+   "abb": "C3",
+   "lbl": "Pin gris à maturité",
+   "hex": "#83C795",
+   "grp": "Résineux",
+   "fuel": true
+  },
+  {
+   "v": 5,
+   "abb": "C5",
+   "lbl": "Pins rouges - pins blancs",
+   "hex": "#DFB8E6",
+   "grp": "Résineux",
+   "fuel": true
+  },
+  {
+   "v": 6,
+   "abb": "C6",
+   "lbl": "Plantation de conifères",
+   "hex": "#AC66ED",
+   "grp": "Résineux",
+   "fuel": true
+  },
+  {
+   "v": 7,
+   "abb": "C7",
+   "lbl": "Herbes avec résineux (pin ponderosas)",
+   "hex": "#700CF2",
+   "grp": "Résineux",
+   "fuel": true
+  },
+  {
+   "v": 8,
+   "abb": "D1",
+   "lbl": "Peuplements feuillus",
+   "hex": "#C4BD97",
+   "grp": "Feuillus",
+   "fuel": true
+  },
+  {
+   "v": 9,
+   "abb": "M1<50%",
+   "lbl": "Forêt boréale mixte <50% conifère",
+   "hex": "#FFAA00",
+   "grp": "Mixtes",
+   "fuel": true
+  },
+  {
+   "v": 10,
+   "abb": "M1>50%",
+   "lbl": "Forêt boréale mixte >50% conifère",
+   "hex": "#FFAA00",
+   "grp": "Mixtes",
+   "fuel": true
+  },
+  {
+   "v": 11,
+   "abb": "M3<50%",
+   "lbl": "Forêt mixte à sapins baumiers morts <50%",
+   "hex": "#AA0000",
+   "grp": "Mixtes",
+   "fuel": true
+  },
+  {
+   "v": 12,
+   "abb": "M3>50%",
+   "lbl": "Forêt mixte à sapins baumiers morts  >50%",
+   "hex": "#AA0000",
+   "grp": "Mixtes",
+   "fuel": true
+  },
+  {
+   "v": 13,
+   "abb": "M3-100%",
+   "lbl": "Forêt mixte à sapins baumiers morts 100%",
+   "hex": "#AA0000",
+   "grp": "Mixtes",
+   "fuel": true
+  },
+  {
+   "v": 14,
+   "abb": "O1a",
+   "lbl": "Herbes aplaties",
+   "hex": "#FFFFBE",
+   "grp": "Herbes",
+   "fuel": true
+  },
+  {
+   "v": 15,
+   "abb": "O1b",
+   "lbl": "Herbes mortes",
+   "hex": "#FFFFBE",
+   "grp": "Herbes",
+   "fuel": true
+  },
+  {
+   "v": 16,
+   "abb": "S2",
+   "lbl": "Rémanents",
+   "hex": "#FBBEB9",
+   "grp": "Rémanents",
+   "fuel": true
+  },
+  {
+   "v": 100,
+   "abb": "BR",
+   "lbl": "Brûlis",
+   "hex": "#FF1CFC",
+   "grp": "Brûlis",
+   "fuel": true
+  },
+  {
+   "v": 101,
+   "abb": "DH - AU",
+   "lbl": "Dénudé humide, terrain agricole, urbain.",
+   "hex": "#828282",
+   "grp": "Dénudé",
+   "fuel": false
+  },
+  {
+   "v": 102,
+   "abb": "DS",
+   "lbl": "Dénudé sec",
+   "hex": "#FF91FF",
+   "grp": "Dénudé",
+   "fuel": false
+  },
+  {
+   "v": 103,
+   "abb": "Eau",
+   "lbl": "Eau",
+   "hex": "#73DFFF",
+   "grp": "Eau",
+   "fuel": false
+  },
+  {
+   "v": 104,
+   "abb": "Urbain",
+   "lbl": "Urbain",
+   "hex": "#DED9D9",
+   "grp": "Urbain",
+   "fuel": false
+  }
+ ],
+ "pot": [
+  {
+   "v": 0,
+   "lbl": "Absence combustible",
+   "hex": "#B2B2B2"
+  },
+  {
+   "v": 1,
+   "lbl": "Faible",
+   "hex": "#147218"
+  },
+  {
+   "v": 2,
+   "lbl": "Modéré",
+   "hex": "#FBDE16"
+  },
+  {
+   "v": 3,
+   "lbl": "Considérable",
+   "hex": "#FE990D"
+  },
+  {
+   "v": 4,
+   "lbl": "Élevé",
+   "hex": "#A80000"
+  },
+  {
+   "v": 5,
+   "lbl": "Extrême",
+   "hex": "#4F0000"
+  }
+ ]
+}
