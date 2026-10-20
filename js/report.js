@@ -1,9 +1,9 @@
 // Rapport PDF généré dans le navigateur (jsPDF) — fiche territoire + fiches communautés
-import { YEAR_END, COLORS } from './config.js';
+import { YEAR_END, COLORS, BASEMAP } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';
 import { loadProvince } from './data.js';
-import { S, lhName, lhSub, lhChartPair, loadFiresInView, bufferCircle, bufferIndex, fmtIdx } from './app.js';
+import { S, lhName, lhSub, lhChartPair, bufferCircle, bufferIndex, fmtIdx } from './app.js';
 
 const $ = (id) => document.getElementById(id);
 let autoTerr = true;
@@ -61,31 +61,178 @@ function idle(map, timeout = 12000) {
   });
 }
 
-async function captureMap(bounds, aspect) {
-  const map = S.map;
-  // marges telles que l'emprise tienne dans la zone recadrée (ratio du PDF)
-  const W = map.getCanvas().clientWidth, H = map.getCanvas().clientHeight;
-  const pad = { top: 24, bottom: 24, left: 24, right: 24 };
-  if (W / H > aspect) { const p = (W - H * aspect) / 2 + 24; pad.left = p; pad.right = p; }
-  else { const p = (H - W / aspect) / 2 + 24; pad.top = p; pad.bottom = p; }
-  map.fitBounds(bounds, { padding: pad, duration: 0 });
-  await idle(map);
-  await loadFiresInView();
-  await idle(map);
-  await wait(150);
-  const src = map.getCanvas();
-  // recadrage au centre selon le ratio de la boîte du PDF
-  let sw = src.width, sh = src.height;
-  if (sw / sh > aspect) sw = sh * aspect; else sh = sw / aspect;
-  const c = document.createElement('canvas');
-  c.width = Math.round(sw); c.height = Math.round(sh);
-  c.getContext('2d').drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, sw, sh);
-  return c.toDataURL('image/jpeg', 0.88);
-}
-
 function circleBounds(r, km) {
   const dLat = km / 111.2, dLon = km / (111.2 * Math.cos(r.y * Math.PI / 180));
   return [[r.x - dLon, r.y - dLat], [r.x + dLon, r.y + dLat]];
+}
+
+// ── Fond de carte gris pâle (style MapLibre de l'application, sans étiquettes) reprojeté en Lambert ─
+// Une carte MapLibre hors écran (Mercator) est rendue sur l'emprise voulue, puis rééchantillonnée.
+
+const mercY = (la) => { const s = Math.sin((Math.max(-85, Math.min(85, la)) * Math.PI) / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
+const mercX = (lo) => (lo + 180) / 360;
+
+/** Rend le fond de carte (Mercator) couvrant [lon0, lat0, lon1, lat1] ; retourne pixels + transformation. */
+async function renderMercatorBase([lon0, lat0, lon1, lat1], size = 1600) {
+  const div = document.createElement('div');
+  Object.assign(div.style, { position: 'fixed', left: '-10000px', top: '0', width: `${size}px`, height: `${size}px` });
+  document.body.appendChild(div);
+  const m = new maplibregl.Map({
+    container: div, style: BASEMAP, interactive: false, attributionControl: false,
+    bounds: [[lon0, lat0], [lon1, lat1]], fitBoundsOptions: { padding: 0 }, pixelRatio: 1,
+    canvasContextAttributes: { preserveDrawingBuffer: true },
+  });
+  try {
+    await new Promise((res) => m.once('load', res));
+    m.getStyle().layers.forEach(l => { if (l.type === 'symbol') m.setLayoutProperty(l.id, 'visibility', 'none'); });
+    await idle(m, 15000);
+    const c = m.getCanvas();
+    const tmp = document.createElement('canvas');
+    tmp.width = c.width; tmp.height = c.height;
+    const tctx = tmp.getContext('2d');
+    tctx.drawImage(c, 0, 0);
+    const data = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+    // transformation linéaire Mercator normalisé → pixels, à partir de deux points projetés
+    const pA = m.project([lon0, lat1]), pB = m.project([lon1, lat0]);
+    const kx = (pB.x - pA.x) / (mercX(lon1) - mercX(lon0)), ky = (pB.y - pA.y) / (mercY(lat0) - mercY(lat1));
+    const sc = c.width / div.clientWidth;
+    return {
+      data, W: tmp.width, H: tmp.height,
+      toPx: (lo, la) => [((mercX(lo) - mercX(lon0)) * kx + pA.x) * sc, ((mercY(la) - mercY(lat1)) * ky + pA.y) * sc],
+    };
+  } finally {
+    m.remove(); div.remove();
+  }
+}
+
+/**
+ * Peint le fond de carte dans ctx (W × H) : `inv(px, py)` → [lon, lat] (projection de la page).
+ * Les coordonnées sont calculées sur une grille de 4 px puis interpolées.
+ */
+async function paintBasemap(ctx, W, H, inv) {
+  const step = 4, gw = Math.ceil(W / step) + 1, gh = Math.ceil(H / step) + 1;
+  const glon = new Float64Array(gw * gh), glat = new Float64Array(gw * gh);
+  let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    const [lo, la] = inv(i * step, j * step);
+    glon[j * gw + i] = lo; glat[j * gw + i] = la;
+    lon0 = Math.min(lon0, lo); lon1 = Math.max(lon1, lo); lat0 = Math.min(lat0, la); lat1 = Math.max(lat1, la);
+  }
+  let base;
+  try { base = await renderMercatorBase([lon0, lat0, lon1, lat1]); } catch (e) { console.warn('Fond de carte :', e); return; }
+  const out = ctx.createImageData(W, H), d = out.data, src = base.data;
+  for (let py = 0; py < H; py++) {
+    const gj = Math.min(gh - 2, Math.floor(py / step)), fy = py / step - gj;
+    for (let px = 0; px < W; px++) {
+      const gi = Math.min(gw - 2, Math.floor(px / step)), fx = px / step - gi;
+      const k = gj * gw + gi;
+      const lo = (glon[k] * (1 - fx) + glon[k + 1] * fx) * (1 - fy) + (glon[k + gw] * (1 - fx) + glon[k + gw + 1] * fx) * fy;
+      const la = (glat[k] * (1 - fx) + glat[k + 1] * fx) * (1 - fy) + (glat[k + gw] * (1 - fx) + glat[k + gw + 1] * fx) * fy;
+      const [mx, my] = base.toPx(lo, la);
+      const xi = Math.floor(mx), yi = Math.floor(my), o = (py * W + px) * 4;
+      if (xi < 0 || yi < 0 || xi >= base.W || yi >= base.H) { d[o] = d[o + 1] = d[o + 2] = 245; d[o + 3] = 255; continue; }
+      const s = (yi * base.W + xi) * 4;
+      d[o] = src[s]; d[o + 1] = src[s + 1]; d[o + 2] = src[s + 2]; d[o + 3] = 255;
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+}
+
+// ── Cartes de la zone tampon (A : combustibles, B : potentiel) ─────────────
+const APP_LAYERS = ['indice', 'units-fill', 'units-line', 'units-sel', 'zone-fill', 'zone-line', 'buffer-fill', 'buffer-line',
+  'pts', 'lh-circle', 'lh-label', 'feux-fill', 'feux-line', 'regime-line', 'comb', 'pot'];
+
+function niceKm(km) {
+  const c = [1, 2, 5, 10, 20, 25, 50, 100];
+  return c.reduce((b, v) => (v <= km ? v : b), 1);
+}
+
+function northArrow(ctx, x, y, s) {
+  ctx.save();
+  ctx.lineWidth = Math.max(1, s / 14); ctx.strokeStyle = '#333';
+  ctx.beginPath(); ctx.arc(x, y + s * 0.55, s * 0.42, 0, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - s * 0.22, y + s); ctx.lineTo(x, y + s * 0.78); ctx.closePath();
+  ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + s * 0.22, y + s); ctx.lineTo(x, y + s * 0.78); ctx.closePath();
+  ctx.fillStyle = '#333'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#333'; ctx.font = `${Math.round(s * 0.32)}px Arial`; ctx.textAlign = 'center';
+  ctx.fillText('N', x, y - s * 0.12);
+  ctx.restore();
+}
+
+/** Capture des deux cartes de la zone tampon de r (rayon km), recadrées au ratio `aspect`. */
+async function captureBufferMaps(r, km, aspect) {
+  const map = S.map;
+  const style = map.getStyle().layers;
+  const savedVis = Object.fromEntries(style.map(l => [l.id, map.getLayoutProperty(l.id, 'visibility') || 'visible']));
+  const setVis = (id, on) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  try {
+    // fond sans étiquettes ; aucune couche de l'application
+    style.forEach(l => { if (l.type === 'symbol' || APP_LAYERS.includes(l.id)) setVis(l.id, false); });
+    const cw = map.getCanvas().clientWidth, ch = map.getCanvas().clientHeight;
+    const pad = { top: 20, bottom: 20, left: 20, right: 20 };
+    if (cw / ch > aspect) { const p = (cw - ch * aspect) / 2 + 20; pad.left = p; pad.right = p; }
+    else { const p = (ch - cw / aspect) / 2 + 20; pad.top = p; pad.bottom = p; }
+    map.fitBounds(circleBounds(r, km * 1.3), { padding: pad, duration: 0 });
+    const grab = async () => {
+      await idle(map); await wait(120);
+      const src = map.getCanvas();
+      let sw = src.width, sh = src.height;
+      if (sw / sh > aspect) sw = sh * aspect; else sh = sw / aspect;
+      const c = document.createElement('canvas');
+      c.width = Math.round(sw); c.height = Math.round(sh);
+      c.getContext('2d').drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, sw, sh);
+      return { c, ox: (src.width - sw) / 2, oy: (src.height - sh) / 2 };
+    };
+    const base = await grab();
+    setVis('comb', true); const comb = await grab(); setVis('comb', false);
+    setVis('pot', true); const pot = await grab(); setVis('pot', false);
+
+    // géométrie en pixels du canevas (devicePixelRatio)
+    const dpr = map.getCanvas().width / cw;
+    const ring = bufferCircle(r, km).geometry.coordinates[0].map(ll => {
+      const p = map.project(ll); return [p.x * dpr - base.ox, p.y * dpr - base.oy];
+    });
+    const ctr = map.project([r.x, r.y]);
+    const cx = ctr.x * dpr - base.ox, cy = ctr.y * dpr - base.oy;
+    const W = base.c.width, H = base.c.height, u = W / 500;          // unité graphique
+    const mpp = (40075016.686 * Math.cos((r.y * Math.PI) / 180)) / (512 * 2 ** map.getZoom()) / dpr;
+    const skm = niceKm((W * 0.32 * mpp) / 1000), sL = (skm * 1000) / mpp;
+
+    const compose = (layer) => {
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(base.c, 0, 0);
+      ctx.save();
+      ctx.beginPath(); ring.forEach(([a, b], i) => (i ? ctx.lineTo(a, b) : ctx.moveTo(a, b))); ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(layer.c, 0, 0);
+      ctx.restore();
+      ctx.beginPath(); ring.forEach(([a, b], i) => (i ? ctx.lineTo(a, b) : ctx.moveTo(a, b))); ctx.closePath();
+      ctx.lineWidth = 3 * u; ctx.strokeStyle = '#111'; ctx.stroke();
+      // lieu habité + étiquette encadrée
+      ctx.beginPath(); ctx.arc(cx, cy, 4.5 * u, 0, 2 * Math.PI); ctx.fillStyle = '#111'; ctx.fill();
+      ctx.lineWidth = 1.5 * u; ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.font = `bold ${Math.round(15 * u)}px Arial`;
+      const label = lhName(r), tw = ctx.measureText(label).width, lh = 20 * u;
+      const lx = cx - tw / 2 - 5 * u, ly = cy - 12 * u - lh;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(lx, ly, tw + 10 * u, lh);
+      ctx.lineWidth = 1.2 * u; ctx.strokeStyle = '#111'; ctx.strokeRect(lx, ly, tw + 10 * u, lh);
+      ctx.fillStyle = '#111'; ctx.textBaseline = 'middle'; ctx.fillText(label, lx + 5 * u, ly + lh / 2);
+      // échelle
+      const sx = 14 * u, sy = H - 22 * u, bh = 8 * u;
+      ctx.fillStyle = '#fff'; ctx.fillRect(sx, sy, sL, bh);
+      ctx.fillStyle = '#222'; ctx.fillRect(sx, sy, sL / 2, bh);
+      ctx.lineWidth = 1 * u; ctx.strokeStyle = '#222'; ctx.strokeRect(sx, sy, sL, bh);
+      ctx.font = `${Math.round(13 * u)}px Arial`; ctx.textBaseline = 'middle';
+      ctx.fillText(`${skm} km`, sx + sL + 6 * u, sy + bh / 2);
+      northArrow(ctx, W - 28 * u, 12 * u, 34 * u);
+      return c.toDataURL('image/jpeg', 0.9);
+    };
+    return { comb: compose(comb), pot: compose(pot) };
+  } finally {
+    for (const [id, v] of Object.entries(savedVis)) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v);
+  }
 }
 
 // ── Carte de localisation (Québec en Lambert, territoire en rouge) ─────────
@@ -116,7 +263,8 @@ async function locatorMap(territory, aspect, pxW = 900) {
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  // fond de carte gris pâle reprojeté en Lambert
+  await paintBasemap(ctx, W, H, (px, py) => t.inverse([cx - w / 2 + px / k, cy + h / 2 - py / k]));
   const path = (rings) => {
     ctx.beginPath();
     for (const r of rings) r.forEach((p, i) => { const [a, b] = px(p); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); });
@@ -124,7 +272,7 @@ async function locatorMap(territory, aspect, pxW = 900) {
   // Territoire (MRC ou zone) : rouge semi-transparent
   if (terrRings.length) {
     path(terrRings);
-    ctx.fillStyle = 'rgba(214, 39, 40, 0.55)'; ctx.fill('evenodd');
+    ctx.fillStyle = 'rgba(214, 39, 40, 0.5)'; ctx.fill('evenodd');
     ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 1.5; ctx.stroke();
     // territoire trop petit pour être visible : cercle de repérage
     let tx0 = Infinity, ty0 = Infinity, tx1 = -Infinity, ty1 = -Infinity;
@@ -223,7 +371,7 @@ function legend(doc, xr, y) {
   }
 }
 
-async function communityPage(doc, r, mapImg, buf) {
+async function communityPage(doc, r, maps, buf) {
   const cls = S.core.classes;
   const x = M, y = M, h = PH - 2 * M, w = PW - 2 * M;
   const lw = w * 0.5;
@@ -235,10 +383,13 @@ async function communityPage(doc, r, mapImg, buf) {
   doc.text('(MRNF 2025)', x + 22, y + 62);
   doc.setFontSize(14); doc.setFont('helvetica', 'normal');
   let ty = y + 92;
-  const nm = wrap(doc, `Communauté : ${lhName(r)}`, lw - 44);
-  for (const l of nm) { doc.text(l, x + 22, ty); ty += 17; }
-  doc.setFontSize(11);
-  const sub = [r.na && r.na !== r.nom ? `(${r.nom})` : '', r.mun ? `Municipalité : ${r.mun}` : '', r.nat ? `Nation : ${r.nat} (toponyme à valider)` : ''].filter(Boolean);
+  doc.text('Communauté :', x + 22, ty);
+  doc.setFont('helvetica', 'bold');
+  const nm = wrap(doc, lhName(r), lw - 150);
+  nm.forEach((l, i) => doc.text(l, x + 22 + doc.getTextWidth('Communauté : ') * 0 + 98, ty + i * 17));
+  ty += nm.length * 17;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+  const sub = [r.na && r.na !== r.nom ? `(${r.nom})` : '', r.mun ? `Municipalité de ${r.mun}` : '', r.nat ? `Nation : ${r.nat} (toponyme à valider)` : ''].filter(Boolean);
   for (const l of sub.flatMap(s => wrap(doc, s, lw - 44))) { doc.text(l, x + 22, ty); ty += 14; }
   ty += 8;
   const unit = S.core.units.features.find(f => f.properties.id === r.u)?.properties;
@@ -253,27 +404,39 @@ async function communityPage(doc, r, mapImg, buf) {
   const tot = buf.comb.reduce((a, v) => a + v, 0);
   doc.text(pdfTxt(`Zone tampon : ${S.bufKm} km (${fmtInt(tot)} ha analysés)`), x + 22, ty); ty += 10;
   doc.setDrawColor(60); doc.line(x, ty, x + lw, ty);
-  // Graphiques
+
+  // Graphiques A (combustibles) et B (potentiel), même hauteur
   const gy = ty + 8, gh = y + h - gy - 8;
   const cw = (lw - 30) / 2;
-  const pair = lhChartPair(buf, cls, 250, { combRowH: 19, fontSize: 9.5 });   // même hauteur
-  const pot = await svgToPng(pair.pot, 2.5), comb = await svgToPng(pair.comb, 2.5);
+  const pair = lhChartPair(buf, cls, 250, { combRowH: 19, fontSize: 9.5 });
+  const comb = await svgToPng(pair.comb, 2.5), pot = await svgToPng(pair.pot, 2.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-  doc.text(pdfTxt("Potentiel d'intensité et de propagation"), x + 12, gy + 6);
-  doc.text(pdfTxt('Superficie des combustibles'), x + 18 + cw, gy + 6);
+  doc.text(pdfTxt('A) Superficie des combustibles'), x + 12, gy + 6);
+  doc.text(wrap(doc, "B) Potentiel d'intensité et de propagation", cw), x + 18 + cw, gy + 6);
   const fit = (img, bx, by, bw, bh) => {
     let iw = bw, ih = bw * img.h / img.w;
     if (ih > bh) { ih = bh; iw = bh * img.w / img.h; }
     doc.addImage(img.data, 'PNG', bx, by, iw, ih, undefined, 'FAST');
   };
-  fit(pot, x + 8, gy + 12, cw, gh - 14);
-  fit(comb, x + 14 + cw, gy + 12, cw, gh - 14);
-  // Carte
-  const mx = x + lw, mw = w - lw, footH = 60;
-  doc.addImage(mapImg, 'JPEG', mx, y, mw, h - footH);
-  doc.line(mx, y, mx, y + h);
+  fit(comb, x + 8, gy + 18, cw, gh - 20);
+  fit(pot, x + 14 + cw, gy + 18, cw, gh - 20);
+
+  // Cartes A et B empilées
+  const mx = x + lw, mw = w - lw, footH = 60, mh = (h - footH) / 2;
+  const mapBox = (img, my, title) => {
+    doc.addImage(img, 'JPEG', mx, my, mw, mh, undefined, 'FAST');
+    doc.setDrawColor(60); doc.setLineWidth(0.8); doc.rect(mx, my, mw, mh);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    const tw = doc.getTextWidth(pdfTxt(title));
+    doc.setFillColor(255, 255, 255); doc.setDrawColor(30); doc.setLineWidth(0.6);
+    doc.rect(mx + 8, my + 7, tw + 8, 16, 'FD');
+    doc.setTextColor(...DARK); doc.text(pdfTxt(title), mx + 12, my + 19);
+  };
+  mapBox(maps.comb, y, 'A) Superficie des combustibles');
+  mapBox(maps.pot, y + mh, "B) Potentiel d'intensité et de propagation");
+  doc.setLineWidth(0.57);
   footer(doc, mx, y + h - footH, mw, footH,
-    'Sources (donneesquebec.ca) : Potentiel d\'intensité et de propagation des feux de forêt - Combustibles 2025 (MRNF) - Découpages administratifs 1/20 000 - Lieux habités. Le potentiel mesure la gravité potentielle s\'il y a ignition, et non la probabilité d\'un feu.');
+    'Sources (donneesquebec.ca) : Potentiel d\'intensité et de propagation des feux de forêt - Combustibles 2025 (MRNF) - Découpages administratifs 1/20 000 - Lieux habités. Fond de carte : CARTO, OpenStreetMap.');
 }
 
 // ── Génération ─────────────────────────────────────────────────────────────
@@ -299,11 +462,7 @@ async function generate() {
   setBar(0);
 
   const map = S.map;
-  const saved = {
-    center: map.getCenter(), zoom: map.getZoom(),
-    comb: $('ly-comb').checked, indice: $('ly-indice').checked, lh: S.lh,
-    vis: Object.fromEntries(['feux-fill', 'feux-line', 'indice', 'pts', 'pot'].map(id => [id, map.getLayoutProperty(id, 'visibility') || 'visible'])),
-  };
+  const saved = { center: map.getCenter(), zoom: map.getZoom() };
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter', compress: true });
   let first = true;
@@ -317,22 +476,14 @@ async function generate() {
       newPage();
       await territoryPage(doc, img);
     }
-    // Combustibles visibles pour les cartes des communautés
-    if (comms.length) {
-      $('ly-comb').checked = true; $('ly-comb').dispatchEvent(new Event('change'));
-      ['feux-fill', 'feux-line', 'indice', 'pts', 'pot'].forEach(id => map.setLayoutProperty(id, 'visibility', 'none'));
-    }
     for (let k = 0; k < comms.length; k++) {
       const r = comms[k];
       prog(`Communauté ${k + 1} / ${comms.length} : ${lhName(r)}…`);
       const buf = await bufferStats(r.idx, S.bufKm);
-      S.lh = r;
-      map.getSource('lh').setData({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { idx: r.idx, nom: lhName(r), sel: true }, geometry: { type: 'Point', coordinates: [r.x, r.y] } }] });
-      map.getSource('buffer').setData(bufferCircle(r, S.bufKm));
       const w = PW - 2 * M;
-      const img = await captureMap(circleBounds(r, S.bufKm * 1.08), (w * 0.5) / (PH - 2 * M - 50));
+      const maps = await captureBufferMaps(r, S.bufKm, (w * 0.5) / ((PH - 2 * M - 60) / 2));
       newPage();
-      await communityPage(doc, r, img, buf);
+      await communityPage(doc, r, maps, buf);
     }
     prog('Enregistrement du PDF…');
     const name = (S.terrName || 'territoire').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
@@ -340,16 +491,7 @@ async function generate() {
     setBar(100);
     $('rep-progress').textContent = `Rapport généré (${doc.getNumberOfPages()} page${doc.getNumberOfPages() > 1 ? 's' : ''}).`;
   } finally {
-    // Restauration de l'état de la carte
-    $('ly-comb').checked = saved.comb; $('ly-comb').dispatchEvent(new Event('change'));
-    for (const [id, on] of Object.entries(saved.vis)) map.setLayoutProperty(id, 'visibility', on);
-    $('ly-indice').checked = saved.indice;
-    S.lh = saved.lh;
-    map.getSource('buffer').setData(S.lh ? bufferCircle(S.lh, S.bufKm) : { type: 'FeatureCollection', features: [] });
-    map.getSource('lh').setData({
-      type: 'FeatureCollection',
-      features: S.terrLH.map(r => ({ type: 'Feature', properties: { idx: r.idx, nom: lhName(r), sel: r === S.lh }, geometry: { type: 'Point', coordinates: [r.x, r.y] } })),
-    });
+    // Restauration de la vue (les couches sont rétablies par captureBufferMaps)
     map.jumpTo({ center: saved.center, zoom: saved.zoom });
     $('rep-go').disabled = false;
   }

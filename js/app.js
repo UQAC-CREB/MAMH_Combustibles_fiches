@@ -666,11 +666,11 @@ function lhChartsHTML(w, big = false) {
   const side = (w - gap) / 2 >= 230;               // côte à côte si la place le permet
   const cw = side ? Math.floor((w - gap) / 2) : w;
   const c = lhChartPair(b, cls, cw, big ? { combRowH: 19, fontSize: 10.5 } : { combRowH: 14, fontSize: 9.5 });
-  const t1 = '<div class="chart-title">Potentiel d’intensité et de propagation</div>';
-  const t2 = '<div class="chart-title">Superficie des combustibles</div>';
+  const t1 = '<div class="chart-title">A) Superficie des combustibles</div>';
+  const t2 = '<div class="chart-title">B) Potentiel d’intensité et de propagation</div>';
   return side
-    ? `<div class="pair-grid" style="column-gap:${gap}px">${t1}${t2}<div class="chart">${c.pot}</div><div class="chart">${c.comb}</div></div>`
-    : `${t1}<div class="chart">${c.pot}</div>${t2}<div class="chart">${c.comb}</div>`;
+    ? `<div class="pair-grid" style="column-gap:${gap}px">${t1}${t2}<div class="chart">${c.comb}</div><div class="chart">${c.pot}</div></div>`
+    : `${t1}<div class="chart">${c.comb}</div>${t2}<div class="chart">${c.pot}</div>`;
 }
 
 function lhStatsLine() {
