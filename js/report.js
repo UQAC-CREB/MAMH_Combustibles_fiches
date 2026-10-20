@@ -146,16 +146,16 @@ function niceKm(km) {
   return c.reduce((b, v) => (v <= km ? v : b), 1);
 }
 
-function northArrow(ctx, x, y, s) {
+/** Flèche du nord, style « NorthArrow_1 » : cercle + trait vertical du haut du cercle jusqu'au centre. (cx, cy) = centre. */
+function northArrow(ctx, cx, cy, s) {
+  const r = s / 2;
   ctx.save();
-  ctx.lineWidth = Math.max(1, s / 14); ctx.strokeStyle = '#333';
-  ctx.beginPath(); ctx.arc(x, y + s * 0.55, s * 0.42, 0, 2 * Math.PI); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - s * 0.22, y + s); ctx.lineTo(x, y + s * 0.78); ctx.closePath();
-  ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + s * 0.22, y + s); ctx.lineTo(x, y + s * 0.78); ctx.closePath();
-  ctx.fillStyle = '#333'; ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#333'; ctx.font = `${Math.round(s * 0.32)}px Arial`; ctx.textAlign = 'center';
-  ctx.fillText('N', x, y - s * 0.12);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.fill();
+  ctx.lineWidth = s * 0.1; ctx.strokeStyle = '#111'; ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.arc(cx, cy, r - ctx.lineWidth / 2, 0, 2 * Math.PI); ctx.stroke();
+  ctx.lineWidth = s * 0.09;
+  ctx.beginPath(); ctx.moveTo(cx, cy - r + ctx.lineWidth * 0.2); ctx.lineTo(cx, cy); ctx.stroke();
   ctx.restore();
 }
 
@@ -198,7 +198,7 @@ async function captureBufferMaps(r, km, aspect) {
     const mpp = (40075016.686 * Math.cos((r.y * Math.PI) / 180)) / (512 * 2 ** map.getZoom()) / dpr;
     const skm = niceKm((W * 0.32 * mpp) / 1000), sL = (skm * 1000) / mpp;
 
-    const compose = (layer) => {
+    const compose = (layer, arrow) => {
       const c = document.createElement('canvas'); c.width = W; c.height = H;
       const ctx = c.getContext('2d');
       ctx.drawImage(base.c, 0, 0);
@@ -225,10 +225,10 @@ async function captureBufferMaps(r, km, aspect) {
       ctx.lineWidth = 1 * u; ctx.strokeStyle = '#222'; ctx.strokeRect(sx, sy, sL, bh);
       ctx.font = `${Math.round(13 * u)}px Arial`; ctx.textBaseline = 'middle';
       ctx.fillText(`${skm} km`, sx + sL + 6 * u, sy + bh / 2);
-      northArrow(ctx, W - 28 * u, 12 * u, 34 * u);
+      if (arrow) northArrow(ctx, W - 30 * u, 30 * u, 34 * u);    // une seule flèche : carte A (combustibles)
       return c.toDataURL('image/jpeg', 0.9);
     };
-    return { comb: compose(comb), pot: compose(pot) };
+    return { comb: compose(comb, true), pot: compose(pot, false) };
   } finally {
     for (const [id, v] of Object.entries(savedVis)) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v);
   }
