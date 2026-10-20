@@ -35,24 +35,24 @@
 <div id="popup-accueil" class="modal">
   <div class="modal-box">
     <div class="modal-head">
-      <h2>Bienvenue : prédisposition des communautés aux feux de forêt</h2>
+      <h2 data-i18n="pop.title">Bienvenue : prédisposition des communautés aux feux de forêt</h2>
       <button class="modal-close" data-close>✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" data-i18n="pop.body">
       <p><strong>Cette application permet d'explorer, directement à l'écran :</strong></p>
       <p><strong>INFO-MRC</strong> : l'historique des feux de forêt (occurrences selon la cause et superficies brûlées) pour une MRC ou pour une zone que vous définissez vous-même.</p>
       <p><strong>INFO-COMMUNAUTÉ</strong> : la composition en combustibles et le potentiel d'intensité et de propagation des feux autour d'une communauté, dans une zone tampon ajustable (1 à 50 km).</p>
       <br>
       <p><strong><u>INSTRUCTIONS</u></strong></p>
       <p>1. Choisissez le <strong>territoire</strong> : une <strong>MRC</strong> (tapez son nom ou cliquez sur la carte) ou une <strong>zone</strong> (tracez un rectangle, utilisez l'emprise de la carte ou importez un fichier de formes).</p>
-      <p>2. Les graphiques <strong>INFO-MRC</strong> s'affichent et les communautés du territoire apparaissent sur la carte. Les contours des feux passés sont visibles une fois la carte rapprochée (panneau <strong>Couches</strong> en haut à droite).</p>
+      <p>2. Les graphiques <strong>INFO-MRC</strong> deviennent disponibles et les communautés du territoire apparaissent sur la carte. Les contours des feux passés sont visibles une fois la carte rapprochée (panneau <strong>Couches</strong> en haut à droite).</p>
       <p>3. Cliquez sur une <strong>communauté</strong> (sur la carte ou dans le menu) pour afficher <strong>INFO-COMMUNAUTÉ</strong>, puis ajustez la zone tampon.</p>
-      <p>4. Le bouton <strong>Générer un rapport PDF</strong> produit une fiche du territoire et une fiche par communauté cochée.</p>
+      <p>4. Le bouton <strong>Générer un rapport PDF</strong> produit une fiche du territoire, une fiche par communauté cochée et une page de légendes.</p>
       <p>La carte affiche une couleur de fond de vert à rouge, indiquant l'indice de prédisposition aux feux de forêt (indice standardisé de 0 à 1, pixels de 5 km). Plus l'indice est élevé, plus le territoire est prédisposé aux feux. Survolez la carte pour lire la valeur de l'indice ; la moyenne et l'écart-type du territoire choisi s'affichent dans le panneau.</p>
       <p><strong>Note</strong> : cette étude se base sur des données scientifiques pour évaluer la prédisposition des communautés québécoises et autochtones aux feux de forêt selon deux échelles d'analyse : régionale et locale. Pour envisager des actions concrètes pour protéger les communautés, adressez-vous aux autorités compétentes — voir l'onglet <span class="lien-onglet" data-goto="ressources">RESSOURCES UTILES</span>.</p>
       <p>Pour plus de détails, consultez l'onglet <span class="lien-onglet" data-goto="intro">INTRODUCTION</span>.</p>
     </div>
-    <div class="modal-foot"><button class="btn navy" data-close>Fermer</button></div>
+    <div class="modal-foot"><button class="btn navy" data-close data-i18n="btn.close">Fermer</button></div>
   </div>
 </div>
 
@@ -60,47 +60,53 @@
 <div id="modal-rapport" class="modal">
   <div class="modal-box" style="width:min(92vw,620px)">
     <div class="modal-head">
-      <h2>Rapport PDF</h2>
+      <h2 data-i18n="rep.title">Rapport PDF</h2>
       <button class="modal-close" data-close>✕</button>
     </div>
     <div class="modal-body">
       <p id="rep-terr" style="font-size:14px"></p>
-      <p class="muted">Cochez les communautés à inclure. Avec une seule communauté cochée, le rapport contient sa fiche seulement ; avec plusieurs, une première page présente le territoire, suivie d'une page par communauté (zone tampon de <b id="rep-buf">25</b> km).</p>
+      <p class="muted" data-i18n="rep.help">Cochez les communautés à inclure. Le rapport débute par la page territoire (MRC / zone), suivie d'une page par communauté cochée (zone tampon de <b id="rep-buf">25</b> km) et d'une page de légendes et d'explications.</p>
       <div class="btn-row" style="margin-top:6px">
-        <button class="btn secondary" id="rep-all">Tout cocher</button>
-        <button class="btn secondary" id="rep-none">Tout décocher</button>
+        <button class="btn secondary" id="rep-all" data-i18n="rep.all">Tout cocher</button>
+        <button class="btn secondary" id="rep-none" data-i18n="rep.none">Tout décocher</button>
       </div>
-      <input id="rep-filter" placeholder="Filtrer…" style="width:100%;margin-top:8px;padding:6px 8px;border:1px solid var(--panel-border);border-radius:6px;font-size:13px" />
+      <input id="rep-filter" data-i18n-ph="rep.filter" placeholder="Filtrer…" style="width:100%;margin-top:8px;padding:6px 8px;border:1px solid var(--panel-border);border-radius:6px;font-size:13px" />
       <div class="rep-list" id="rep-list"></div>
-      <label class="toggle-line"><input type="checkbox" id="rep-terr-page" checked> Inclure la page territoire (MRC / zone)</label>
+      <label class="toggle-line"><input type="checkbox" id="rep-terr-page" checked> <span data-i18n="rep.terrPage">Inclure la page territoire (MRC / zone)</span></label>
       <div class="rep-bar" id="rep-bar" hidden><div class="rep-bar-fill" id="rep-bar-fill"></div><span id="rep-bar-pct">0 %</span></div>
       <p class="rep-progress" id="rep-progress"></p>
     </div>
     <div class="modal-foot">
-      <button class="btn secondary" data-close>Annuler</button>
-      <button class="btn green" id="rep-go">⬇ Générer le PDF</button>
+      <button class="btn secondary" data-close data-i18n="rep.cancel">Annuler</button>
+      <button class="btn green" id="rep-go" data-i18n="rep.go">⬇ Générer le PDF</button>
     </div>
   </div>
 </div>
 
-<div id="loading"><div class="spinner"></div><p id="loading-msg">Chargement des données…</p></div>
+<div id="loading"><div class="spinner"></div><p id="loading-msg" data-i18n="loading">Chargement des données…</p></div>
 
 <div id="header">
-  <h1>Prédisposition des communautés aux feux de forêt — version 2.0 (bêta)</h1>
-  <div id="header-logo"><img src="ObservatoireRegionalForetBoreal.png" alt="Observatoire régional de recherche sur la forêt boréale" /></div>
+  <h1 data-i18n="hdr.title">Prédisposition des communautés aux feux de forêt — version 2.0 (bêta)</h1>
+  <div id="header-right">
+    <div class="lang-switch" role="group" aria-label="Langue / Language">
+      <button class="lang-btn active" data-lang="fr" title="Français">FR</button>
+      <button class="lang-btn" data-lang="en" title="English">EN</button>
+    </div>
+    <div id="header-logo"><img src="ObservatoireRegionalForetBoreal.png" alt="Observatoire régional de recherche sur la forêt boréale" /></div>
+  </div>
 </div>
 
 <div id="app">
   <div id="panel">
     <div id="panel-tabs">
-      <button class="tab-btn" data-tab="intro">Introduction</button>
-      <button class="tab-btn active" data-tab="explorer">Explorer</button>
-      <button class="tab-btn" data-tab="ressources">Ressources utiles</button>
+      <button class="tab-btn" data-tab="intro" data-i18n="tab.intro">Introduction</button>
+      <button class="tab-btn active" data-tab="explorer" data-i18n="tab.explore">Explorer</button>
+      <button class="tab-btn" data-tab="ressources" data-i18n="tab.res">Ressources utiles</button>
     </div>
 
     <!-- ═══ Onglet Introduction ═══ -->
     <div id="tab-intro" class="tab-pane">
-      <div style="font-size:12.5px; line-height:1.55; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:12.5px; line-height:1.55; display:flex; flex-direction:column; gap:14px;" data-i18n="intro.body">
         <p>Au Québec, les feux de forêt représentent une menace potentiellement importante pour les populations et les infrastructures. La saison exceptionnelle de 2023, qui a brûlé plus de 4,2 millions d'hectares, a marqué un tournant en raison des pressions majeures qu'elle a exercées, notamment l'évacuation de milliers de personnes — dont plusieurs communautés autochtones — et des dommages matériels importants. Dans un contexte où les changements climatiques devraient intensifier ces phénomènes, il devient essentiel de mieux préparer les communautés à y faire face.</p>
         <p>L'activité des feux de forêt varie selon les régions et repose sur trois principaux facteurs. Le type de végétation influence leur intensité ; la fragmentation du territoire (plans d'eau, routes, zones agricoles et urbaines) limite les risques. Les conditions météo (chaleur, sécheresse et vent) augmentent l'inflammabilité et la vitesse de propagation. Enfin, les sources d'ignition diffèrent selon qu'elles soient d'origine humaine ou causées par la foudre.</p>
         <p>Cette étude réalisée par l'Observatoire régional de recherche sur la forêt boréale évalue la prédisposition des communautés allochtones et autochtones du Québec à être touchées par les feux de forêt. L'indice calculé reflète la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt en fonction de sa localisation, de l'historique des feux, du climat régional et de la végétation (combustibles).</p>
@@ -109,53 +115,53 @@
         <p style="background:#fff8e1; border-left:3px solid #d4821a; padding:8px 10px; border-radius:0 4px 4px 0;"><strong>Attention</strong> : les indices calculés pour les différentes régions n'indiquent pas un danger réel d'incendie, celui-ci variant quotidiennement au cours de la saison selon les conditions météorologiques.</p>
       </div>
       <div class="box auteurs-box">
-        <div class="auteur-title">Auteurs</div>
+        <div class="auteur-title" data-i18n="intro.authors">Auteurs</div>
         Hugues Dorion — <a href="mailto:hdorion@uqac.ca">hdorion@uqac.ca</a><br/>
         Victor Danneyrolles — <a href="mailto:vdanneyr@uqac.ca">vdanneyr@uqac.ca</a><br/>
         Emmanuelle Bergeron — <a href="mailto:e4berger@uqac.ca">e4berger@uqac.ca</a><br/>
         Yan Boucher — <a href="mailto:yboucher@uqac.ca">yboucher@uqac.ca</a>
       </div>
       <div class="box" id="sources-section">
-        <div class="src-title">Sources des données</div>
+        <div class="src-title" data-i18n="src.title">Sources des données</div>
         <div class="src-group">
-          <div class="src-group-title">Feux de forêts</div>
+          <div class="src-group-title" data-i18n="src.fires">Feux de forêts</div>
           <a href="https://www.donneesquebec.ca/recherche/fr/dataset/feux-de-foret" target="_blank" rel="noopener">Données Québec — Feux de forêt</a><br/>
-          Cartographie des points d'origine (1972-2024) · Feux de forêts (depuis 1976) · Feux anciens (1887-1975) · Régime de feux du Québec méridional
+          <span data-i18n="src.fires.txt">Cartographie des points d'origine (1972-2024) · Feux de forêts (depuis 1976) · Feux anciens (1887-1975) · Régime de feux du Québec méridional</span>
         </div>
         <div class="src-group">
-          <div class="src-group-title">Combustibles forestiers</div>
+          <div class="src-group-title" data-i18n="src.fuels">Combustibles forestiers</div>
           <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">Données Québec — Potentiel d'intensité et de propagation</a><br/>
-          Combustibles 2025 (MRNF, 25 m) · Potentiel d'intensité et de propagation 2025-2026
+          <span data-i18n="src.fuels.txt">Combustibles 2025 (MRNF, 25 m) · Potentiel d'intensité et de propagation 2025-2026</span>
         </div>
         <div class="src-group">
-          <div class="src-group-title">Découpages administratifs</div>
+          <div class="src-group-title" data-i18n="src.admin">Découpages administratifs</div>
           <a href="https://www.donneesquebec.ca/recherche/dataset/decoupages-administratifs" target="_blank" rel="noopener">Données Québec — Découpages administratifs 1/20 000</a><br/>
-          MRC · Municipalité
+          <span data-i18n="src.admin.txt">MRC · Municipalité</span>
         </div>
         <div class="src-group">
-          <div class="src-group-title">Lieux habités</div>
+          <div class="src-group-title" data-i18n="src.places">Lieux habités</div>
           <a href="https://www.donneesquebec.ca/recherche/dataset/lieu-habite" target="_blank" rel="noopener">Données Québec — Lieu habité</a><br/>
-          Toponymes autochtones : version préliminaire, à valider (IDDPNQL)
+          <span data-i18n="src.places.txt">Toponymes autochtones : version préliminaire, à valider (IDDPNQL)</span>
         </div>
       </div>
     </div>
 
     <!-- ═══ Onglet Explorer ═══ -->
     <div id="tab-explorer" class="tab-pane active">
-      <button class="btn navy full" id="btn-info">ℹ Instructions</button>
+      <button class="btn navy full" id="btn-info" data-i18n="btn.info">ℹ Instructions</button>
 
       <div class="panel-section">
-        <span class="panel-label">Territoire</span>
+        <span class="panel-label" data-i18n="lbl.territory">Territoire</span>
         <div class="seg" id="mode-seg">
-          <button data-mode="mrc" class="active">MRC</button>
-          <button data-mode="zone">Zone définie</button>
+          <button data-mode="mrc" class="active" data-i18n="mode.mrc">MRC</button>
+          <button data-mode="zone" data-i18n="mode.zone">Zone définie</button>
         </div>
       </div>
 
       <div class="panel-section" id="sec-mrc">
         <div class="combo" id="combo-mrc">
-          <input type="text" placeholder="Tapez ou choisissez une MRC…" autocomplete="off" spellcheck="false" />
-          <button class="combo-toggle combo-clear" title="Effacer">✕</button>
+          <input type="text" data-i18n-ph="ph.mrc" placeholder="Tapez ou choisissez une MRC…" autocomplete="off" spellcheck="false" />
+          <button class="combo-toggle combo-clear" title="✕">✕</button>
           <button class="combo-toggle combo-arrow" tabindex="-1">▼</button>
           <div class="combo-list"></div>
         </div>
@@ -163,22 +169,22 @@
 
       <div class="panel-section" id="sec-zone" style="display:none">
         <div class="btn-row">
-          <button class="btn secondary" id="btn-draw">✏ Tracer un rectangle</button>
-          <button class="btn secondary" id="btn-extent">▭ Emprise de la carte</button>
+          <button class="btn secondary" id="btn-draw" data-i18n="btn.draw">✏ Tracer un rectangle</button>
+          <button class="btn secondary" id="btn-extent" data-i18n="btn.extent">▭ Emprise de la carte</button>
         </div>
         <div class="btn-row">
-          <button class="btn secondary" id="btn-upload">⬆ Importer un shapefile (.zip)</button>
-          <button class="btn secondary" id="btn-zone-clear" title="Effacer la zone" style="flex:0 0 auto">✕</button>
+          <button class="btn secondary" id="btn-upload" data-i18n="btn.upload">⬆ Importer un shapefile (.zip)</button>
+          <button class="btn secondary" id="btn-zone-clear" title="✕" style="flex:0 0 auto">✕</button>
         </div>
         <input type="file" id="file-shp" accept=".zip" hidden />
-        <div class="muted" id="zone-msg">Tracez un rectangle sur la carte (cliquer-glisser), utilisez l'emprise actuelle de la carte ou importez un fichier de formes zippé (.shp, .dbf, .prj).</div>
+        <div class="muted" id="zone-msg" data-i18n="zone.help">Tracez un rectangle sur la carte (cliquer-glisser), utilisez l'emprise actuelle de la carte ou importez un fichier de formes zippé (.shp, .dbf, .prj).</div>
       </div>
 
       <div class="panel-section">
-        <span class="panel-label">Communauté</span>
+        <span class="panel-label" data-i18n="lbl.community">Communauté</span>
         <div class="combo" id="combo-lh">
           <input type="text" placeholder="— Choisissez d'abord un territoire —" autocomplete="off" spellcheck="false" disabled />
-          <button class="combo-toggle combo-clear" title="Effacer">✕</button>
+          <button class="combo-toggle combo-clear" title="✕">✕</button>
           <button class="combo-toggle combo-arrow" tabindex="-1">▼</button>
           <div class="combo-list"></div>
         </div>
@@ -188,61 +194,61 @@
 
       <!-- Indice de prédisposition -->
       <div class="box has-tip" id="expo-box" tabindex="0">
-        <span class="panel-label">Indice de prédisposition aux feux ℹ</span>
-        <div class="tooltip-info">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l'historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d'incendie, qui varie au fil de la saison selon les conditions météorologiques (sopfeu.qc.ca/carte).<br><br>
+        <span class="panel-label" data-i18n="idx.label">Indice de prédisposition aux feux ℹ</span>
+        <div class="tooltip-info" data-i18n="idx.tip">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l'historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d'incendie, qui varie au fil de la saison selon les conditions météorologiques (sopfeu.qc.ca/carte).<br><br>
           L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>L'indice est standardisé de 0 à 1 (pixels de 5 km) : plus il s'approche de 1, plus le territoire est prédisposé aux grands feux. Pour une MRC ou une zone, la moyenne et l'écart-type des pixels sont indiqués (bande grise sur la barre).</div>
         <div class="legend-bar"><div class="band" id="expo-band"></div><div class="marker" id="expo-marker"></div></div>
-        <div class="legend-labels"><span>0</span><span>Faible → Élevé</span><span>1</span></div>
+        <div class="legend-labels"><span>0</span><span data-i18n="lowHigh">Faible → Élevé</span><span>1</span></div>
         <div id="expo-value"></div>
       </div>
 
       <!-- INFO-MRC -->
       <div class="box collapsible collapsed" id="box-mrc">
-        <div class="box-title"><span class="box-toggle" title="Afficher / masquer les graphiques"><span class="chev">▾</span> INFO-MRC <span class="box-summary" id="sum-mrc"></span></span>
+        <div class="box-title"><span class="box-toggle" data-hint="Cliquez sur INFO-MRC pour afficher l'historique des feux du territoire : nombre de feux selon la cause et superficies brûlées chaque année." data-i18n-hint="hint.mrc"><span class="chev">▾</span> <span data-i18n="box.mrc">INFO-MRC</span> <span class="box-summary" id="sum-mrc"></span></span>
           <span class="box-tools">
-            <button class="btn secondary btn-xs" id="btn-big-mrc" title="Agrandir la fiche régionale">⤢ Agrandir</button>
-            <label class="toggle-line" title="Échelle logarithmique pour les superficies"><input type="checkbox" id="chk-log" checked> log</label>
-            <button class="btn secondary btn-xs" data-legend="mrc" title="Légende et explication">📋 Légende</button>
+            <button class="btn secondary btn-xs" id="btn-big-mrc" data-i18n-title="title.enlargeMrc" title="Agrandir la fiche régionale"><span data-i18n="btn.enlarge">⤢ Agrandir</span></button>
+            <label class="toggle-line" data-i18n-title="title.log" title="Échelle logarithmique pour les superficies"><input type="checkbox" id="chk-log" checked> log</label>
+            <button class="btn secondary btn-xs" data-legend="mrc" data-i18n-title="title.legend" title="Légende et explication"><span data-i18n="btn.legend">📋 Légende</span></button>
           </span>
         </div>
-        <div id="mrc-content" class="box-body"><div class="placeholder">Choisissez une MRC ou définissez une zone pour afficher l'historique des feux.</div></div>
+        <div id="mrc-content" class="box-body"></div>
       </div>
 
       <!-- INFO-COMMUNAUTÉ -->
       <div class="box collapsible collapsed" id="box-lh">
-        <div class="box-title"><span class="box-toggle" title="Afficher / masquer les graphiques"><span class="chev">▾</span> INFO-COMMUNAUTÉ <span class="box-summary" id="sum-lh"></span></span>
+        <div class="box-title"><span class="box-toggle" data-hint="Cliquez sur INFO-COMMUNAUTÉ pour afficher les combustibles et le potentiel d'intensité et de propagation des feux dans la zone tampon autour de la communauté." data-i18n-hint="hint.lh"><span class="chev">▾</span> <span data-i18n="box.lh">INFO-COMMUNAUTÉ</span> <span class="box-summary" id="sum-lh"></span></span>
           <span class="box-tools">
-          <button class="btn secondary btn-xs" id="btn-big-lh" title="Agrandir la fiche communauté">⤢ Agrandir</button>
-          <button class="btn secondary btn-xs" data-legend="lh" title="Légende et explication">📋 Légende</button>
+          <button class="btn secondary btn-xs" id="btn-big-lh" data-i18n-title="title.enlargeLh" title="Agrandir la fiche communauté"><span data-i18n="btn.enlarge">⤢ Agrandir</span></button>
+          <button class="btn secondary btn-xs" data-legend="lh" data-i18n-title="title.legend" title="Légende et explication"><span data-i18n="btn.legend">📋 Légende</span></button>
           </span>
         </div>
-        <div id="lh-content" class="box-body"><div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div></div>
+        <div id="lh-content" class="box-body"></div>
       </div>
 
-      <button class="btn green full" id="btn-rapport" disabled>⬇ Générer un rapport PDF</button>
+      <button class="btn green full" id="btn-rapport" disabled data-i18n="btn.report">⬇ Générer un rapport PDF</button>
     </div>
 
     <!-- ═══ Onglet Ressources utiles ═══ -->
     <div id="tab-ressources" class="tab-pane">
-      <p class="res-intro">Préparez-vous à faire face à un feu de forêt, connaissez les gestes à poser pour assurer votre sécurité et celle de vos proches ainsi que pour protéger votre maison et vos biens.</p>
-      <p class="res-intro">En collaboration avec la Société de Protection des Forêts contre le Feu (SOPFEU), le Ministère de la Sécurité Intérieure du Québec (MSI) et le Ministère des Ressources Naturelles et des Forêts du Québec (MRNF)</p>
+      <p class="res-intro" data-i18n="res.intro1">Préparez-vous à faire face à un feu de forêt, connaissez les gestes à poser pour assurer votre sécurité et celle de vos proches ainsi que pour protéger votre maison et vos biens.</p>
+      <p class="res-intro" data-i18n="res.intro2">En collaboration avec la Société de Protection des Forêts contre le Feu (SOPFEU), le Ministère de la Sécurité Intérieure du Québec (MSI) et le Ministère des Ressources Naturelles et des Forêts du Québec (MRNF)</p>
       <div class="res-section">
         <div class="res-section-header">
-          <a href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret" target="_blank" rel="noopener">Gouvernement du Québec — Feux de forêt (quebec.ca)</a>
+          <a href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret" target="_blank" rel="noopener" data-i18n="res.gov">Gouvernement du Québec — Feux de forêt (quebec.ca)</a>
         </div>
-        <div class="ressource-card"><div class="res-label-lg">Atténuation des risques liés aux feux de forêt</div><a class="res-link" href="https://www.quebec.ca/agriculture-environnement-et-ressources-naturelles/forets/protection-forets/gestion-feux/attenuation-risques" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Se préparer à un feu de forêt</div><a class="res-link" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/se-preparer" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Protéger sa maison et ses biens</div><a class="res-link" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/proteger-maison-biens" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Consignes de sécurité pendant un feu de forêt</div><a class="res-link" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/consignes-securite" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Protéger sa santé des effets de la fumée</div><a class="res-link" href="https://www.quebec.ca/sante/conseils-et-prevention/sante-et-environnement/prevenir-effets-exposition-fumee-feux-foret" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Retour à la maison sécuritaire après un feu de forêt</div><a class="res-link" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/retour-maison-apres-feu-foret" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.g1">Atténuation des risques liés aux feux de forêt</div><a class="res-link" data-i18n="res.go" href="https://www.quebec.ca/agriculture-environnement-et-ressources-naturelles/forets/protection-forets/gestion-feux/attenuation-risques" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.g2">Se préparer à un feu de forêt</div><a class="res-link" data-i18n="res.go" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/se-preparer" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.g3">Protéger sa maison et ses biens</div><a class="res-link" data-i18n="res.go" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/proteger-maison-biens" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.g4">Consignes de sécurité pendant un feu de forêt</div><a class="res-link" data-i18n="res.go" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/consignes-securite" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.g5">Protéger sa santé des effets de la fumée</div><a class="res-link" data-i18n="res.go" href="https://www.quebec.ca/sante/conseils-et-prevention/sante-et-environnement/prevenir-effets-exposition-fumee-feux-foret" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.g6">Retour à la maison sécuritaire après un feu de forêt</div><a class="res-link" data-i18n="res.go" href="https://www.quebec.ca/securite-situations-urgence/urgences-sinistres-risques-naturels/quoi-faire-avant-pendant-apres-urgence-sinistre/feu-de-foret/retour-maison-apres-feu-foret" target="_blank" rel="noopener">→ Consulter</a></div>
       </div>
       <div class="res-section">
-        <div class="res-section-header"><a href="https://www.sopfeu.qc.ca/" target="_blank" rel="noopener">SOPFEU — Société de protection des forêts contre le feu</a></div>
-        <p class="res-sub-intro">Consulter les liens suivants pour connaître :</p>
-        <div class="ressource-card"><div class="res-label-lg">Prévenir les feux de forêt</div><a class="res-link" href="https://www.sopfeu.qc.ca/prevention/prevenir-les-feux-de-foret/" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Danger d'incendie et restrictions en vigueur</div><a class="res-link" href="https://www.sopfeu.qc.ca/" target="_blank" rel="noopener">→ Consulter</a></div>
-        <div class="ressource-card"><div class="res-label-lg">Protégez votre habitation</div><a class="res-link" href="https://www.sopfeu.qc.ca/prevention/protegez-votre-habitation/" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="res-section-header"><a href="https://www.sopfeu.qc.ca/" target="_blank" rel="noopener" data-i18n="res.sopfeu">SOPFEU — Société de protection des forêts contre le feu</a></div>
+        <p class="res-sub-intro" data-i18n="res.sub">Consulter les liens suivants pour connaître :</p>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.s1">Prévenir les feux de forêt</div><a class="res-link" data-i18n="res.go" href="https://www.sopfeu.qc.ca/prevention/prevenir-les-feux-de-foret/" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.s2">Danger d'incendie et restrictions en vigueur</div><a class="res-link" data-i18n="res.go" href="https://www.sopfeu.qc.ca/" target="_blank" rel="noopener">→ Consulter</a></div>
+        <div class="ressource-card"><div class="res-label-lg" data-i18n="res.s3">Protégez votre habitation</div><a class="res-link" data-i18n="res.go" href="https://www.sopfeu.qc.ca/prevention/protegez-votre-habitation/" target="_blank" rel="noopener">→ Consulter</a></div>
       </div>
     </div>
   </div><!-- /panel -->
@@ -252,53 +258,53 @@
   <div id="map">
     <div id="map-container"></div>
     <div id="map-tooltip"></div>
-    <div id="draw-hint">Cliquez-glissez pour tracer la zone · Échap pour annuler</div>
+    <div id="draw-hint" data-i18n="draw.hint">Cliquez-glissez pour tracer la zone · Échap pour annuler</div>
     <div id="draw-box"></div>
 
     <!-- Panneau des couches -->
     <div id="layers-panel">
-      <div class="lp-head" id="lp-toggle"><span>☰ Couches</span><span id="lp-arrow">▾</span></div>
+      <div class="lp-head" id="lp-toggle"><span data-i18n="lp.title">☰ Couches</span><span id="lp-arrow">▾</span></div>
       <div class="lp-body">
         <div class="lyr" style="border-top:none;padding-top:0">
-          <label class="lyr-head"><input type="checkbox" id="ly-indice" checked> Indice de prédisposition (5 km)</label>
-          <div class="lyr-opts"><label>Opacité <input type="range" id="op-indice" min="0" max="100" value="60"></label>
+          <label class="lyr-head"><input type="checkbox" id="ly-indice" checked> <span data-i18n="ly.indice">Indice de prédisposition (5 km)</span></label>
+          <div class="lyr-opts"><label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-indice" min="0" max="100" value="60"></label>
             <div class="legend-bar" style="margin:2px 0 0"></div>
-            <div class="ramp-labels"><span>0</span><span>Faible → Élevé</span><span>1</span></div>
-            <div class="lyr-note">Survolez la carte pour lire la valeur d'un pixel.</div></div>
+            <div class="ramp-labels"><span>0</span><span data-i18n="lowHigh">Faible → Élevé</span><span>1</span></div>
+            <div class="lyr-note" data-i18n="ly.indiceNote">Survolez la carte pour lire la valeur d'un pixel.</div></div>
         </div>
         <div class="lyr">
-          <label class="lyr-head"><input type="checkbox" id="ly-feux"> Contours de feux</label>
+          <label class="lyr-head"><input type="checkbox" id="ly-feux"> <span data-i18n="ly.feux">Contours de feux</span></label>
           <div class="lyr-opts">
-            <label>Période <select id="sel-periode"></select></label>
-            <label>Opacité <input type="range" id="op-feux" min="0" max="100" value="60"></label>
+            <label><span data-i18n="ly.period">Période</span> <select id="sel-periode"></select></label>
+            <label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-feux" min="0" max="100" value="60"></label>
             <div class="ramp" id="ramp-feux"></div>
             <div class="ramp-labels"><span>1887</span><span>1976</span><span>2024</span></div>
-            <div class="lyr-note" id="feux-note">Visibles à partir d'un zoom régional. Survolez un feu pour sa superficie.</div>
+            <div class="lyr-note" id="feux-note" data-i18n="ly.feuxNote">Visibles à partir d'un zoom régional. Survolez un feu pour connaître son année.</div>
           </div>
         </div>
         <div class="lyr">
-          <label class="lyr-head"><input type="checkbox" id="ly-pts"> Points d'origine (1972-2024)</label>
+          <label class="lyr-head"><input type="checkbox" id="ly-pts"> <span data-i18n="ly.pts">Points d'origine (1972-2024)</span></label>
           <div class="lyr-opts">
-            <div class="leg-mini"><span><i style="background:var(--humain)"></i>Humain</span><span><i style="background:var(--foudre)"></i>Foudre</span></div>
-            <div class="lyr-note">Suit la période choisie pour les contours. Survolez un point pour la date et la cause.</div>
+            <div class="leg-mini"><span><i style="background:var(--humain)"></i><span data-i18n="ly.human">Humain</span></span><span><i style="background:var(--foudre)"></i><span data-i18n="ly.lightning">Foudre</span></span></div>
+            <div class="lyr-note" data-i18n="ly.ptsNote">Suit la période choisie pour les contours. Survolez un point pour la date et la cause.</div>
           </div>
         </div>
         <div class="lyr">
-          <label class="lyr-head"><input type="checkbox" id="ly-comb"> Combustibles 2025</label>
-          <div class="lyr-opts"><label>Opacité <input type="range" id="op-comb" min="0" max="100" value="80"></label>
+          <label class="lyr-head"><input type="checkbox" id="ly-comb"> <span data-i18n="ly.comb">Combustibles 2025</span></label>
+          <div class="lyr-opts"><label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-comb" min="0" max="100" value="80"></label>
             <div class="leg-mini" id="leg-comb"></div></div>
         </div>
         <div class="lyr">
-          <label class="lyr-head"><input type="checkbox" id="ly-pot"> Potentiel d'intensité et de propagation</label>
-          <div class="lyr-opts"><label>Opacité <input type="range" id="op-pot" min="0" max="100" value="80"></label>
+          <label class="lyr-head"><input type="checkbox" id="ly-pot"> <span data-i18n="ly.pot">Potentiel d'intensité et de propagation</span></label>
+          <div class="lyr-opts"><label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-pot" min="0" max="100" value="80"></label>
             <div class="leg-mini" id="leg-pot"></div></div>
         </div>
         <div class="lyr" style="padding-bottom:0">
-          <div class="lyr-note" id="raster-note">Les combustibles et le potentiel sont cartographiés à moins de 50 km des lieux habités.</div>
+          <div class="lyr-note" id="raster-note" data-i18n="ly.rasterNote">Les combustibles et le potentiel sont cartographiés à moins de 50 km des lieux habités.</div>
         </div>
         <div class="lyr">
-          <label class="lyr-head"><input type="checkbox" id="ly-regime"> Zones de régime de feux <span class="sw" style="border:2px dashed #9a5b10"></span></label>
-          <div class="lyr-opts"><div class="lyr-note">Zones où les feux anciens (1887-1975) ont été validés (séries longues).</div></div>
+          <label class="lyr-head"><input type="checkbox" id="ly-regime"> <span data-i18n="ly.regime">Zones de régime de feux</span> <span class="sw" style="border:2px dashed #9a5b10"></span></label>
+          <div class="lyr-opts"><div class="lyr-note" data-i18n="ly.regimeNote">Zones où les feux anciens (1887-1975) ont été validés (séries longues).</div></div>
         </div>
       </div>
     </div>
@@ -311,7 +317,7 @@
     <div class="modal-head">
       <h2 id="fiche-title">Fiche</h2>
       <span style="display:flex;gap:10px;align-items:center">
-        <button class="btn btn-legend" id="fiche-legend">📋 Légende et explication</button>
+        <button class="btn btn-legend" id="fiche-legend" data-i18n="btn.legendLong">📋 Légende et explication</button>
         <button class="modal-close" data-close>✕</button>
       </span>
     </div>
@@ -319,60 +325,19 @@
   </div>
 </div>
 
-<!-- ═══ Légende — fiche régionale (INFO-MRC) ═══ -->
+<!-- ═══ Légende — fiche régionale (contenu généré : js/i18n.js → LEGEND) ═══ -->
 <div id="modal-leg-mrc" class="modal modal-top">
   <div class="modal-box" style="width:min(92vw,640px)">
-    <div class="modal-head"><h2>Légende — Fiche régionale</h2><button class="modal-close" data-close-self>✕</button></div>
-    <div class="modal-body leg-body">
-      <div class="leg-block">
-        <div class="leg-sub">Graphique « Occurrences et causes des feux »</div>
-        <p>Ce graphique illustre l'évolution annuelle de la fréquence des départs de feux (points d'origine, 1972-2024), en distinguant les causes anthropiques (<span class="sw-inline" style="background:#56B4E9"></span>humain) des causes naturelles (<span class="sw-inline" style="background:#E69F00"></span>foudre).</p>
-        <p>L'axe de droite exprime le <b>taux d'occurrence</b> : nombre de feux pour 100 000 ha de combustibles du territoire.</p>
-      </div>
-      <div class="leg-block">
-        <div class="leg-sub">Graphique « Superficies brûlées annuellement »</div>
-        <p>Ce graphique présente les superficies brûlées annuellement (contours des feux de forêt). L'échelle logarithmique (case « log ») permet de comparer les petites et les très grandes années de feux ; décochez-la pour une échelle linéaire.</p>
-        <p>L'axe de droite exprime la superficie brûlée en <b>pourcentage de la superficie combustible</b> du territoire.</p>
-      </div>
-      <div class="leg-block">
-        <div class="leg-sub">Moyenne et écart-type</div>
-        <p><span class="sw-inline band"></span>Le trait pointillé indique la moyenne des années avec feux ; la bande grise couvre ± 1 écart-type autour de cette moyenne.</p>
-      </div>
-      <div class="leg-block">
-        <div class="leg-sub">Séries longues (1887-1975)</div>
-        <p>Les feux anciens n'ont été validés que dans les <b>zones de régime de feux</b>. Ils ne sont donc comptés que dans ces zones : les territoires qui s'y trouvent présentent une « série longue », les autres une série à partir de 1972 (points d'origine) et 1976 (contours de feux).</p>
-      </div>
-      <div class="leg-block">
-        <div class="leg-sub">Indice de prédisposition</div>
-        <p>Indice standardisé de 0 à 1 (pixels de 5 km). Pour une MRC ou une zone, la moyenne et l'écart-type des pixels du territoire sont indiqués. La prédisposition reflète la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt ; elle ne doit pas être confondue avec le danger d'incendie quotidien.</p>
-      </div>
-    </div>
+    <div class="modal-head"><h2 data-i18n="leg.mrcTitle">Légende — Fiche régionale</h2><button class="modal-close" data-close-self>✕</button></div>
+    <div class="modal-body leg-body" id="leg-mrc-body"></div>
   </div>
 </div>
 
-<!-- ═══ Légende — fiche communauté (INFO-COMMUNAUTÉ) ═══ -->
+<!-- ═══ Légende — fiche communauté ═══ -->
 <div id="modal-leg-lh" class="modal modal-top">
   <div class="modal-box" style="width:min(94vw,920px)">
-    <div class="modal-head"><h2>Légende — Fiche communauté</h2><button class="modal-close" data-close-self>✕</button></div>
-    <div class="modal-body leg-body leg-grid">
-      <div>
-        <div class="leg-col-title">Combustibles MRNF 2025</div>
-        <p class="leg-intro">Ce graphique représente les différents types de combustibles végétaux présents dans la zone tampon (1 à 50 km, 25 km par défaut) autour du lieu habité. Chaque type de combustible présente une structure et une composition différentes, qui influencent grandement le potentiel d'intensité et de propagation des feux de forêt. Ces données sont issues de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br>
-          <a href="https://ressources-naturelles.canada.ca" target="_blank" rel="noopener">→ Combustibles MCPCI (ressources-naturelles.canada.ca)</a></p>
-        <div id="leg-comb-list"></div>
-      </div>
-      <div>
-        <div class="leg-col-title">Potentiel d'intensité et de propagation MRNF 2025</div>
-        <p class="leg-intro">Ce graphique fournit de l'information sur le potentiel d'intensité et de propagation du feu (faible à extrême) et sa superficie relative dans la zone tampon. Le pourcentage indiqué mesure la gravité potentielle et non la probabilité réelle d'ignition ou de propagation du feu.<br><br>
-          Par exemple : si la classe « Élevé » a une valeur de 22 %, cela signifie que 22 % de la zone tampon peut mener à un taux de propagation et d'intensité du feu élevé SEULEMENT s'il y a ignition.<br>
-          <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">→ Potentiel d'intensité (donneesquebec.ca)</a></p>
-        <div id="leg-pot-list"></div>
-        <div class="leg-col-title" style="margin-top:16px">Lecture des deux graphiques</div>
-        <p class="leg-intro">Les deux graphiques ont volontairement la même hauteur : les classes de potentiel s'alignent grossièrement sur les groupes de combustibles correspondants (par exemple, les résineux et les mixtes vis-à-vis des potentiels élevés). Cette correspondance est approximative et sert à faciliter la lecture.</p>
-        <div class="leg-col-title" style="margin-top:16px">Superficie analysée</div>
-        <p class="leg-intro">Les pourcentages sont calculés sur la superficie de la zone tampon située au Québec (pixels de 25 m). Les portions hors Québec (autres provinces, États-Unis) sont exclues ; les plans d'eau situés hors de la couche MRNF (fleuve, golfe, baies) sont comptés comme « Eau » et « Absence combustible ».</p>
-      </div>
-    </div>
+    <div class="modal-head"><h2 data-i18n="leg.lhTitle">Légende — Fiche communauté</h2><button class="modal-close" data-close-self>✕</button></div>
+    <div class="modal-body leg-body leg-grid" id="leg-lh-body"></div>
   </div>
 </div>
 

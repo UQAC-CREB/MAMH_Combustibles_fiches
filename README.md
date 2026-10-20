@@ -19,7 +19,8 @@ La version 1.0 (fiches JPEG téléchargeables) est figée par le tag `v1.0`.
 | **INFO-MRC** | Deux graphiques en temps réel : occurrences annuelles par cause (humaine / foudre, taux pour 100 000 ha de combustibles) et superficies brûlées (échelle log ou linéaire, % de la superficie combustible). Moyenne ± écart-type comme dans les fiches R. |
 | **INFO-COMMUNAUTÉ** | Clic sur une communauté : potentiel d'intensité et de propagation et superficie des combustibles dans une zone tampon **ajustable de 1 à 50 km** (25 km par défaut), recalculée instantanément. |
 | **Couches** | Indice (raster 5 km), contours de feux (masqués par défaut ; période de 5 ans, opacité, infobulle de superficie), points d'origine (date, cause), combustibles 2025, potentiel I/P, zones de régime de feux. |
-| **Rapport PDF** | Page territoire (MRC ou zone) + une page par communauté cochée (1 seule cochée → sa fiche seulement). |
+| **Rapport PDF** | Page territoire (MRC ou zone, cochée par défaut) + une page par communauté cochée + page de légendes et d'explications (toujours incluse). |
+| **Bilingue** | Bouton FR / EN dans l'en-tête : interface, graphiques, légendes, infobulles et rapport PDF (`js/i18n.js` ; `?lang=en` force l'anglais). « MRC » devient « RCM » en anglais. |
 | **Toponymes autochtones** | Version préliminaire (`scripts/toponymes_autochtones.csv`), recherche par nom autochtone ou par alias — **à valider avec l'IDDPNQL**. |
 
 ### Découpages territoriaux et zones tampons

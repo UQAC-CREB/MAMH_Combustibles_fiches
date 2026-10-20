@@ -15,7 +15,8 @@ function highlight(label, q) {
  * onSelect(value|null)
  */
 export class Combo {
-  constructor(root, { onSelect, placeholder } = {}) {
+  constructor(root, { onSelect, placeholder, empty } = {}) {
+    this.empty = empty;
     this.root = root;
     this.input = root.querySelector('input');
     this.list = root.querySelector('.combo-list');
@@ -63,7 +64,7 @@ export class Combo {
     this.hl = nq && this.shown.length ? 0 : -1;
     this.list.innerHTML = this.shown.length
       ? this.shown.map((it, i) => `<div class="combo-item${i === this.hl ? ' hl' : ''}" data-i="${i}">${highlight(it.label, nq)}${it.sub ? ` <small>${highlight(it.sub, nq)}</small>` : ''}</div>`).join('')
-      : '<div class="combo-empty">Aucun résultat</div>';
+      : `<div class="combo-empty">${this.empty ? this.empty() : 'Aucun résultat'}</div>`;
     this.root.classList.add('open');
   }
 

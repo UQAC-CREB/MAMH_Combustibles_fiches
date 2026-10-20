@@ -5,10 +5,11 @@ import {
 } from './config.js';
 import { loadCore, loadPoints } from './data.js';
 import { unitSeries, zoneSeries, bufferStats, geomToLccPolys, makeContains, indexAt, indexStats } from './stats.js';
-import { occChart, supChart, hbarChart, bindChartTips, fmtInt, fmtHa, fmtPct } from './charts.js';
+import { occChart, supChart, hbarChart, bindChartTips, fmtInt, fmtPct } from './charts.js';
 import { Combo, norm } from './combobox.js';
-import { openReportDialog } from './report.js';
+import { openReportDialog, refreshReportDialog } from './report.js';
 import { RasterPicker } from './rasterpick.js';
+import { t, loc, getLang, setLang, onLang, applyStatic, cAbb, cLbl, cGrp, pLbl, pShort, LEGEND } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const EMPTY = { type: 'FeatureCollection', features: [] };
@@ -19,7 +20,7 @@ export const S = {
   core: null, map: null,
   mode: 'mrc',            // 'mrc' | 'zone'
   unit: null,             // id de l'unité MRC sélectionnée
-  zone: null,             // { geojson, polys, label }
+  zone: null,             // { geojson, polys, kind: { k: 'drawn'|'extent'|'import', f } }
   terrLH: [],             // lieux habités du territoire courant
   series: null,           // série INFO-MRC courante
   terrName: '',
@@ -35,13 +36,13 @@ export const S = {
 // Utilitaires
 // ═══════════════════════════════════════════════════════════════════════════
 export function indexColor(v) {
-  const t = Math.max(0, Math.min(1, v / INDEX_MAX));
+  const x = Math.max(0, Math.min(1, v / INDEX_MAX));
   for (let i = 1; i < INDEX_PALETTE.length; i++) {
-    if (t <= INDEX_PALETTE[i][0]) return INDEX_PALETTE[i][1];
+    if (x <= INDEX_PALETTE[i][0]) return INDEX_PALETTE[i][1];
   }
   return INDEX_PALETTE.at(-1)[1];
 }
-export const fmtIdx = (v) => (v == null ? '—' : (+v).toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+export const fmtIdx = (v) => (v == null ? '—' : (+v).toLocaleString(loc(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 function geomBBox(g) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -57,6 +58,17 @@ function geomBBox(g) {
 
 export const lhName = (r) => r.na || r.nom;
 export const lhSub = (r) => [r.na && r.na !== r.nom ? r.nom : null, r.mun !== r.nom ? r.mun : null].filter(Boolean).join(' · ');
+export const unitProps = (id) => S.core.units.features.find(f => f.properties.id === id)?.properties;
+
+/** Nom du territoire courant dans la langue active. */
+function terrLabel() {
+  if (S.unit) return `${t('mrc')} ${unitProps(S.unit)?.nom || ''}`;
+  if (S.zone) {
+    const k = S.zone.kind;
+    return k.k === 'import' ? t('zone.import', { f: k.f }) : t(k.k === 'extent' ? 'zone.extent' : 'zone.drawn');
+  }
+  return '';
+}
 
 /** Cercle (zone tampon) construit en Lambert, cohérent avec le calcul des anneaux. */
 export function bufferCircle(r, km) {
@@ -210,15 +222,16 @@ function bindMapEvents() {
       return `${lhName(r)}<div class="tt-sub">${lhSub(r) || ''}</div>`;
     }
     if (f.layer.id === 'pts') {
-      const d = p.j ? `${String(p.j % 100).padStart(2, '0')}/${String(Math.floor(p.j / 100)).padStart(2, '0')}/${p.an}` : p.an;
-      return `Départ de feu — ${d}<div class="tt-sub">Cause : ${p.c ? 'foudre' : 'humaine'}</div>`;
+      const dd = String(p.j % 100).padStart(2, '0'), mm = String(Math.floor(p.j / 100)).padStart(2, '0');
+      const d = p.j ? (getLang() === 'en' ? `${p.an}-${mm}-${dd}` : `${dd}/${mm}/${p.an}`) : p.an;
+      return `${t('tt.fireStart', { d })}<div class="tt-sub">${t('tt.cause', { c: t(p.c ? 'cause.f' : 'cause.h') })}</div>`;
     }
     if (f.layer.id === 'feux-fill') {
       // un feu peut compter plusieurs polygones : on n'affiche que l'année
       const years = [...new Set(feats.filter(x => x.layer.id === 'feux-fill').map(x => x.properties.an))].sort((a, b) => b - a);
-      return `Feu de forêt — ${years.slice(0, 5).join(', ')}${years.length > 5 ? '…' : ''}`;
+      return t('tt.fire', { y: years.slice(0, 5).join(', ') + (years.length > 5 ? '…' : '') });
     }
-    return `${p.nom}<div class="tt-sub">Indice moyen de la MRC : ${fmtIdx(p.im)} ± ${fmtIdx(p.isd)}</div>`;
+    return `${p.nom}<div class="tt-sub">${t('tt.unitIdx', { m: fmtIdx(p.im), s: fmtIdx(p.isd) })}</div>`;
   }
 
   map.on('mousemove', async (e) => {
@@ -233,7 +246,7 @@ function bindMapEvents() {
     const lines = [];
     if ($('ly-indice').checked) {
       const v = indexAt(S.core, lng, lat);
-      if (v != null) lines.push(`${sw(indexColor(v))}Indice de prédisposition : <b>${fmtIdx(v)}</b>`);
+      if (v != null) lines.push(`${sw(indexColor(v))}${t('tt.index', { v: fmtIdx(v) })}`);
     }
     const head = featureHTML(f, feats);
     const render = () => {
@@ -254,8 +267,8 @@ function bindMapEvents() {
       const c = (k === 'comb' ? combByV : potByV).get(v);
       if (!c) return;
       lines.push(k === 'comb'
-        ? `${sw(c.hex)}Combustible : <b>${c.abb}</b>${c.lbl !== c.abb ? ` — ${c.lbl}` : ""}`
-        : `${sw(c.hex)}Potentiel d’intensité et de propagation : <b>${c.lbl}</b>`);
+        ? `${sw(c.hex)}${t('tt.comb', { a: cAbb(c), l: cLbl(c) !== cAbb(c) ? ` — ${cLbl(c)}` : '' })}`
+        : `${sw(c.hex)}${t('tt.pot', { l: pLbl(c) })}`);
     });
     render();
   });
@@ -280,7 +293,7 @@ export async function loadFiresInView() {
   const note = $('feux-note');
   if (!$('ly-feux').checked) return;
   if (map.getZoom() < FIRE_MIN_ZOOM) {
-    note.textContent = 'Rapprochez la carte (zoom régional) pour afficher les contours de feux.';
+    note.textContent = t('fires.zoom');
     return;
   }
   const b = map.getBounds();
@@ -290,7 +303,7 @@ export async function loadFiresInView() {
   const q = [view[0] - dx, view[1] - dy, view[2] + dx, view[3] + dy];
   const token = ++fireCache.token;
   if (fireCache.feats.size > 60000) { fireCache.feats.clear(); fireCache.boxes = []; }
-  note.innerHTML = '<span class="spin-inline"></span> Chargement des contours de feux…';
+  note.innerHTML = `<span class="spin-inline"></span> ${t('fires.loading')}`;
   try {
     let k = 0;
     const iter = flatgeobuf.deserialize(`${TILES.feux}?v=${DATA_VERSION}`, { minX: q[0], minY: q[1], maxX: q[2], maxY: q[3] });
@@ -304,10 +317,10 @@ export async function loadFiresInView() {
     }
     fireCache.boxes.push(q);
     map.getSource('feux').setData({ type: 'FeatureCollection', features: [...fireCache.feats.values()] });
-    note.textContent = 'Survolez un feu pour connaître sa superficie.';
+    note.textContent = t('fires.hover');
   } catch (err) {
     console.warn('Feux :', err);
-    note.textContent = 'Contours de feux indisponibles.';
+    note.textContent = t('fires.na');
   }
 }
 
@@ -317,6 +330,23 @@ function periodFilter() {
   if (!v) return null;
   const [a, b] = v.split('-').map(Number);
   return ['all', ['>=', ['get', 'an'], a], ['<=', ['get', 'an'], b]];
+}
+
+function buildPeriods() {
+  const sel = $('sel-periode'), cur = sel.value;
+  const opts = [['', t('period.all')], [`1976-${YEAR_END}`, t('period.recent', { y: YEAR_END })], ['1880-1975', t('period.old')]];
+  for (let a = 2020; a >= 1885; a -= 5) opts.push([`${a}-${Math.min(a + 4, YEAR_END)}`, `${a}-${Math.min(a + 4, YEAR_END)}`]);
+  sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  sel.value = cur || '';
+}
+
+function buildMiniLegends() {
+  const seen = new Set();
+  $('leg-comb').innerHTML = S.core.classes.comb
+    .map(c => ({ hex: c.hex, lbl: cAbb(c).replace(/[<>].*$|-100%$/, '').trim() }))
+    .filter(c => !seen.has(c.lbl) && seen.add(c.lbl))
+    .map(c => `<span><i style="background:${c.hex}"></i>${c.lbl}</span>`).join('');
+  $('leg-pot').innerHTML = S.core.classes.pot.map(c => `<span><i style="background:${c.hex}"></i>${pLbl(c)}</span>`).join('');
 }
 
 async function refreshPoints() {
@@ -332,15 +362,11 @@ async function refreshPoints() {
 }
 
 function bindLayerPanel() {
-  const map = S.map, core = S.core;
+  const map = S.map;
   const vis = (id, on) => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
 
-  // Périodes de 5 ans
-  const sel = $('sel-periode');
-  const opts = [['', 'Toutes les périodes'], [`1976-${YEAR_END}`, `Feux récents (1976-${YEAR_END})`], ['1880-1975', 'Feux anciens (1887-1975)']];
-  for (let a = 2020; a >= 1885; a -= 5) opts.push([`${a}-${Math.min(a + 4, YEAR_END)}`, `${a}-${Math.min(a + 4, YEAR_END)}`]);
-  sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
-  sel.addEventListener('change', () => {
+  buildPeriods();
+  $('sel-periode').addEventListener('change', () => {
     const f = periodFilter();
     ['feux-fill', 'feux-line', 'pts'].forEach(id => map.setFilter(id, f));
   });
@@ -367,13 +393,7 @@ function bindLayerPanel() {
   rasterToggle('comb'); rasterToggle('pot');
   $('ly-regime').addEventListener('change', (e) => vis('regime-line', e.target.checked));
 
-  // Légendes compactes
-  const seen = new Set();
-  $('leg-comb').innerHTML = core.classes.comb
-    .map(c => ({ hex: c.hex, lbl: c.abb.replace(/[<>].*$|-100%$/, '').trim() }))
-    .filter(c => !seen.has(c.lbl) && seen.add(c.lbl))
-    .map(c => `<span><i style="background:${c.hex}"></i>${c.lbl}</span>`).join('');
-  $('leg-pot').innerHTML = core.classes.pot.map(c => `<span><i style="background:${c.hex}"></i>${c.lbl}</span>`).join('');
+  buildMiniLegends();
 
   $('lp-toggle').addEventListener('click', () => {
     $('layers-panel').classList.toggle('collapsed');
@@ -413,7 +433,7 @@ export function selectUnit(id, { fit = true } = {}) {
   comboMRC.set(id, false);
   S.map.setFilter('units-sel', ['==', ['get', 'id'], id]);
   if (fit && f) S.map.fitBounds(geomBBox(f.geometry), { padding: 40, duration: 900 });
-  S.terrName = `MRC ${f.properties.nom}`;
+  S.terrName = terrLabel();
   S.idx = f.properties.im != null ? { mean: f.properties.im, sd: f.properties.isd, n: f.properties.in } : null;
   S.series = unitSeries(S.core, id);
   setTerritoryLH(S.core.lh.filter(r => r.u === id));
@@ -421,18 +441,26 @@ export function selectUnit(id, { fit = true } = {}) {
   if (S.lh && S.lh.u !== id) selectLH(null);
 }
 
-async function setZone(geojson, label) {
+function zoneMsg() {
+  if (!S.zone) return;
+  const ha = S.series ? S.series.areaHa : 0;
+  $('zone-msg').innerHTML = S.zone.pending
+    ? `<b>${S.terrName}</b> — ${t('zone.computing')} <span class="spin-inline"></span>`
+    : `<b>${S.terrName}</b> — ${t('zone.summary', { km2: fmtInt(ha / 100), n: S.terrLH.length })}`;
+}
+
+async function setZone(geojson, kind) {
   setMode('zone');
   S.unit = null;
   comboMRC.set(null, false);
   S.map.setFilter('units-sel', ['==', ['get', 'id'], '__']);
   const polys = geomToLccPolys(geojson, 50);     // simplification 50 m (grille de calcul : 1 km)
-  if (!polys.length) { $('zone-msg').textContent = 'Géométrie non valide (polygone attendu).'; return; }
-  S.zone = { geojson, polys, label };
-  S.terrName = label;
+  if (!polys.length) { $('zone-msg').textContent = t('zone.invalid'); return; }
+  S.zone = { geojson, polys, kind, pending: true };
+  S.terrName = terrLabel();
   S.map.getSource('zone').setData(geojson);
-  $('zone-msg').innerHTML = `<b>${label}</b> — calcul en cours… <span class="spin-inline"></span>`;
-  $('mrc-content').innerHTML = '<div class="placeholder"><span class="spin-inline"></span> Calcul des statistiques de la zone…</div>';
+  zoneMsg();
+  $('mrc-content').innerHTML = `<div class="placeholder"><span class="spin-inline"></span> ${t('zone.computingStats')}</div>`;
 
   // lieux habités dans la zone
   const inZone = makeContains(polys);
@@ -447,17 +475,20 @@ async function setZone(geojson, label) {
     console.error(err); S.series = null;
   }
   if (S.zone?.polys !== polys) return;      // zone remplacée entre-temps
-  const ha = S.series ? S.series.areaHa : 0;
-  $('zone-msg').innerHTML = `<b>${label}</b> — ${fmtInt(ha / 100)} km² · ${S.terrLH.length} communauté(s)`;
+  S.zone.pending = false;
+  zoneMsg();
   renderIndex(); renderMRC();
   if (S.lh && !S.terrLH.includes(S.lh)) selectLH(null);
+}
+
+function lhPlaceholder() {
+  return S.terrLH.length ? t('lh.ph.choose', { n: S.terrLH.length }) : t(S.unit || S.zone ? 'lh.ph.none' : 'lh.ph.first');
 }
 
 function setTerritoryLH(list) {
   S.terrLH = list.slice().sort((a, b) => lhName(a).localeCompare(lhName(b), 'fr'));
   comboLH.setItems(S.terrLH.map(r => ({ value: r.idx, label: lhName(r), sub: lhSub(r), keys: `${r.nom} ${r.al || ''} ${r.mun}` })), {
-    disabled: !S.terrLH.length,
-    placeholder: S.terrLH.length ? `Tapez ou choisissez (${S.terrLH.length})…` : (S.unit || S.zone ? 'Aucune communauté dans ce territoire' : '— Choisissez d\'abord un territoire —'),
+    disabled: !S.terrLH.length, placeholder: lhPlaceholder(),
   });
   refreshLHLayer();
   $('btn-rapport').disabled = !(S.series || S.terrLH.length);
@@ -468,6 +499,15 @@ function refreshLHLayer() {
     type: 'FeatureCollection',
     features: S.terrLH.map(r => ({ type: 'Feature', properties: { idx: r.idx, nom: lhName(r), sel: r === S.lh }, geometry: { type: 'Point', coordinates: [r.x, r.y] } })),
   });
+}
+
+function mrcItems() {
+  const units = S.core.units.features.map(f => f.properties).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  return units.map(p => ({
+    value: p.id, label: p.nom,
+    sub: `${t('mrc.sub', { i: fmtIdx(p.im) })}${norm(p.mrc) !== norm(p.nom) ? ` · ${t('mrc')} ${p.mrc}` : ''}`,
+    keys: p.mrc,
+  }));
 }
 
 // ── Dessin d'un rectangle ──────────────────────────────────────────────────
@@ -497,7 +537,7 @@ function startDraw() {
     const p = pos(e), a = start;
     start = null; stop();
     if (Math.abs(p[0] - a[0]) < 8 || Math.abs(p[1] - a[1]) < 8) return;
-    setZone(screenRectToPolygon([Math.min(a[0], p[0]), Math.min(a[1], p[1])], [Math.max(a[0], p[0]), Math.max(a[1], p[1])]), 'Zone tracée');
+    setZone(screenRectToPolygon([Math.min(a[0], p[0]), Math.min(a[1], p[1])], [Math.max(a[0], p[0]), Math.max(a[1], p[1])]), { k: 'drawn' });
   };
   const onKey = (e) => { if (e.key === 'Escape') { start = null; stop(); } };
   function stop() {
@@ -526,18 +566,18 @@ function screenRectToPolygon([x0, y0], [x1, y1]) {
 }
 
 async function uploadShapefile(file) {
-  $('zone-msg').innerHTML = `<span class="spin-inline"></span> Lecture de ${file.name}…`;
+  $('zone-msg').innerHTML = `<span class="spin-inline"></span> ${t('zone.reading', { f: file.name })}`;
   try {
     let gj = await shp(await file.arrayBuffer());
     if (Array.isArray(gj)) gj = { type: 'FeatureCollection', features: gj.flatMap(g => g.features) };
     const polys = gj.features.filter(f => f.geometry && /Polygon/.test(f.geometry.type));
-    if (!polys.length) throw new Error('Aucun polygone trouvé dans le fichier.');
+    if (!polys.length) throw new Error(t('zone.noPoly'));
     const fc = { type: 'FeatureCollection', features: polys };
     S.map.fitBounds(geomBBox(fc), { padding: 40, duration: 800 });
-    await setZone(fc, `Zone importée (${file.name.replace(/\.zip$/i, '')})`);
+    await setZone(fc, { k: 'import', f: file.name.replace(/\.zip$/i, '') });
   } catch (err) {
     console.error(err);
-    $('zone-msg').textContent = `Impossible de lire le fichier : ${err.message || err}. Fournissez un .zip contenant .shp, .dbf et .prj.`;
+    $('zone-msg').textContent = t('zone.readErr', { e: err.message || err });
   }
 }
 
@@ -547,7 +587,7 @@ async function uploadShapefile(file) {
 function renderIndex() {
   const el = $('expo-value'), mk = $('expo-marker'), band = $('expo-band'), e = S.idx;
   if (!e) {
-    el.innerHTML = `<div class="expo-note">${S.unit || S.zone ? 'Aucune donnée d’indice pour ce territoire.' : 'Choisissez un territoire pour afficher son indice moyen.'}</div>`;
+    el.innerHTML = `<div class="expo-note">${t(S.unit || S.zone ? 'idx.none' : 'idx.choose')}</div>`;
     mk.style.display = band.style.display = 'none';
     return;
   }
@@ -557,8 +597,8 @@ function renderIndex() {
   band.style.left = `${pos(e.mean - e.sd)}%`;
   band.style.width = `${pos(e.mean + e.sd) - pos(e.mean - e.sd)}%`;
   el.innerHTML = `<div class="expo-value"><span class="expo-num" style="color:${indexColor(e.mean)}">${fmtIdx(e.mean)}</span>
-    <span class="expo-rank">moyenne · écart-type <b>${fmtIdx(e.sd)}</b></span></div>
-    <div class="expo-note">${S.zone ? 'Zone définie' : S.terrName} — ${e.n} pixel${e.n > 1 ? 's' : ''} de 5 km.</div>`;
+    <span class="expo-rank">${t('idx.meanSd', { s: fmtIdx(e.sd) })}</span></div>
+    <div class="expo-note">${t('idx.note', { t: S.zone ? t('idx.zone') : S.terrName, n: e.n })}</div>`;
 }
 
 function chartWidth(el) { return Math.max(300, Math.round(el.clientWidth || 420)); }
@@ -568,37 +608,38 @@ function mrcHTML(w, big = false) {
   const s = S.series;
   const period = `${s.y0}–${YEAR_END}`;
   const regNote = s.long && s.y0 >= 1972
-    ? '<div class="expo-note">Territoire situé dans une zone de régime de feux, mais aucun feu ancien (1887-1975) n’y est répertorié.</div>'
+    ? `<div class="expo-note">${t('mrc.regNoOld')}</div>`
     : S.zone && s.long && s.regimeFrac < 0.98
-    ? `<div class="expo-note">La zone chevauche une zone de régime de feux (${fmtPct(s.regimeFrac * 100, 0)} de sa superficie) : les feux anciens n’y sont comptés que dans cette portion.</div>` : '';
-  const idx = S.idx ? `<span>Indice : <b>${fmtIdx(S.idx.mean)}</b> ± ${fmtIdx(S.idx.sd)}</span>` : '';
+    ? `<div class="expo-note">${t('mrc.regPart', { p: fmtPct(s.regimeFrac * 100, 0) })}</div>` : '';
+  const idx = S.idx ? `<span>${t('idx.short', { m: fmtIdx(S.idx.mean), s: fmtIdx(S.idx.sd) })}</span>` : '';
+  const long = s.y0 < 1972;
   return `
     <div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:${big ? 19 : 15}px;color:var(--accent)">${S.terrName}</div>
-    <div class="stat-line"><span class="badge ${s.y0 < 1972 ? 'long' : ''}" title="${s.y0 < 1972 ? 'Feux anciens validés (zones de régime de feux) inclus' : 'Points d’origine dès 1972, contours de feux dès 1976'}">${s.y0 < 1972 ? 'Série longue' : 'Série courte'} · ${period}</span>
-      <span>Combustibles : <b>${fmtInt(s.fuelHa)}</b> ha</span>${big ? idx : ''}</div>
-    <div class="stat-line"><span>Feux (1972-${YEAR_END}) : <b>${fmtInt(s.totOcc)}</b> (H ${fmtInt(s.totH)} · F ${fmtInt(s.totF)})</span>
-      <span>Brûlé : <b>${fmtInt(s.totSup)}</b> ha</span></div>
+    <div class="stat-line"><span class="badge ${long ? 'long' : ''}" title="${t(long ? 'mrc.longTitle' : 'mrc.shortTitle')}">${t(long ? 'mrc.long' : 'mrc.short')} · ${period}</span>
+      <span>${t('mrc.fuel', { v: fmtInt(s.fuelHa) })}</span>${big ? idx : ''}</div>
+    <div class="stat-line"><span>${t('mrc.fires', { y: YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })}</span>
+      <span>${t('mrc.burned', { v: fmtInt(s.totSup) })}</span></div>
     ${regNote}
-    <div class="chart-title">Occurrences et causes des feux</div>
-    <div class="chart-legend"><span><i style="background:${COLORS.humain}"></i>Humain</span><span><i style="background:${COLORS.foudre}"></i>Foudre</span><span><i class="band"></i>Moyenne ± écart-type</span></div>
+    <div class="chart-title">${t('chart.occ')}</div>
+    <div class="chart-legend"><span><i style="background:${COLORS.humain}"></i>${t('leg.human')}</span><span><i style="background:${COLORS.foudre}"></i>${t('leg.lightning')}</span><span><i class="band"></i>${t('leg.meanSd')}</span></div>
     <div class="chart">${occChart(s, { width: w, height: big ? 300 : 190, labels: w > 380 })}</div>
-    <div class="chart-title">Superficies brûlées annuellement${S.log ? ' (échelle log)' : ''}</div>
+    <div class="chart-title">${t('chart.sup')}${S.log ? t('chart.log') : ''}</div>
     <div class="chart">${supChart(s, { width: w, height: big ? 280 : 180, log: S.log })}</div>`;
 }
 
 function setSummary(id, text) {
   const el = $(id);
   el.textContent = text || '';
-  el.title = text ? `${text} — cliquez pour afficher les graphiques` : '';
+  el.title = text ? t('summary.click', { t: text }) : '';
   el.classList.toggle('on', !!text);
 }
 
 function renderMRC() {
   const el = $('mrc-content'), s = S.series;
   $('btn-big-mrc').disabled = !s;
-  setSummary('sum-mrc', s ? S.terrName.replace(/^MRC /, '') : '');
+  setSummary('sum-mrc', s ? (S.unit ? unitProps(S.unit)?.nom : S.terrName) : '');
   if (!s) {
-    el.innerHTML = `<div class="placeholder">${S.unit || S.zone ? 'Aucune donnée de feux pour ce territoire.' : 'Choisissez une MRC ou définissez une zone pour afficher l’historique des feux.'}</div>`;
+    el.innerHTML = `<div class="placeholder">${t(S.unit || S.zone ? 'mrc.noData' : 'mrc.choose')}</div>`;
     return;
   }
   el.innerHTML = mrcHTML(chartWidth(el));
@@ -606,14 +647,14 @@ function renderMRC() {
 
 // ── Communauté ─────────────────────────────────────────────────────────────
 export function combRows(ha, classes) {
-  return classes.comb.map((c, k) => ({ label: c.abb, title: `${c.abb} — ${c.lbl}`, ha: ha[k], color: c.hex, group: c.grp }));
+  return classes.comb.map((c, k) => ({ label: cAbb(c), title: `${cAbb(c)} — ${cLbl(c)}`, ha: ha[k], color: c.hex, grpKey: c.grp, group: cGrp(c.grp) }));
 }
 export function potRows(ha, classes) {
-  return classes.pot.map((c, k) => ({ label: c.lbl === 'Absence combustible' ? 'Absence comb.' : c.lbl, title: c.lbl, ha: ha[k], color: c.hex })).reverse();
+  return classes.pot.map((c, k) => ({ label: pShort(c), title: pLbl(c), ha: ha[k], color: c.hex })).reverse();
 }
-const COMB_ORDER = ['Résineux', 'Mixtes', 'Feuillus', 'Rémanents', 'Herbes', 'Brûlis', 'Dénudé', 'Eau', 'Urbain'];
+export const COMB_ORDER = ['Résineux', 'Mixtes', 'Feuillus', 'Rémanents', 'Herbes', 'Brûlis', 'Dénudé', 'Eau', 'Urbain'];
 export function sortComb(rows) {
-  return rows.map((r, i) => ({ r, i })).sort((a, b) => (COMB_ORDER.indexOf(a.r.group) - COMB_ORDER.indexOf(b.r.group)) || a.i - b.i).map(x => x.r);
+  return rows.map((r, i) => ({ r, i })).sort((a, b) => (COMB_ORDER.indexOf(a.r.grpKey) - COMB_ORDER.indexOf(b.r.grpKey)) || a.i - b.i).map(x => x.r);
 }
 
 /** Indice de prédisposition dans la zone tampon (pixels de 5 km dont le centre est dans le cercle). */
@@ -630,7 +671,7 @@ export async function selectLH(r, { fit = true } = {}) {
   if (!r) {
     S.buf = null; S.lhIdx = null;
     showBuffer(null);
-    $('lh-content').innerHTML = '<div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div>';
+    $('lh-content').innerHTML = `<div class="placeholder">${t('lh.choose')}</div>`;
     return;
   }
   // Territoire : si la communauté n'est pas dans le territoire courant, on bascule sur sa MRC
@@ -639,13 +680,13 @@ export async function selectLH(r, { fit = true } = {}) {
   // combustibles affichés et zoom sur la zone tampon
   if (!$('ly-comb').checked) { $('ly-comb').checked = true; $('ly-comb').dispatchEvent(new Event('change')); }
   if (fit) S.map.fitBounds(geomBBox(bufferCircle(r, S.bufKm)), { padding: 40, duration: 800 });
-  $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder"><span class="spin-inline"></span> Chargement des combustibles…</div>`;
+  $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder"><span class="spin-inline"></span> ${t('lh.loading')}</div>`;
   await updateBuffer();
 }
 
 function lhHeader(r, big = false) {
   return `<div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:${big ? 19 : 15}px;color:var(--accent)">${lhName(r)}</div>
-    <div class="box-sub">${lhSub(r) ? lhSub(r) + ' · ' : ''}${r.nat ? `${r.nat} <span class="badge" title="Toponyme préliminaire à valider (IDDPNQL)">à valider</span> · ` : ''}MRC ${S.core.units.features.find(f => f.properties.id === r.u)?.properties.nom || ''}</div>`;
+    <div class="box-sub">${lhSub(r) ? lhSub(r) + ' · ' : ''}${r.nat ? `${r.nat} <span class="badge" title="${t('lh.toValidateTitle')}">${t('lh.toValidate')}</span> · ` : ''}${t('mrc')} ${unitProps(r.u)?.nom || ''}</div>`;
 }
 
 async function updateBuffer() {
@@ -656,7 +697,7 @@ async function updateBuffer() {
     S.lhIdx = bufferIndex(r, S.bufKm);
   } catch (err) {
     console.error(err);
-    $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder">Données de combustibles indisponibles.</div>`;
+    $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder">${t('lh.na')}</div>`;
     return;
   }
   if (S.lh !== r) return;
@@ -672,7 +713,7 @@ export function lhChartPair(buf, cls, width, { combRowH = 14, fontSize = 9.5 } =
   const potRowH = (combRowH * comb.length) / pot.length;
   return {
     pot: hbarChart(pot, { width, rowH: potRowH, labelW: 86, fontSize: fontSize + 1 }),
-    comb: hbarChart(comb, { width, rowH: combRowH, labelW: 52, groupW: 58, fontSize }),
+    comb: hbarChart(comb, { width, rowH: combRowH, labelW: 52, groupW: 64, fontSize }),
   };
 }
 
@@ -680,13 +721,13 @@ export function lhChartPair(buf, cls, width, { combRowH = 14, fontSize = 9.5 } =
 function lhChartsHTML(w, big = false) {
   const b = S.buf, cls = S.core.classes;
   const tot = b.comb.reduce((a, v) => a + v, 0);
-  if (!tot) return '<div class="placeholder">Aucune donnée de combustibles dans cette zone tampon (hors du territoire couvert).</div>';
+  if (!tot) return `<div class="placeholder">${t('lh.noFuel')}</div>`;
   const gap = big ? 24 : 12;
   const side = (w - gap) / 2 >= 230;               // côte à côte si la place le permet
   const cw = side ? Math.floor((w - gap) / 2) : w;
   const c = lhChartPair(b, cls, cw, big ? { combRowH: 19, fontSize: 10.5 } : { combRowH: 14, fontSize: 9.5 });
-  const t1 = '<div class="chart-title">A) Superficie des combustibles</div>';
-  const t2 = '<div class="chart-title">B) Potentiel d’intensité et de propagation</div>';
+  const t1 = `<div class="chart-title">${t('lh.chartA')}</div>`;
+  const t2 = `<div class="chart-title">${t('lh.chartB')}</div>`;
   return side
     ? `<div class="pair-grid" style="column-gap:${gap}px">${t1}${t2}<div class="chart">${c.comb}</div><div class="chart">${c.pot}</div></div>`
     : `${t1}<div class="chart">${c.comb}</div>${t2}<div class="chart">${c.pot}</div>`;
@@ -695,22 +736,25 @@ function lhChartsHTML(w, big = false) {
 function lhStatsLine() {
   const tot = S.buf.comb.reduce((a, v) => a + v, 0);
   const i = S.lhIdx;
-  return `<span>Superficie analysée : <b>${fmtInt(tot)}</b> ha</span>
-    ${i ? `<span title="Moyenne ± écart-type des pixels de 5 km de la zone tampon">Indice : <b style="color:${indexColor(i.mean)}">${fmtIdx(i.mean)}</b> ± ${fmtIdx(i.sd)}</span>` : ''}`;
+  return `<span>${t('lh.area', { v: fmtInt(tot) })}</span>
+    ${i ? `<span title="${t('idx.shortTitle')}">${t('idx.short', { m: `<b style="color:${indexColor(i.mean)}">${fmtIdx(i.mean)}</b>`, s: fmtIdx(i.sd) }).replace('<b><b', '<b').replace('</b></b>', '</b>')}</span>` : ''}`;
 }
 
 function renderLH() {
   const r = S.lh, b = S.buf, el = $('lh-content');
-  if (!r || !b) return;
+  if (!r || !b) {
+    if (!r) el.innerHTML = `<div class="placeholder">${t('lh.choose')}</div>`;
+    return;
+  }
   const w = chartWidth(el);
   const prev = el.querySelector('#rng-buf');
   const focused = document.activeElement === prev;
   el.innerHTML = `${lhHeader(r)}
-    <div class="slider-row"><span class="muted">Zone tampon</span>
+    <div class="slider-row"><span class="muted">${t('lh.buffer')}</span>
       <input type="range" id="rng-buf" min="1" max="${BUFFER_MAX}" step="1" value="${S.bufKm}">
       <output id="out-buf">${S.bufKm} km</output></div>
     <div class="stat-line">${lhStatsLine()}</div>
-    <div class="stat-line"><label class="toggle-line"><input type="checkbox" id="chk-show-comb" ${$('ly-comb').checked ? 'checked' : ''}> voir les combustibles sur la carte</label></div>
+    <div class="stat-line"><label class="toggle-line"><input type="checkbox" id="chk-show-comb" ${$('ly-comb').checked ? 'checked' : ''}> ${t('lh.showComb')}</label></div>
     ${lhChartsHTML(w)}`;
   const rng = el.querySelector('#rng-buf');
   if (focused) rng.focus();
@@ -725,34 +769,81 @@ function renderLH() {
   });
 }
 
-/** Légende de la fiche communauté : classes et couleurs issues des LUT (classes.json). */
-function buildLegends() {
-  const cls = S.core.classes, groups = new Map();
-  for (const c of cls.comb) {
+// ── Légendes des fiches (contenu commun aux fenêtres et au rapport PDF) ────
+export const mdBold = (s) => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+/** Classes de combustibles regroupées, dans l'ordre des graphiques. */
+export function combGroups() {
+  const groups = new Map();
+  for (const c of S.core.classes.comb) {
     if (!groups.has(c.grp)) groups.set(c.grp, []);
     groups.get(c.grp).push(c);
   }
+  return COMB_ORDER.filter(g => groups.has(g)).map(g => ({ g, label: cGrp(g), items: groups.get(g) }));
+}
+
+function buildLegends() {
+  const L = LEGEND();
   const row = (hex, txt) => `<div class="leg-row"><div class="leg-swatch" style="background:${hex}"></div><span>${txt}</span></div>`;
-  $('leg-comb-list').innerHTML = COMB_ORDER.filter(g => groups.has(g)).map(g =>
-    `<div class="leg-group">${g}</div>` + groups.get(g).map(c => row(c.hex, `${c.abb} — ${c.lbl}`)).join('')).join('');
-  $('leg-pot-list').innerHTML = '<div class="leg-group">Classes</div>' + cls.pot.map(c => row(c.hex, c.lbl)).join('');
+  const block = (b, extra = '') => `<div class="leg-block"><div class="leg-sub">${b.h}</div>${b.p.map(p => `<p>${mdBold(p)}</p>`).join('')}${extra}</div>`;
+  $('leg-mrc-body').innerHTML = L.mrc.map(b => block(b, b.sw ? `<p>${b.sw.map(([c, l]) => `<span class="sw-inline" style="background:${c}"></span>${l}`).join(' &nbsp; ')}</p>` : '')).join('');
+  $('leg-lh-body').innerHTML = `
+    <div>
+      <div class="leg-col-title">${L.lhComb.h}</div>
+      <p class="leg-intro">${L.lhComb.p.map(mdBold).join('<br><br>')}<br>
+        <a href="https://ressources-naturelles.canada.ca" target="_blank" rel="noopener">${L.links.fbp}</a></p>
+      ${combGroups().map(gr => `<div class="leg-group">${gr.label}</div>` + gr.items.map(c => row(c.hex, cAbb(c) === cLbl(c) ? cLbl(c) : `${cAbb(c)} — ${cLbl(c)}`)).join('')).join('')}
+    </div>
+    <div>
+      <div class="leg-col-title">${L.lhPot.h}</div>
+      <p class="leg-intro">${L.lhPot.p.map(mdBold).join('<br><br>')}<br>
+        <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">${L.links.pot}</a></p>
+      <div class="leg-group">${L.links.classes}</div>
+      ${S.core.classes.pot.map(c => row(c.hex, pLbl(c))).join('')}
+      ${L.lhMore.map(b => `<div class="leg-col-title" style="margin-top:16px">${b.h}</div><p class="leg-intro">${b.p.map(mdBold).join('<br>')}</p>`).join('')}
+    </div>`;
 }
 
 /** Fiche agrandie (fenêtre surgissante) : 'mrc' ou 'lh'. */
+let bigKind = null;
 function openBig(kind) {
   const body = $('fiche-body');
+  bigKind = kind;
   $('modal-fiche').classList.add('open');
   const w = Math.max(600, body.clientWidth - 44);
   $('fiche-legend').dataset.kind = kind;
   if (kind === 'mrc' && S.series) {
-    $('fiche-title').textContent = 'Fiche régionale — historique des feux';
+    $('fiche-title').textContent = t('big.mrc');
     body.innerHTML = mrcHTML(w, true);
   } else if (kind === 'lh' && S.lh && S.buf) {
-    $('fiche-title').textContent = 'Fiche communauté — combustibles';
+    $('fiche-title').textContent = t('big.lh');
     body.innerHTML = `${lhHeader(S.lh, true)}
-      <div class="stat-line"><span>Zone tampon : <b>${S.bufKm} km</b></span>${lhStatsLine()}</div>
+      <div class="stat-line"><span>${t('lh.bufferKm', { k: S.bufKm })}</span>${lhStatsLine()}</div>
       ${lhChartsHTML(w, true)}`;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Changement de langue : tout le contenu généré est recalculé
+// ═══════════════════════════════════════════════════════════════════════════
+function relabel() {
+  S.terrName = terrLabel();
+  buildPeriods();
+  buildMiniLegends();
+  buildLegends();
+  comboMRC.setItems(mrcItems());
+  comboMRC.set(S.unit, false);
+  comboLH.setItems(S.terrLH.map(r => ({ value: r.idx, label: lhName(r), sub: lhSub(r), keys: `${r.nom} ${r.al || ''} ${r.mun}` })), {
+    disabled: !S.terrLH.length, placeholder: lhPlaceholder(),
+  });
+  comboLH.set(S.lh ? S.lh.idx : null, false);
+  if (S.zone) zoneMsg();
+  renderIndex(); renderMRC(); renderLH();
+  setSummary('sum-lh', S.lh ? lhName(S.lh) : '');
+  if ($('modal-fiche').classList.contains('open') && bigKind) openBig(bigKind);
+  refreshReportDialog();
+  const note = $('feux-note');
+  if ($('ly-feux').checked) note.textContent = t(S.map.getZoom() < FIRE_MIN_ZOOM ? 'fires.zoom' : 'fires.hover');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -765,7 +856,11 @@ function bindUI() {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
   };
   document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => goTab(b.dataset.tab)));
-  document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => { closeModals(); goTab(el.dataset.goto); }));
+  // liens vers les onglets (délégation : le texte des fenêtres est remplacé lors d'un changement de langue)
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-goto]');
+    if (g) { closeModals(); goTab(g.dataset.goto); }
+  });
 
   // Modals
   const closeModals = () => document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
@@ -776,6 +871,10 @@ function bindUI() {
   }));
   $('btn-info').addEventListener('click', () => $('popup-accueil').classList.add('open'));
 
+  // Langue
+  document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+  onLang(relabel);
+
   // Mode
   document.querySelectorAll('#mode-seg button').forEach(b => b.addEventListener('click', () => {
     if (b.dataset.mode === S.mode) return;
@@ -783,29 +882,24 @@ function bindUI() {
   }));
 
   // Combos
-  comboMRC = new Combo($('combo-mrc'), { onSelect: (v) => selectUnit(v) });
-  const units = S.core.units.features.map(f => f.properties).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-  comboMRC.setItems(units.map(p => ({
-    value: p.id, label: p.nom,
-    sub: `indice moyen ${fmtIdx(p.im)}${norm(p.mrc) !== norm(p.nom) ? ` · MRC ${p.mrc}` : ''}`,
-    keys: p.mrc,
-  })));
-  comboLH = new Combo($('combo-lh'), { onSelect: (v) => selectLH(v == null ? null : S.core.lh[v]) });
+  comboMRC = new Combo($('combo-mrc'), { onSelect: (v) => selectUnit(v), empty: () => t('combo.none') });
+  comboMRC.setItems(mrcItems());
+  comboLH = new Combo($('combo-lh'), { onSelect: (v) => selectLH(v == null ? null : S.core.lh[v]), empty: () => t('combo.none') });
+  comboLH.setItems([], { disabled: true, placeholder: lhPlaceholder() });
 
   // Zone
   $('btn-draw').addEventListener('click', () => { if (!drawing) startDraw(); });
   $('btn-extent').addEventListener('click', () => {
     const c = S.map.getCanvas();
-    const w = c.clientWidth, h = c.clientHeight;
-    setZone(screenRectToPolygon([0, 0], [w, h]), 'Emprise de la carte');
+    setZone(screenRectToPolygon([0, 0], [c.clientWidth, c.clientHeight]), { k: 'extent' });
   });
   $('btn-upload').addEventListener('click', () => $('file-shp').click());
   $('file-shp').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) uploadShapefile(f); e.target.value = ''; });
-  $('btn-zone-clear').addEventListener('click', () => { clearTerritory(); $('zone-msg').textContent = 'Zone effacée.'; });
+  $('btn-zone-clear').addEventListener('click', () => { clearTerritory(); $('zone-msg').textContent = t('zone.cleared'); });
 
   // Boîtes repliables et fiches agrandies
-  document.querySelectorAll('.box.collapsible .box-toggle').forEach(t => t.addEventListener('click', () => {
-    const box = t.closest('.box');
+  document.querySelectorAll('.box.collapsible .box-toggle').forEach(tg => tg.addEventListener('click', () => {
+    const box = tg.closest('.box');
     box.classList.toggle('collapsed');
     // graphiques redessinés à la largeur réelle une fois la boîte dépliée
     if (!box.classList.contains('collapsed')) { if (box.id === 'box-mrc') renderMRC(); else renderLH(); }
@@ -857,17 +951,18 @@ function bindUI() {
 // Démarrage
 // ═══════════════════════════════════════════════════════════════════════════
 async function init() {
+  applyStatic();
   try {
     const [core] = await Promise.all([loadCore(), initMap()]);
     S.core = core;
     addLayers();
     bindUI();
-    renderIndex();
+    renderIndex(); renderMRC(); renderLH();
     $('loading').classList.add('hidden');
     $('popup-accueil').classList.add('open');
   } catch (err) {
     console.error('Erreur init :', err);
-    $('loading-msg').textContent = 'Erreur de chargement — voir la console.';
+    $('loading-msg').textContent = t('loading.error');
   }
 }
 init();

@@ -3,51 +3,50 @@ import { YEAR_END, COLORS, BASEMAP } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';
 import { loadProvince } from './data.js';
-import { S, lhName, lhSub, lhChartPair, bufferCircle, bufferIndex, fmtIdx } from './app.js';
+import { S, lhName, lhSub, lhChartPair, bufferCircle, bufferIndex, fmtIdx, unitProps, combGroups } from './app.js';
+import { t, loc, cAbb, cLbl, pLbl, LEGEND } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
-let autoTerr = true;
 
 // Polices standard PDF (WinAnsi) : on remplace les caractères non pris en charge
 const pdfTxt = (s) => String(s ?? '')
-  .replace(/[’‘]/g, "'").replace(/[“”«»]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...')
+  .replace(/[’‘]/g, "'").replace(/«\s*/g, '"').replace(/\s*»/g, '"').replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...')
   .replace(/ | /g, ' ').normalize('NFC').replace(/[^\x00-\xFF]/g, '');
 
 export function openReportDialog() {
-  const terr = S.terrName || 'Territoire';
-  $('rep-terr').innerHTML = `Territoire : <b>${terr}</b>`;
-  $('rep-buf').textContent = S.bufKm;
+  refreshReportDialog(true);
   const list = $('rep-list');
   list.innerHTML = S.terrLH.length
     ? S.terrLH.map(r => `<label data-k="${(lhName(r) + ' ' + r.mun).toLowerCase()}"><input type="checkbox" value="${r.idx}" ${r === S.lh ? 'checked' : ''}> ${lhName(r)} ${lhSub(r) ? `<small>${lhSub(r)}</small>` : ''}</label>`).join('')
-    : '<div class="muted" style="padding:6px">Aucune communauté dans ce territoire.</div>';
-  autoTerr = true;
-  syncTerr();
+    : `<div class="muted" style="padding:6px">${t('rep.noLh')}</div>`;
+  // page territoire (MRC / zone) cochée par défaut
+  $('rep-terr-page').checked = !!S.series;
+  $('rep-terr-page').disabled = !S.series;
   $('rep-progress').textContent = '';
   $('rep-bar').hidden = true;
   $('rep-go').disabled = false;
   $('modal-rapport').classList.add('open');
 }
 
-function checked() { return [...$('rep-list').querySelectorAll('input:checked')].map(i => S.core.lh[+i.value]); }
-
-// Une seule communauté → sa fiche seulement ; plusieurs (ou aucune) → page territoire en premier
-function syncTerr() {
-  if (!autoTerr) return;
-  $('rep-terr-page').checked = checked().length !== 1 && !!S.series;
+/** Textes de la fenêtre du rapport (aussi appelé lors d'un changement de langue). */
+export function refreshReportDialog(force = false) {
+  if (!force && !$('modal-rapport').classList.contains('open')) return;
+  $('rep-terr').innerHTML = t('rep.terr', { t: S.terrName || t('rep.territory') });
+  if ($('rep-buf')) $('rep-buf').textContent = S.bufKm;
+  if (!S.terrLH.length && $('rep-list').querySelector('.muted')) $('rep-list').innerHTML = `<div class="muted" style="padding:6px">${t('rep.noLh')}</div>`;
 }
 
-$('rep-list').addEventListener('change', syncTerr);
-$('rep-terr-page').addEventListener('change', () => { autoTerr = false; });
-$('rep-all').addEventListener('click', () => { $('rep-list').querySelectorAll('label:not([hidden]) input').forEach(i => { i.checked = true; }); syncTerr(); });
-$('rep-none').addEventListener('click', () => { $('rep-list').querySelectorAll('input').forEach(i => { i.checked = false; }); syncTerr(); });
+function checked() { return [...$('rep-list').querySelectorAll('input:checked')].map(i => S.core.lh[+i.value]); }
+
+$('rep-all').addEventListener('click', () => { $('rep-list').querySelectorAll('label:not([hidden]) input').forEach(i => { i.checked = true; }); });
+$('rep-none').addEventListener('click', () => { $('rep-list').querySelectorAll('input').forEach(i => { i.checked = false; }); });
 $('rep-filter').addEventListener('input', (e) => {
   const q = e.target.value.toLowerCase();
   $('rep-list').querySelectorAll('label').forEach(l => { l.hidden = q && !l.dataset.k.includes(q); });
 });
 $('rep-go').addEventListener('click', () => generate().catch(err => {
   console.error(err);
-  $('rep-progress').textContent = `Erreur : ${err.message || err}`;
+  $('rep-progress').textContent = t('rep.err', { e: err.message || err });
   $('rep-go').disabled = false;
 }));
 
@@ -250,9 +249,9 @@ function ringsOf(g, out = []) {
 
 async function locatorMap(territory, aspect, pxW = 900) {
   const prov = await loadProvince();
-  const t = proj4('EPSG:4326', LCC_DEF);
-  const provRings = ringsOf(prov).map(r => r.map(c => t.forward(c)));
-  const terrRings = ringsOf(territory).map(r => r.map(c => t.forward(c)));
+  const prj = proj4('EPSG:4326', LCC_DEF);
+  const provRings = ringsOf(prov).map(r => r.map(c => prj.forward(c)));
+  const terrRings = ringsOf(territory).map(r => r.map(c => prj.forward(c)));
   // emprise : Québec + 6 % de marge, ajustée au ratio de la boîte du PDF
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const r of provRings) for (const [x, y] of r) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
@@ -264,7 +263,7 @@ async function locatorMap(territory, aspect, pxW = 900) {
   c.width = W; c.height = H;
   const ctx = c.getContext('2d');
   // fond de carte gris pâle reprojeté en Lambert
-  await paintBasemap(ctx, W, H, (px, py) => t.inverse([cx - w / 2 + px / k, cy + h / 2 - py / k]));
+  await paintBasemap(ctx, W, H, (px, py) => prj.inverse([cx - w / 2 + px / k, cy + h / 2 - py / k]));
   const path = (rings) => {
     ctx.beginPath();
     for (const r of rings) r.forEach((p, i) => { const [a, b] = px(p); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); });
@@ -303,13 +302,13 @@ function footer(doc, x, y, w, h, sources) {
   doc.setFillColor(...GREY_BG); doc.setDrawColor(150); doc.rect(x, y, w, h, 'FD');
   doc.setTextColor(...DARK);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-  doc.text(pdfTxt('Observatoire régional de recherche sur la forêt boréale'), x + 12, y + 16);
+  doc.text(pdfTxt(t('pdf.obs')), x + 12, y + 16);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
   doc.text(pdfTxt('Hugues Dorion - hdorion@uqac.ca     Victor Danneyrolles - vdanneyr@uqac.ca'), x + 12, y + 29);
   doc.setFontSize(7);
   doc.text(pdfTxt(sources), x + 12, y + 41, { maxWidth: w - 24 });
   doc.setFontSize(6.5); doc.setTextColor(120);
-  doc.text(pdfTxt(`Généré le ${new Date().toLocaleDateString('fr-CA')} - application v2.0 (bêta)`), PW - M, M - 5, { align: 'right' });
+  doc.text(pdfTxt(t('pdf.generated', { d: new Date().toLocaleDateString(loc()) })), PW - M, M - 5, { align: 'right' });
 }
 
 function wrap(doc, s, w) { return doc.splitTextToSize(pdfTxt(s), w); }
@@ -323,21 +322,21 @@ async function territoryPage(doc, mapImg) {
   doc.setTextColor(...DARK);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
   let ty = y + 34;
-  for (const l of wrap(doc, `Portrait de l'historique des feux de forêt ${s.y0} à ${YEAR_END}`, LEFT_W - 28)) { doc.text(l, x + 14, ty); ty += 24; }
+  for (const l of wrap(doc, t('pdf.terrTitle', { a: s.y0, b: YEAR_END }), LEFT_W - 28)) { doc.text(l, x + 14, ty); ty += 24; }
   ty += 10; doc.setFontSize(16);
   for (const l of wrap(doc, S.terrName, LEFT_W - 28)) { doc.text(l, x + 14, ty); ty += 19; }
   ty += 10; doc.setFontSize(12);
   if (e) {
-    doc.text(pdfTxt(`Indice de prédisposition moyen : ${fmtIdx(e.mean)}`), x + 14, ty); ty += 16;
-    doc.text(pdfTxt(`Écart-type : ${fmtIdx(e.sd)}`), x + 14, ty); ty += 13;
+    doc.text(pdfTxt(t('pdf.idxMean', { v: fmtIdx(e.mean) })), x + 14, ty); ty += 16;
+    doc.text(pdfTxt(t('pdf.idxSd', { v: fmtIdx(e.sd) })), x + 14, ty); ty += 13;
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-    doc.text(pdfTxt(`(indice standardisé de 0 à 1 ; ${e.n} pixels de 5 km)`), x + 14, ty); ty += 4;
+    doc.text(pdfTxt(t('pdf.idxNote', { n: e.n })), x + 14, ty); ty += 4;
   }
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
   ty += 8;
-  doc.text(pdfTxt(`Feux 1972-${YEAR_END} : ${fmtInt(s.totOcc)} (humain ${fmtInt(s.totH)}, foudre ${fmtInt(s.totF)})`), x + 14, ty); ty += 11;
-  doc.text(pdfTxt(`Superficie brûlée ${s.y0}-${YEAR_END} : ${fmtInt(s.totSup)} ha`), x + 14, ty); ty += 11;
-  doc.text(pdfTxt(`Superficie combustible : ${fmtInt(s.fuelHa)} ha`), x + 14, ty);
+  doc.text(pdfTxt(t('pdf.fires', { y: YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })), x + 14, ty); ty += 11;
+  doc.text(pdfTxt(t('pdf.burned', { a: s.y0, b: YEAR_END, v: fmtInt(s.totSup) })), x + 14, ty); ty += 11;
+  doc.text(pdfTxt(t('pdf.fuel', { v: fmtInt(s.fuelHa) })), x + 14, ty);
   // Carte
   const mapY = y + titleH, mapH = h - titleH;
   doc.addImage(mapImg, 'PNG', x, mapY, LEFT_W, mapH, undefined, 'FAST');
@@ -350,19 +349,18 @@ async function territoryPage(doc, mapImg) {
   const occ = await svgToPng(occChart(s, { width: pxW, height: Math.round((chartH - 16) / sc), labels: true }), 2.5);
   const sup = await svgToPng(supChart(s, { width: pxW, height: Math.round((chartH - 16) / sc), log: S.log }), 2.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
-  doc.text(pdfTxt('Occurrences et causes des feux'), rx + 10, y + 14);
+  doc.text(pdfTxt(t('chart.occ')), rx + 10, y + 14);
   legend(doc, rx + rw - 10, y + 10);
   doc.addImage(occ.data, 'PNG', rx + 4, y + 18, rw - 8, (rw - 8) * occ.h / occ.w, undefined, 'FAST');
   const y2 = y + 18 + chartH;
-  doc.text(pdfTxt(`Superficies brûlées annuellement${S.log ? ' (échelle logarithmique)' : ''}`), rx + 10, y2 + 6);
+  doc.text(pdfTxt(t('chart.sup') + (S.log ? t('chart.logPdf') : '')), rx + 10, y2 + 6);
   doc.addImage(sup.data, 'PNG', rx + 4, y2 + 10, rw - 8, (rw - 8) * sup.h / sup.w, undefined, 'FAST');
-  footer(doc, rx, y + h - footH, rw, footH,
-    'Sources (donneesquebec.ca) : Cartographie des points d\'origine des feux de forêt (1972-2024) - Feux de forêt (depuis 1976) - Feux anciens (1887-1975, zones de régime de feux seulement) - Combustibles 2025 (MRNF). Trait pointillé : moyenne des années avec feux ; bande grise : +/- 1 écart-type.');
+  footer(doc, rx, y + h - footH, rw, footH, t('pdf.terrSources'));
 }
 
 function legend(doc, xr, y) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  const items = [['Humain', COLORS.humain], ['Foudre', COLORS.foudre]];
+  const items = [[t('leg.human'), COLORS.humain], [t('leg.lightning'), COLORS.foudre]];
   let x = xr;
   for (const [lbl, c] of items.reverse()) {
     const w = doc.getTextWidth(lbl);
@@ -379,30 +377,32 @@ async function communityPage(doc, r, maps, buf) {
   doc.setFillColor(...GREY_BG); doc.rect(x, y, lw, h, 'F');
   doc.setTextColor(...DARK);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
-  doc.text(pdfTxt('Cartographie des combustibles'), x + 22, y + 36);
+  doc.text(pdfTxt(t('pdf.combTitle')), x + 22, y + 36);
   doc.text('(MRNF 2025)', x + 22, y + 62);
   doc.setFontSize(14); doc.setFont('helvetica', 'normal');
   let ty = y + 92;
-  doc.text('Communauté :', x + 22, ty);
+  const lab = pdfTxt(t('pdf.community'));
+  doc.text(lab, x + 22, ty);
+  const lx = x + 22 + doc.getTextWidth(lab + ' ');
   doc.setFont('helvetica', 'bold');
-  const nm = wrap(doc, lhName(r), lw - 150);
-  nm.forEach((l, i) => doc.text(l, x + 22 + doc.getTextWidth('Communauté : ') * 0 + 98, ty + i * 17));
+  const nm = wrap(doc, lhName(r), lw - (lx - x) - 22);
+  nm.forEach((l, i) => doc.text(l, lx, ty + i * 17));
   ty += nm.length * 17;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-  const sub = [r.na && r.na !== r.nom ? `(${r.nom})` : '', r.mun ? `Municipalité de ${r.mun}` : '', r.nat ? `Nation : ${r.nat} (toponyme à valider)` : ''].filter(Boolean);
+  const sub = [r.na && r.na !== r.nom ? `(${r.nom})` : '', r.mun ? t('pdf.municipality', { m: r.mun }) : '', r.nat ? t('pdf.nation', { n: r.nat }) : ''].filter(Boolean);
   for (const l of sub.flatMap(s => wrap(doc, s, lw - 44))) { doc.text(l, x + 22, ty); ty += 14; }
   ty += 8;
-  const unit = S.core.units.features.find(f => f.properties.id === r.u)?.properties;
+  const unit = unitProps(r.u);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
   if (unit) {
-    doc.text(pdfTxt(`MRC ${unit.nom}`), x + 22, ty); ty += 15;
-    if (unit.im != null) { doc.text(pdfTxt(`Indice de prédisposition moyen de la MRC : ${fmtIdx(unit.im)} (± ${fmtIdx(unit.isd)})`), x + 22, ty); ty += 15; }
+    doc.text(pdfTxt(`${t('mrc')} ${unit.nom}`), x + 22, ty); ty += 15;
+    if (unit.im != null) { doc.text(pdfTxt(t('pdf.unitIdx', { m: fmtIdx(unit.im), s: fmtIdx(unit.isd) })), x + 22, ty); ty += 15; }
   }
   const bi = bufferIndex(r, S.bufKm);
-  if (bi) { doc.text(pdfTxt(`Indice dans la zone tampon : ${fmtIdx(bi.mean)} (± ${fmtIdx(bi.sd)})`), x + 22, ty); ty += 15; }
+  if (bi) { doc.text(pdfTxt(t('pdf.bufIdx', { m: fmtIdx(bi.mean), s: fmtIdx(bi.sd) })), x + 22, ty); ty += 15; }
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   const tot = buf.comb.reduce((a, v) => a + v, 0);
-  doc.text(pdfTxt(`Zone tampon : ${S.bufKm} km (${fmtInt(tot)} ha analysés)`), x + 22, ty); ty += 10;
+  doc.text(pdfTxt(t('pdf.buffer', { k: S.bufKm, v: fmtInt(tot) })), x + 22, ty); ty += 10;
   doc.setDrawColor(60); doc.line(x, ty, x + lw, ty);
 
   // Graphiques A (combustibles) et B (potentiel), même hauteur
@@ -411,8 +411,8 @@ async function communityPage(doc, r, maps, buf) {
   const pair = lhChartPair(buf, cls, 250, { combRowH: 19, fontSize: 9.5 });
   const comb = await svgToPng(pair.comb, 2.5), pot = await svgToPng(pair.pot, 2.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-  doc.text(pdfTxt('A) Superficie des combustibles'), x + 12, gy + 6);
-  doc.text(wrap(doc, "B) Potentiel d'intensité et de propagation", cw), x + 18 + cw, gy + 6);
+  doc.text(pdfTxt(t('lh.chartA')), x + 12, gy + 6);
+  doc.text(wrap(doc, t('lh.chartB'), cw), x + 18 + cw, gy + 6);
   const fit = (img, bx, by, bw, bh) => {
     let iw = bw, ih = bw * img.h / img.w;
     if (ih > bh) { ih = bh; iw = bh * img.w / img.h; }
@@ -432,31 +432,94 @@ async function communityPage(doc, r, maps, buf) {
     doc.rect(mx + 8, my + 7, tw + 8, 16, 'FD');
     doc.setTextColor(...DARK); doc.text(pdfTxt(title), mx + 12, my + 19);
   };
-  mapBox(maps.comb, y, 'A) Superficie des combustibles');
-  mapBox(maps.pot, y + mh, "B) Potentiel d'intensité et de propagation");
+  mapBox(maps.comb, y, t('lh.chartA'));
+  mapBox(maps.pot, y + mh, t('lh.chartB'));
   doc.setLineWidth(0.57);
-  footer(doc, mx, y + h - footH, mw, footH,
-    'Sources (donneesquebec.ca) : Potentiel d\'intensité et de propagation des feux de forêt - Combustibles 2025 (MRNF) - Découpages administratifs 1/20 000 - Lieux habités. Fond de carte : CARTO, OpenStreetMap.');
+  footer(doc, mx, y + h - footH, mw, footH, t('pdf.lhSources'));
+}
+
+// ── Page des légendes et explications (toujours ajoutée à la fin) ──────────
+function legendPages(doc, newPage) {
+  const L = LEGEND();
+  const colW = (PW - 2 * M - 20 - 30) / 2, top = M + 46, bottom = PH - M - 12;
+  let col = 0, y = top;
+  const x = () => M + 10 + col * (colW + 30);
+  const head = () => {
+    newPage();
+    doc.setDrawColor(60); doc.setLineWidth(0.57); doc.rect(M, M, PW - 2 * M, PH - 2 * M);
+    doc.setFillColor(...GREY_BG); doc.rect(M, M, PW - 2 * M, 32, 'F');
+    doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    doc.text(pdfTxt(t('pdf.legTitle')), M + 12, M + 22);
+    col = 0; y = top;
+  };
+  const need = (hgt) => {
+    if (y + hgt <= bottom) return;
+    if (col === 0) { col = 1; y = top; } else head();
+  };
+  const section = (title) => {
+    need(30);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(44, 62, 80);
+    doc.text(pdfTxt(title), x(), y); y += 6;
+    doc.setDrawColor(44, 62, 80); doc.setLineWidth(1); doc.line(x(), y, x() + colW, y); y += 13;
+  };
+  const sub = (h) => {
+    need(26);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...DARK);
+    for (const l of wrap(doc, h, colW)) { doc.text(l, x(), y); y += 11.5; }
+    y += 1;
+  };
+  const para = (txt) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60);
+    for (const l of wrap(doc, txt.replace(/\*\*/g, ''), colW)) { need(11); doc.text(l, x(), y); y += 10.5; }
+    y += 4;
+  };
+  const swatch = (hex, txt, indent = 0) => {
+    need(11);
+    doc.setFillColor(hex); doc.setDrawColor(150); doc.setLineWidth(0.3);
+    doc.rect(x() + indent, y - 7, 14, 8, 'FD');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+    doc.text(pdfTxt(txt), x() + indent + 20, y); y += 11;
+  };
+
+  head();
+  section(t('pdf.legMrc'));
+  for (const b of L.mrc) {
+    sub(b.h); b.p.forEach(para);
+    if (b.sw) { b.sw.forEach(([c, l]) => swatch(c, l)); y += 4; }
+  }
+  section(t('pdf.legLh'));
+  sub(L.lhComb.h); L.lhComb.p.forEach(para);
+  for (const gr of combGroups()) {
+    need(24);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(44, 62, 80);
+    doc.text(pdfTxt(gr.label.toUpperCase()), x(), y); y += 11;
+    gr.items.forEach(c => swatch(c.hex, cAbb(c) === cLbl(c) ? cLbl(c) : `${cAbb(c)} - ${cLbl(c)}`, 6));
+  }
+  y += 4;
+  sub(L.lhPot.h); L.lhPot.p.forEach(para);
+  S.core.classes.pot.forEach(c => swatch(c.hex, pLbl(c)));
+  y += 6;
+  for (const b of L.lhMore) { sub(b.h); b.p.forEach(para); }
 }
 
 // ── Génération ─────────────────────────────────────────────────────────────
 async function generate() {
   const comms = checked();
   const withTerr = $('rep-terr-page').checked && !!S.series;
-  if (!comms.length && !withTerr) { $('rep-progress').textContent = 'Cochez au moins une communauté ou la page territoire.'; return; }
-  if (!window.jspdf) { $('rep-progress').textContent = 'Bibliothèque PDF en cours de chargement, réessayez.'; return; }
+  if (!comms.length && !withTerr) { $('rep-progress').textContent = t('rep.pick'); return; }
+  if (!window.jspdf) { $('rep-progress').textContent = t('rep.lib'); return; }
   $('rep-go').disabled = true;
   // Progression par étapes : page territoire + une page par communauté + enregistrement
-  const nSteps = (withTerr ? 1 : 0) + comms.length + 1;
+  const nSteps = (withTerr ? 1 : 0) + comms.length + 2;   // + légendes + enregistrement
   let step = 0;
   const setBar = (pct) => {
     $('rep-bar').hidden = false;
     $('rep-bar-fill').style.width = `${pct}%`;
     $('rep-bar-pct').textContent = `${Math.round(pct)} %`;
   };
-  const prog = (t) => {
+  const prog = (txt) => {
     setBar((step / nSteps) * 100);
-    $('rep-progress').innerHTML = `<span class="spin-inline"></span> Étape ${step + 1} / ${nSteps} — ${t}`;
+    $('rep-progress').innerHTML = `<span class="spin-inline"></span> ${t('rep.step', { i: step + 1, n: nSteps, t: txt })}`;
     step++;
   };
   setBar(0);
@@ -470,7 +533,7 @@ async function generate() {
 
   try {
     if (withTerr) {
-      prog('Page territoire…');
+      prog(t('rep.stepTerr'));
       const geom = S.zone ? S.zone.geojson : S.core.units.features.find(f => f.properties.id === S.unit);
       const img = await locatorMap(geom, LEFT_W / ((PH - 2 * M) * 0.58));
       newPage();
@@ -478,18 +541,20 @@ async function generate() {
     }
     for (let k = 0; k < comms.length; k++) {
       const r = comms[k];
-      prog(`Communauté ${k + 1} / ${comms.length} : ${lhName(r)}…`);
+      prog(t('rep.stepLh', { i: k + 1, n: comms.length, name: lhName(r) }));
       const buf = await bufferStats(r.idx, S.bufKm);
       const w = PW - 2 * M;
       const maps = await captureBufferMaps(r, S.bufKm, (w * 0.5) / ((PH - 2 * M - 60) / 2));
       newPage();
       await communityPage(doc, r, maps, buf);
     }
-    prog('Enregistrement du PDF…');
+    prog(t('rep.stepLeg'));
+    legendPages(doc, newPage);
+    prog(t('rep.stepSave'));
     const name = (S.terrName || 'territoire').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
-    doc.save(`Rapport_feux_${name}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`${t('rep.file')}_${name}_${new Date().toISOString().slice(0, 10)}.pdf`);
     setBar(100);
-    $('rep-progress').textContent = `Rapport généré (${doc.getNumberOfPages()} page${doc.getNumberOfPages() > 1 ? 's' : ''}).`;
+    $('rep-progress').textContent = t('rep.done', { n: doc.getNumberOfPages() });
   } finally {
     // Restauration de la vue (les couches sont rétablies par captureBufferMaps)
     map.jumpTo({ center: saved.center, zoom: saved.zoom });
