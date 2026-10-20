@@ -70,6 +70,13 @@ const STR = {
   'app.title': ['Prédisposition des communautés aux feux de forêt - version 2.0 (bêta)', 'Predisposition of communities to forest fires - version 2.0 (beta)'],
   'mrc': ['MRC', 'RCM'],
   'loading.error': ['Erreur de chargement — voir la console.', 'Loading error — see the console.'],
+  'err.generic': ['Une erreur est survenue. Si l’application ne répond plus, rechargez la page ; pour nous aider, copiez le rapport d’erreur et transmettez-le à l’équipe.',
+    'An error occurred. If the application stops responding, reload the page; to help us, copy the error report and send it to the team.'],
+  'err.webgl': ['La carte a perdu l’accès à la carte graphique (mémoire insuffisante probable). Rechargez la page ; pour nous aider, copiez le rapport d’erreur.',
+    'The map lost access to the graphics card (probably not enough memory). Reload the page; to help us, copy the error report.'],
+  'err.reload': ['↻ Recharger la page', '↻ Reload the page'],
+  'err.copy': ['Copier le rapport d’erreur', 'Copy the error report'],
+  'err.copied': ['✓ Rapport copié', '✓ Report copied'],
   // Carte
   'tt.fireStart': ['Départ de feu — {d}', 'Fire start — {d}'],
   'tt.cause': ['Cause : {c}', 'Cause: {c}'],

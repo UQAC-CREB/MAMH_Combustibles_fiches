@@ -9,6 +9,7 @@ import { occChart, supChart, hbarChart, bindChartTips, fmtInt, fmtPct } from './
 import { Combo, norm } from './combobox.js';
 import { openReportDialog, refreshReportDialog } from './report.js';
 import { RasterPicker } from './rasterpick.js';
+import { initErrors, watchMap, logEvent } from './errors.js';
 import { t, loc, getLang, setLang, onLang, applyStatic, cAbb, cLbl, cGrp, pLbl, pShort, LEGEND } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -302,7 +303,8 @@ export async function loadFiresInView() {
   const dx = (view[2] - view[0]) * 0.25, dy = (view[3] - view[1]) * 0.25;
   const q = [view[0] - dx, view[1] - dy, view[2] + dx, view[3] + dy];
   const token = ++fireCache.token;
-  if (fireCache.feats.size > 60000) { fireCache.feats.clear(); fireCache.boxes = []; }
+  // cache limité : trop de polygones épuisent la mémoire graphique (écran noir)
+  if (fireCache.feats.size > 30000) { fireCache.feats.clear(); fireCache.boxes = []; }
   note.innerHTML = `<span class="spin-inline"></span> ${t('fires.loading')}`;
   try {
     let k = 0;
@@ -320,6 +322,7 @@ export async function loadFiresInView() {
     note.textContent = t('fires.hover');
   } catch (err) {
     console.warn('Feux :', err);
+    logEvent('feux', err.message || err);
     note.textContent = t('fires.na');
   }
 }
@@ -341,11 +344,9 @@ function buildPeriods() {
 }
 
 function buildMiniLegends() {
-  const seen = new Set();
-  $('leg-comb').innerHTML = S.core.classes.comb
-    .map(c => ({ hex: c.hex, lbl: cAbb(c).replace(/[<>].*$|-100%$/, '').trim() }))
-    .filter(c => !seen.has(c.lbl) && seen.add(c.lbl))
-    .map(c => `<span><i style="background:${c.hex}"></i>${c.lbl}</span>`).join('');
+  // combustibles : nom complet de chaque classe, regroupées comme dans les graphiques
+  $('leg-comb').innerHTML = combGroups().map(gr => `<span class="leg-mini-grp">${gr.label}</span>` +
+    gr.items.map(c => `<span><i style="background:${c.hex}"></i><b>${cAbb(c)}</b>${cLbl(c) !== cAbb(c) ? ` ${cLbl(c)}` : ''}</span>`).join('')).join('');
   $('leg-pot').innerHTML = S.core.classes.pot.map(c => `<span><i style="background:${c.hex}"></i>${pLbl(c)}</span>`).join('');
 }
 
@@ -950,10 +951,23 @@ function bindUI() {
 // ═══════════════════════════════════════════════════════════════════════════
 // Démarrage
 // ═══════════════════════════════════════════════════════════════════════════
+/** État résumé de l'application (rapport d'erreur). */
+function appState() {
+  const m = S.map;
+  return {
+    territoire: S.unit || (S.zone ? `zone:${S.zone.kind.k}` : null), communaute: S.lh?.id || null, zoneTamponKm: S.bufKm,
+    zoom: m ? +m.getZoom().toFixed(2) : null, centre: m ? m.getCenter().toArray().map(v => +v.toFixed(3)) : null,
+    couches: ['indice', 'feux', 'pts', 'comb', 'pot', 'regime'].filter(k => $(`ly-${k}`)?.checked),
+    contoursFeuxEnCache: fireCache.feats.size,
+  };
+}
+
 async function init() {
   applyStatic();
+  initErrors(appState);
   try {
     const [core] = await Promise.all([loadCore(), initMap()]);
+    watchMap(S.map);
     S.core = core;
     addLayers();
     bindUI();
@@ -962,6 +976,7 @@ async function init() {
     $('popup-accueil').classList.add('open');
   } catch (err) {
     console.error('Erreur init :', err);
+    logEvent('démarrage', err.message || err, err.stack);
     $('loading-msg').textContent = t('loading.error');
   }
 }

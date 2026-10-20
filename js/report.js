@@ -5,6 +5,7 @@ import { bufferStats } from './stats.js';
 import { loadProvince } from './data.js';
 import { S, lhName, lhSub, lhChartPair, bufferCircle, bufferIndex, fmtIdx, unitProps, combGroups } from './app.js';
 import { t, loc, cAbb, cLbl, pLbl, LEGEND } from './i18n.js';
+import { logEvent } from './errors.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,6 +47,7 @@ $('rep-filter').addEventListener('input', (e) => {
 });
 $('rep-go').addEventListener('click', () => generate().catch(err => {
   console.error(err);
+  logEvent('rapport', err.message || err, err.stack);
   $('rep-progress').textContent = t('rep.err', { e: err.message || err });
   $('rep-go').disabled = false;
 }));
