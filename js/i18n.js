@@ -229,8 +229,23 @@ export function LEGEND() {
       { h: fr ? 'Indice de prédisposition' : 'Predisposition index', p: [
         fr ? 'Indice standardisé de 0 à 1 (pixels de 5 km). Pour une MRC ou une zone, la moyenne et l’écart-type des pixels du territoire sont indiqués. La prédisposition reflète la probabilité à long terme qu’un milieu habité soit menacé ou atteint par un feu de forêt ; elle ne doit pas être confondue avec le danger d’incendie quotidien.'
           : 'Standardized index from 0 to 1 (5-km pixels). For an RCM or an area, the mean and standard deviation of the territory’s pixels are given. Predisposition reflects the long-term probability that a populated place is threatened or reached by a forest fire; it must not be confused with the daily fire danger.',
-      ] },
+      ], vars: true },
     ],
+    // Variables de l'indice composite (somme des indicateurs standardisés et pondérés ; P = poids)
+    idxVarsTitle: fr ? 'Variables de l’indice (P = pondération)' : 'Index variables (P = weight)',
+    idxVarsNote: fr ? 'Indice composite : somme des 6 indicateurs standardisés et pondérés.' : 'Composite index: sum of the 6 standardized and weighted indicators.',
+    idxVars: [
+      [fr ? 'Taux de brûlage' : 'Burn rate', fr ? '% de superficie brûlée par année depuis 1976 (ou 1890 si disponible)' : '% of area burned per year since 1976 (or 1890 where available)', 3],
+      [fr ? 'Taux d’occurrence des feux causés par la foudre' : 'Lightning-caused fire occurrence rate', fr ? 'départs / 10 000 ha depuis 1976' : 'fire starts / 10,000 ha since 1976', 1],
+      [fr ? 'Taux d’occurrence des feux d’origine humaine' : 'Human-caused fire occurrence rate', fr ? 'départs / 10 000 ha depuis 1976' : 'fire starts / 10,000 ha since 1976', 1],
+      [fr ? 'Couverture résineuse' : 'Conifer cover', fr ? '% des terres émergées en 2025' : '% of land area in 2025', 2],
+      [fr ? 'Météo propice aux feux' : 'Fire-conducive weather', fr ? '95e percentile de l’indice forêt-météo (IFM), 2021-2050' : '95th percentile of the Fire Weather Index (FWI), 2021-2050', 2],
+      [fr ? 'Densité de routes' : 'Road density', fr ? 'm / ha (plafonnée à 15 m / ha)' : 'm / ha (capped at 15 m / ha)', 1],
+    ],
+    idxConcept: fr ? 'La prédisposition des communautés vise à refléter la probabilité à long terme qu’un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement, de l’historique des feux, du climat régional et de la végétation (combustibles). Elle ne doit pas être confondue avec le danger d’incendie, qui varie au fil de la saison selon la météo (sopfeu.qc.ca/carte).'
+      : 'Community predisposition aims to reflect the long-term probability that a populated place is threatened or reached by a forest fire, based on its location, fire history, regional climate and vegetation (fuels). It must not be confused with fire danger, which varies during the season with the weather (sopfeu.qc.ca/carte).',
+    idxScale: fr ? 'L’indice est standardisé de 0 à 1 (pixels de 5 km) : plus il s’approche de 1, plus le territoire est prédisposé aux grands feux. Pour une MRC ou une zone, la moyenne et l’écart-type des pixels sont indiqués (bande grise sur la barre).'
+      : 'The index is standardized from 0 to 1 (5-km pixels): the closer it gets to 1, the more the territory is predisposed to large fires. For an RCM or an area, the mean and standard deviation of the pixels are given (grey band on the bar).',
     lhComb: { h: fr ? 'Combustibles MRNF 2025' : 'MRNF 2025 fuels', p: [
       fr ? 'Ce graphique représente les différents types de combustibles végétaux présents dans la zone tampon (1 à 50 km, 25 km par défaut) autour du lieu habité. Chaque type de combustible présente une structure et une composition différentes, qui influencent grandement le potentiel d’intensité et de propagation des feux de forêt. Ces données sont issues de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).'
         : 'This chart shows the different types of vegetation fuels found in the buffer zone (1 to 50 km, 25 km by default) around the populated place. Each fuel type has a different structure and composition, which strongly influence fire intensity and spread potential. These data follow the Canadian Forest Fire Behavior Prediction (FBP) System.',
@@ -306,8 +321,6 @@ const EN_STATIC = {
   'zone.help': 'Draw a rectangle on the map (click and drag), use the current map extent or import a zipped shapefile (.shp, .dbf, .prj).',
   'lbl.community': 'Community',
   'idx.label': 'Forest fire predisposition index ℹ',
-  'idx.tip': `Community predisposition aims to reflect the long-term probability that a populated place is threatened or reached by a forest fire, based on its geographic location, fire history and regional climate, as well as vegetation (fuels). This concept must therefore not be confused with fire danger, which varies during the season according to weather conditions (sopfeu.qc.ca/carte).<br><br>
-          The forest fire predisposition index was determined from 4 key indicators:<br>(1) historical area burned<br>(2) historical fire start frequency<br>(3) fire weather indices projected for 2021-2050<br>(4) the nature of current fuels.<br><br>The index is standardized from 0 to 1 (5-km pixels): the closer it gets to 1, the more the territory is predisposed to large fires. For an RCM or an area, the mean and standard deviation of the pixels are given (grey band on the bar).`,
   'lowHigh': 'Low → High',
   'box.mrc': 'INFO-RCM', 'box.lh': 'INFO-COMMUNITY',
   'hint.mrc': 'Click INFO-RCM to see the fire history of the territory: number of fires by cause and area burned each year.',

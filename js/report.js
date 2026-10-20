@@ -466,21 +466,21 @@ function legendPages(doc, newPage) {
   };
   const sub = (h) => {
     need(26);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...DARK);
-    for (const l of wrap(doc, h, colW)) { doc.text(l, x(), y); y += 11.5; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+    for (const l of wrap(doc, h, colW)) { doc.text(l, x(), y); y += 10.5; }
     y += 1;
   };
   const para = (txt) => {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60);
-    for (const l of wrap(doc, txt.replace(/\*\*/g, ''), colW)) { need(11); doc.text(l, x(), y); y += 10.5; }
-    y += 4;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(60);
+    for (const l of wrap(doc, txt.replace(/\*\*/g, ''), colW)) { need(10); doc.text(l, x(), y); y += 9.6; }
+    y += 3;
   };
   const swatch = (hex, txt, indent = 0) => {
-    need(11);
+    need(10);
     doc.setFillColor(hex); doc.setDrawColor(150); doc.setLineWidth(0.3);
-    doc.rect(x() + indent, y - 7, 14, 8, 'FD');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-    doc.text(pdfTxt(txt), x() + indent + 20, y); y += 11;
+    doc.rect(x() + indent, y - 6.5, 13, 7.5, 'FD');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...DARK);
+    doc.text(pdfTxt(txt), x() + indent + 19, y); y += 9.8;
   };
 
   head();
@@ -488,13 +488,19 @@ function legendPages(doc, newPage) {
   for (const b of L.mrc) {
     sub(b.h); b.p.forEach(para);
     if (b.sw) { b.sw.forEach(([c, l]) => swatch(c, l)); y += 4; }
+    if (b.vars) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+      need(12); doc.text(pdfTxt(L.idxVarsTitle), x(), y); y += 11;
+      L.idxVars.forEach(([n, d, p], i) => para(`${i + 1}. ${n} (P=${p}) : ${d}`));
+      para(L.idxVarsNote);
+    }
   }
   section(t('pdf.legLh'));
   sub(L.lhComb.h); L.lhComb.p.forEach(para);
   for (const gr of combGroups()) {
     need(24);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(44, 62, 80);
-    doc.text(pdfTxt(gr.label.toUpperCase()), x(), y); y += 11;
+    doc.text(pdfTxt(gr.label.toUpperCase()), x(), y); y += 10;
     gr.items.forEach(c => swatch(c.hex, cAbb(c) === cLbl(c) ? cLbl(c) : `${cAbb(c)} - ${cLbl(c)}`, 6));
   }
   y += 4;

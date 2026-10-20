@@ -46,5 +46,8 @@ COMB_NODATA = 255
 POT_NODATA = 15
 # Codes combustibles « non combustibles » (exclus du dénominateur, cf. STEP2_Preparation_table_ficheMRC.R)
 NFUEL_CODES = (101, 102, 103, 104)
+# Palette de l'indice de prédisposition (valeur, couleur, opacité) : 0 ≈ transparent, 0,5 = jaune, 1 = rouge foncé
+INDEX_PALETTE = [(0.00, "#8db840", 0.0), (0.10, "#8db840", 0.35), (0.25, "#8db840", 1.0), (0.50, "#f5e000", 1.0),
+                 (0.62, "#f39c12", 1.0), (0.80, "#e31a1c", 1.0), (1.00, "#67001f", 1.0)]
 COMB_WATER = 103          # classe « Eau » (remplissage des zones CO_TER = EAU)
 POT_NOFUEL = 0            # classe « Absence combustible » du potentiel

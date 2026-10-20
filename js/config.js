@@ -12,7 +12,7 @@ export const TILES = {
   feux: `${TILES_BASE}/feux.fgb`,
 };
 
-export const DATA_VERSION = '20261020';
+export const DATA_VERSION = '20261020b';
 export const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 export const QC_BOUNDS = [[-79.8, 44.9], [-57.0, 62.6]];
 
@@ -24,11 +24,11 @@ export const BUFFER_DEFAULT = 25;
 export const BUFFER_MAX = 50;
 export const FIRE_MIN_ZOOM = 6.5;     // zoom à partir duquel les contours de feux sont chargés
 
-// Palette de l'indice de prédisposition (vert → rouge), identique à la v1.
-// Indice standardisé : 0 à 1 (la v1 utilisait l'indice EXPO de 0 à 6).
+// Palette de l'indice de prédisposition standardisé (0 à 1) : [valeur, couleur, opacité]
+// 0 ≈ transparent → vert de la v2 → jaune à 0,5 → rouge foncé à 1 (même palette que scripts/config.py).
 export const INDEX_PALETTE = [
-  [0.00, '#2d7a2d'], [0.07, '#8db840'], [0.15, '#d4c240'], [0.25, '#d4821a'],
-  [0.38, '#c70e0e'], [0.55, '#900000'], [1.00, '#7d0404'],
+  [0.00, '#8db840', 0.0], [0.10, '#8db840', 0.35], [0.25, '#8db840', 1], [0.50, '#f5e000', 1],
+  [0.62, '#f39c12', 1], [0.80, '#e31a1c', 1], [1.00, '#67001f', 1],
 ];
 export const INDEX_MAX = 1;
 

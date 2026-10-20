@@ -36,10 +36,11 @@ export const S = {
 // ═══════════════════════════════════════════════════════════════════════════
 // Utilitaires
 // ═══════════════════════════════════════════════════════════════════════════
+/** Couleur (opaque) de l'indice : pastilles et chiffres ; sous 0,25 on garde le vert lisible. */
 export function indexColor(v) {
   const x = Math.max(0, Math.min(1, v / INDEX_MAX));
   for (let i = 1; i < INDEX_PALETTE.length; i++) {
-    if (x <= INDEX_PALETTE[i][0]) return INDEX_PALETTE[i][1];
+    if (x <= INDEX_PALETTE[i][0]) return INDEX_PALETTE[x - INDEX_PALETTE[i - 1][0] < INDEX_PALETTE[i][0] - x ? i - 1 : i][1];
   }
   return INDEX_PALETTE.at(-1)[1];
 }
@@ -130,7 +131,7 @@ function addLayers() {
   // Indice de prédisposition standardisé (raster 5 km, rendu EPSG:3857)
   map.addSource('indice', { type: 'image', url: `data/indice_3857.png?v=${DATA_VERSION}`, coordinates: core.indiceMeta.coords });
   map.addLayer({ id: 'indice', type: 'raster', source: 'indice',
-    paint: { 'raster-opacity': 0.6, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, firstSymbol);
+    paint: { 'raster-opacity': 0.8, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, firstSymbol);
 
   // Unités MRC (remplissage invisible : survol et clic)
   map.addSource('units', { type: 'geojson', data: core.units, promoteId: 'uid' });
@@ -783,11 +784,20 @@ export function combGroups() {
   return COMB_ORDER.filter(g => groups.has(g)).map(g => ({ g, label: cGrp(g), items: groups.get(g) }));
 }
 
+/** Liste des 6 variables de l'indice (HTML). */
+export function idxVarsHTML(L, withUnits = true) {
+  return `<ol class="vars-list">${L.idxVars.map(([n, d, p]) => `<li><b>${n}</b>${withUnits ? ` — ${d}` : ''} <span class="vars-p">P=${p}</span></li>`).join('')}</ol>`;
+}
+
 function buildLegends() {
   const L = LEGEND();
+  $('idx-tip').innerHTML = `${L.idxConcept}<br><br><b>${L.idxVarsTitle}</b>${idxVarsHTML(L)}${L.idxVarsNote}<br><br>${L.idxScale}`;
+  $('idx-vars').innerHTML = `<div class="idx-vars-title">${L.idxVarsTitle}</div>${idxVarsHTML(L, false)}`;
   const row = (hex, txt) => `<div class="leg-row"><div class="leg-swatch" style="background:${hex}"></div><span>${txt}</span></div>`;
   const block = (b, extra = '') => `<div class="leg-block"><div class="leg-sub">${b.h}</div>${b.p.map(p => `<p>${mdBold(p)}</p>`).join('')}${extra}</div>`;
-  $('leg-mrc-body').innerHTML = L.mrc.map(b => block(b, b.sw ? `<p>${b.sw.map(([c, l]) => `<span class="sw-inline" style="background:${c}"></span>${l}`).join(' &nbsp; ')}</p>` : '')).join('');
+  $('leg-mrc-body').innerHTML = L.mrc.map(b => block(b,
+    (b.sw ? `<p>${b.sw.map(([c, l]) => `<span class="sw-inline" style="background:${c}"></span>${l}`).join(' &nbsp; ')}</p>` : '') +
+    (b.vars ? `<p><b>${L.idxVarsTitle}</b></p>${idxVarsHTML(L)}<p>${L.idxVarsNote}</p>` : ''))).join('');
   $('leg-lh-body').innerHTML = `
     <div>
       <div class="leg-col-title">${L.lhComb.h}</div>

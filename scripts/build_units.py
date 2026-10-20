@@ -64,6 +64,33 @@ def load_fires(regime_union):
     return feux
 
 
+def render_index_png(idx=None, itr=None, icrs=None):
+    """Rendu de l'indice pour la carte : reprojection EPSG:3857 (plus proche voisin, ~1,5 km) → PNG RGBA
+    selon INDEX_PALETTE (transparence progressive vers 0) + indice_meta.json (coins géographiques)."""
+    if idx is None:
+        with rasterio.open(INDICE_TIF) as s:
+            idx, itr, icrs = s.read(1).astype(np.float32), s.transform, s.crs
+        idx[~np.isfinite(idx)] = np.nan
+    ih, iw = idx.shape
+    t, w, h = calculate_default_transform(icrs, "EPSG:3857", iw, ih, *rasterio.transform.array_bounds(ih, iw, itr), resolution=1500)
+    dst = np.full((h, w), np.nan, dtype=np.float32)
+    reproject(idx, dst, src_transform=itr, src_crs=icrs, dst_transform=t, dst_crs="EPSG:3857",
+              resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
+    xs = [p[0] for p in INDEX_PALETTE]
+    rgba = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] + [a * 255] for _, c, a in INDEX_PALETTE], dtype=float)
+    v = np.clip(np.nan_to_num(dst, nan=0), 0, 1)
+    img = np.zeros((h, w, 4), dtype=np.uint8)
+    for k in range(4):
+        img[..., k] = np.interp(v, xs, rgba[:, k]).round().astype(np.uint8)
+    img[..., 3] = np.where(np.isfinite(dst), img[..., 3], 0)
+    Image.fromarray(img, "RGBA").save(OUT / "indice_3857.png", optimize=True)
+    tr = Transformer.from_crs(3857, 4326, always_xy=True)
+    L, T = t.c, t.f; R, B = L + t.a * w, T + t.e * h
+    (lw, tn), (re, bs) = tr.transform(L, T), tr.transform(R, B)
+    (OUT / "indice_meta.json").write_text(json.dumps({"coords": [[lw, tn], [re, tn], [re, bs], [lw, bs]]}), encoding="utf-8")
+    log(f"  → indice_3857.png ({(OUT/'indice_3857.png').stat().st_size/1024:.0f} Ko, {w}×{h})")
+
+
 def export_province():
     """Contour provincial simplifié (carte de localisation du rapport PDF) → data/province.geojson."""
     prov = gpd.read_file(PROV_SHORE).to_crs(CRS_LCC)
@@ -131,26 +158,7 @@ if __name__ == "__main__":
     (OUT / "indice.bin.gz").write_bytes(gzip.compress(raw, 9))
     log(f"  → indice.bin.gz, plage {np.nanmin(idx):.3f}–{np.nanmax(idx):.3f}")
 
-    # Rendu carte : reprojection EPSG:3857 (plus proche voisin, ~1 km) → PNG RGBA
-    t, w, h = calculate_default_transform(icrs, "EPSG:3857", iw, ih, *rasterio.transform.array_bounds(ih, iw, itr), resolution=1500)
-    dst = np.full((h, w), np.nan, dtype=np.float32)
-    reproject(idx, dst, src_transform=itr, src_crs=icrs, dst_transform=t, dst_crs="EPSG:3857",
-              resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
-    pal = [(0.00, "#2d7a2d"), (0.07, "#8db840"), (0.15, "#d4c240"), (0.25, "#d4821a"),
-           (0.38, "#c70e0e"), (0.55, "#900000"), (1.00, "#7d0404")]
-    xs = [p[0] for p in pal]
-    rgb = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for _, c in pal], dtype=float)
-    v = np.clip(np.nan_to_num(dst, nan=0), 0, 1)
-    img = np.zeros((h, w, 4), dtype=np.uint8)
-    for k in range(3):
-        img[..., k] = np.interp(v, xs, rgb[:, k]).astype(np.uint8)
-    img[..., 3] = np.where(np.isfinite(dst), 255, 0)
-    Image.fromarray(img, "RGBA").save(OUT / "indice_3857.png", optimize=True)
-    tr = Transformer.from_crs(3857, 4326, always_xy=True)
-    L, T = t.c, t.f; R, B = L + t.a * w, T + t.e * h
-    (lw, tn), (re, bs) = tr.transform(L, T), tr.transform(R, B)
-    (OUT / "indice_meta.json").write_text(json.dumps({"coords": [[lw, tn], [re, tn], [re, bs], [lw, bs]]}), encoding="utf-8")
-    log(f"  → indice_3857.png ({(OUT/'indice_3857.png').stat().st_size/1024:.0f} Ko, {w}×{h})")
+    render_index_png(idx, itr, icrs)
 
     u_out = units[["uid", "MRC_IDm", "MOD_NM_MRC", "MRS_NM_MRC", "IM", "ISD", "IN", "LR", "AREA_HA", "geometry"]].copy()
     u_out.columns = ["uid", "id", "nom", "mrc", "im", "isd", "in", "lr", "ha", "geometry"]

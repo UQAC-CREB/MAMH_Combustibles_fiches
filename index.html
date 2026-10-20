@@ -195,8 +195,7 @@
       <!-- Indice de prédisposition -->
       <div class="box has-tip" id="expo-box" tabindex="0">
         <span class="panel-label" data-i18n="idx.label">Indice de prédisposition aux feux ℹ</span>
-        <div class="tooltip-info" data-i18n="idx.tip">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l'historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d'incendie, qui varie au fil de la saison selon les conditions météorologiques (sopfeu.qc.ca/carte).<br><br>
-          L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>L'indice est standardisé de 0 à 1 (pixels de 5 km) : plus il s'approche de 1, plus le territoire est prédisposé aux grands feux. Pour une MRC ou une zone, la moyenne et l'écart-type des pixels sont indiqués (bande grise sur la barre).</div>
+        <div class="tooltip-info" id="idx-tip"></div>
         <div class="legend-bar"><div class="band" id="expo-band"></div><div class="marker" id="expo-marker"></div></div>
         <div class="legend-labels"><span>0</span><span data-i18n="lowHigh">Faible → Élevé</span><span>1</span></div>
         <div id="expo-value"></div>
@@ -267,10 +266,11 @@
       <div class="lp-body">
         <div class="lyr" style="border-top:none;padding-top:0">
           <label class="lyr-head"><input type="checkbox" id="ly-indice" checked> <span data-i18n="ly.indice">Indice de prédisposition (5 km)</span></label>
-          <div class="lyr-opts"><label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-indice" min="0" max="100" value="60"></label>
+          <div class="lyr-opts"><label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-indice" min="0" max="100" value="80"></label>
             <div class="legend-bar" style="margin:2px 0 0"></div>
             <div class="ramp-labels"><span>0</span><span data-i18n="lowHigh">Faible → Élevé</span><span>1</span></div>
-            <div class="lyr-note" data-i18n="ly.indiceNote">Survolez la carte pour lire la valeur d'un pixel.</div></div>
+            <div class="lyr-note" data-i18n="ly.indiceNote">Survolez la carte pour lire la valeur d'un pixel.</div>
+            <div class="idx-vars" id="idx-vars"></div></div>
         </div>
         <div class="lyr">
           <label class="lyr-head"><input type="checkbox" id="ly-feux"> <span data-i18n="ly.feux">Contours de feux</span></label>
