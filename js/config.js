@@ -4,7 +4,7 @@ export const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 
 // Tuiles raster PMTiles et contours de feux FlatGeobuf : servis localement en développement (scripts/serve.py),
 // depuis Cloudflare R2 en production. → Remplacer R2_TILES_URL après le téléversement.
-export const R2_TILES_URL = 'https://pub-REMPLACER.r2.dev';
+export const R2_TILES_URL = 'https://pub-484da2c562d54ec39393660f95b0716a.r2.dev';   // bucket mamh-v2-carto
 export const TILES_BASE = IS_LOCAL ? `${location.origin}${location.pathname.replace(/[^/]*$/, '')}tiles_v2` : R2_TILES_URL;
 export const TILES = {
   comb: `${TILES_BASE}/combustibles_2025.pmtiles`,
@@ -12,7 +12,7 @@ export const TILES = {
   feux: `${TILES_BASE}/feux.fgb`,
 };
 
-export const DATA_VERSION = '20261019';
+export const DATA_VERSION = '20261020';
 export const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 export const QC_BOUNDS = [[-79.8, 44.9], [-57.0, 62.6]];
 
@@ -24,12 +24,13 @@ export const BUFFER_DEFAULT = 25;
 export const BUFFER_MAX = 50;
 export const FIRE_MIN_ZOOM = 6.5;     // zoom à partir duquel les contours de feux sont chargés
 
-// Palette EXPO (vert → rouge), identique à la v1
-export const EXPO_PALETTE = [
+// Palette de l'indice de prédisposition (vert → rouge), identique à la v1.
+// Indice standardisé : 0 à 1 (la v1 utilisait l'indice EXPO de 0 à 6).
+export const INDEX_PALETTE = [
   [0.00, '#2d7a2d'], [0.07, '#8db840'], [0.15, '#d4c240'], [0.25, '#d4821a'],
   [0.38, '#c70e0e'], [0.55, '#900000'], [1.00, '#7d0404'],
 ];
-export const EXPO_MAX = 6;
+export const INDEX_MAX = 1;
 
 export const COLORS = { humain: '#56B4E9', foudre: '#E69F00', burn: '#8b0000', lh: '#e67e22', sel: '#2980b9' };
 

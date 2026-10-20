@@ -68,9 +68,9 @@ export function geomToLccPolys(geom, tol = 0) {
  * Cellules d'une grille dont le centre est dans les polygones (balayage par ligne, règle pair-impair).
  * Retourne les index de cellules (row * ncols + col).
  */
-function cellsInPolys(polys, { x0, y0, res, ncols, nrows }) {
+function cellsInPolys(polys, { x0, y0, res, resx = res, resy = res, ncols, nrows }) {
   const [bx0, by0, bx1, by1] = polysBBox(polys);
-  const r0 = Math.max(0, Math.floor((y0 - by1) / res)), r1 = Math.min(nrows - 1, Math.floor((y0 - by0) / res));
+  const r0 = Math.max(0, Math.floor((y0 - by1) / resy)), r1 = Math.min(nrows - 1, Math.floor((y0 - by0) / resy));
   const edges = [];
   for (const p of polys) for (const ring of p) {
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -82,13 +82,13 @@ function cellsInPolys(polys, { x0, y0, res, ncols, nrows }) {
   const out = [];
   let active = [], k = 0;
   for (let r = r1; r >= r0; r--) {            // y croissant
-    const cy = y0 - (r + 0.5) * res;
+    const cy = y0 - (r + 0.5) * resy;
     while (k < edges.length && edges[k][0] <= cy) active.push(edges[k++]);
     active = active.filter(e => e[1] > cy);
     const xs = active.map(e => e[2] + (cy - e[0]) * e[3]).sort((a, b) => a - b);
     for (let i = 0; i + 1 < xs.length; i += 2) {
-      const c0 = Math.max(0, Math.ceil((xs[i] - x0) / res - 0.5));
-      const c1 = Math.min(ncols - 1, Math.floor((xs[i + 1] - x0) / res - 0.5));
+      const c0 = Math.max(0, Math.ceil((xs[i] - x0) / resx - 0.5));
+      const c1 = Math.min(ncols - 1, Math.floor((xs[i + 1] - x0) / resx - 0.5));
       for (let c = c0; c <= c1; c++) out.push(r * ncols + c);
     }
   }
@@ -241,6 +241,33 @@ export async function bufferStats(i, km) {
     return Array.from(out, v => v * R.px_ha);
   };
   return { comb: sum(R.comb, R.nc), pot: sum(R.pot, R.np) };
+}
+
+// ── Indice de prédisposition standardisé ───────────────────────────────────
+
+/** Valeur de l'indice au point [lon, lat] (null hors données). */
+export function indexAt(core, lon, lat) {
+  const g = core.indice;
+  const [x, y] = toLcc().forward([lon, lat]);
+  const c = Math.floor((x - g.x0) / g.resx), r = Math.floor((g.y0 - y) / g.resy);
+  if (c < 0 || r < 0 || c >= g.ncols || r >= g.nrows) return null;
+  const v = g.v[r * g.ncols + c];
+  return Number.isFinite(v) ? v : null;
+}
+
+/** Moyenne / écart-type de l'indice (pixels de 5 km dont le centre est dans les polygones Lambert). */
+export function indexStats(core, polys, fallbackLonLat = null) {
+  const g = core.indice;
+  const vals = [];
+  for (const i of cellsInPolys(polys, g)) if (Number.isFinite(g.v[i])) vals.push(g.v[i]);
+  if (!vals.length && fallbackLonLat) {       // très petite zone : pixel sous le point
+    const v = indexAt(core, ...fallbackLonLat);
+    if (v != null) vals.push(v);
+  }
+  if (!vals.length) return null;
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const sd = vals.length > 1 ? Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (vals.length - 1)) : 0;
+  return { mean, sd, n: vals.length };
 }
 
 export { makeContains };

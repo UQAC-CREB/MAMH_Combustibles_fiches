@@ -2,7 +2,7 @@
 import { YEAR_END, COLORS } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';
-import { S, lhName, lhSub, combRows, potRows, sortComb, loadFiresInView, bufferCircle } from './app.js';
+import { S, lhName, lhSub, combRows, potRows, sortComb, loadFiresInView, bufferCircle, bufferIndex, fmtIdx } from './app.js';
 
 const $ = (id) => document.getElementById(id);
 let autoTerr = true;
@@ -117,7 +117,7 @@ function footer(doc, x, y, w, h, sources) {
 function wrap(doc, s, w) { return doc.splitTextToSize(pdfTxt(s), w); }
 
 async function territoryPage(doc, mapImg) {
-  const s = S.series, e = S.expoInfo;
+  const s = S.series, e = S.idx;
   const x = M, y = M, h = PH - 2 * M;
   const titleH = h * 0.42;
   // Panneau titre
@@ -130,12 +130,10 @@ async function territoryPage(doc, mapImg) {
   for (const l of wrap(doc, S.terrName, LEFT_W - 28)) { doc.text(l, x + 14, ty); ty += 19; }
   ty += 10; doc.setFontSize(12);
   if (e) {
-    doc.text(pdfTxt(e.rang ? `Rang de prédisposition : ${e.rang} / 107` : 'MRC non évaluée'), x + 14, ty); ty += 16;
-    doc.text(pdfTxt(`Indice de prédisposition : ${(+e.expo).toFixed(2)} / 6`), x + 14, ty); ty += 14;
-    if (e.majority) {
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-      for (const l of wrap(doc, `(MRC la plus représentée dans la zone : ${e.unitName})`, LEFT_W - 28)) { doc.text(l, x + 14, ty); ty += 10; }
-    }
+    doc.text(pdfTxt(`Indice de prédisposition moyen : ${fmtIdx(e.mean)}`), x + 14, ty); ty += 16;
+    doc.text(pdfTxt(`Écart-type : ${fmtIdx(e.sd)}`), x + 14, ty); ty += 13;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+    doc.text(pdfTxt(`(indice standardisé de 0 à 1 ; ${e.n} pixels de 5 km)`), x + 14, ty); ty += 4;
   }
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
   ty += 8;
@@ -197,9 +195,10 @@ async function communityPage(doc, r, mapImg, buf) {
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5);
   if (unit) {
     doc.text(pdfTxt(`MRC ${unit.nom}`), x + 22, ty); ty += 15;
-    doc.text(pdfTxt(unit.rang ? `Rang de prédisposition : ${unit.rang} / 107` : 'MRC non évaluée'), x + 22, ty); ty += 15;
-    doc.text(pdfTxt(`Indice de prédisposition : ${(+unit.expo).toFixed(2)} / 6`), x + 22, ty); ty += 15;
+    if (unit.im != null) { doc.text(pdfTxt(`Indice de prédisposition moyen de la MRC : ${fmtIdx(unit.im)} (± ${fmtIdx(unit.isd)})`), x + 22, ty); ty += 15; }
   }
+  const bi = bufferIndex(r, S.bufKm);
+  if (bi) { doc.text(pdfTxt(`Indice dans la zone tampon : ${fmtIdx(bi.mean)} (± ${fmtIdx(bi.sd)})`), x + 22, ty); ty += 15; }
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   const tot = buf.comb.reduce((a, v) => a + v, 0);
   doc.text(pdfTxt(`Zone tampon : ${S.bufKm} km (${fmtInt(tot)} ha analysés)`), x + 22, ty); ty += 10;
@@ -240,8 +239,8 @@ async function generate() {
   const map = S.map;
   const saved = {
     center: map.getCenter(), zoom: map.getZoom(),
-    comb: $('ly-comb').checked, expoOp: $('op-expo').value, lh: S.lh,
-    vis: Object.fromEntries(['feux-fill', 'feux-line', 'units-fill', 'pts', 'pot'].map(id => [id, map.getLayoutProperty(id, 'visibility') || 'visible'])),
+    comb: $('ly-comb').checked, indice: $('ly-indice').checked, lh: S.lh,
+    vis: Object.fromEntries(['feux-fill', 'feux-line', 'indice', 'pts', 'pot'].map(id => [id, map.getLayoutProperty(id, 'visibility') || 'visible'])),
   };
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter', compress: true });
@@ -259,7 +258,7 @@ async function generate() {
     // Combustibles visibles pour les cartes des communautés
     if (comms.length) {
       $('ly-comb').checked = true; $('ly-comb').dispatchEvent(new Event('change'));
-      ['feux-fill', 'feux-line', 'units-fill', 'pts', 'pot'].forEach(id => map.setLayoutProperty(id, 'visibility', 'none'));
+      ['feux-fill', 'feux-line', 'indice', 'pts', 'pot'].forEach(id => map.setLayoutProperty(id, 'visibility', 'none'));
     }
     for (let k = 0; k < comms.length; k++) {
       const r = comms[k];
@@ -278,9 +277,9 @@ async function generate() {
     $('rep-progress').textContent = `Rapport généré (${doc.getNumberOfPages()} page${doc.getNumberOfPages() > 1 ? 's' : ''}).`;
   } finally {
     // Restauration de l'état de la carte
-    for (const [id, on] of Object.entries(saved.vis)) map.setLayoutProperty(id, 'visibility', on);
     $('ly-comb').checked = saved.comb; $('ly-comb').dispatchEvent(new Event('change'));
-    $('op-expo').value = saved.expoOp; $('op-expo').dispatchEvent(new Event('input'));
+    for (const [id, on] of Object.entries(saved.vis)) map.setLayoutProperty(id, 'visibility', on);
+    $('ly-indice').checked = saved.indice;
     S.lh = saved.lh;
     map.getSource('buffer').setData(S.lh ? bufferCircle(S.lh, S.bufKm) : { type: 'FeatureCollection', features: [] });
     map.getSource('lh').setData({

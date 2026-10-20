@@ -158,7 +158,20 @@ body {
   position: absolute; top: -4px; width: 3px; height: 20px; background: #111; border-radius: 2px;
   box-shadow: 0 0 0 1.5px #fff; transform: translateX(-50%); display: none;
 }
+.legend-bar .band {
+  position: absolute; top: -3px; height: 18px; background: rgba(20,20,20,0.22);
+  border: 1px solid rgba(255,255,255,0.9); border-radius: 3px; display: none;
+}
 .legend-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); }
+
+/* Boîtes repliables */
+.box.collapsible .box-toggle { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 6px; }
+.box.collapsible .chev { display: inline-block; transition: transform 0.15s; font-size: 11px; color: var(--text-muted); }
+.box.collapsible.collapsed .chev { transform: rotate(-90deg); }
+.box.collapsible.collapsed .box-body { display: none; }
+.btn-xs { padding: 3px 8px; font-size: 10.5px; }
+#fiche-body .chart-title { font-size: 13px; }
+#fiche-body .fiche-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .tooltip-info {
   display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0;
   background: rgba(30,40,30,0.97); color: #f0f4f0; font-size: 11.5px; line-height: 1.55;

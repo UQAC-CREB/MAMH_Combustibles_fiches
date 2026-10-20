@@ -104,11 +104,12 @@ def render(t):
 
 if __name__ == "__main__":
     TILES_OUT.mkdir(exist_ok=True)
-    # ── Masque : union des zones de 50 km (EPSG:3857), simplifié
+    # ── Masque : zones tampons de 50 km valides (CO_TER = Quebec_buffer ou EAU), EPSG:3857
     mk = OUT.parent / "scripts" / "_mask3857.wkb"
     if not mk.exists():
-        lh = gpd.read_file(OUT.parent / "scripts" / "_lh_lcc.gpkg")
-        u = shapely.union_all(lh.geometry.buffer(RING_KM * 1000 + 500, 32).values).simplify(200)
+        b = gpd.read_file(LH_BUFFER50)
+        b = b[b.CO_TER.isin(["Quebec_buffer", "EAU"])].to_crs(CRS_LCC)
+        u = shapely.union_all(shapely.make_valid(b.geometry.values)).buffer(100).simplify(100)
         u = gpd.GeoSeries([u], crs=CRS_LCC).to_crs(3857).iloc[0]
         mk.write_bytes(shapely.to_wkb(u))
     mask = shapely.from_wkb(mk.read_bytes())

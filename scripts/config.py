@@ -7,9 +7,21 @@ OUT = WEB / "data"
 # Tuiles raster (PMTiles) : exclues de Git (.gitignore), téléversées sur Cloudflare R2
 TILES_OUT = WEB / "tiles_v2"
 
+# Rasters corrigés (zones tampons 50 km / CO_TER) et fichiers intermédiaires lourds : hors dépôt
+WORK = WEB.parent / "work_v2"
+
+# ── Données de référence 2026-10-20 (découpages corrigés, nouvel indice) ───
+DATA_20261020 = r"C:/0_Projet/MAMH_prediposition_feux/3_Analyse_carto/20260514_MAMH_feux/Data_20261020"
+PROV_SHORE = DATA_20261020 + "/Prov_qclcc_shoreline_s.shp"         # contour provincial découpé à la côte
+LH_BUFFER50 = DATA_20261020 + "/LH_50km_ident_Qc_singlepart_v2_s.shp"  # CO_TER : Quebec_buffer | EAU | No-Data
+INDICE_TIF = DATA_20261020 + "/standardized_indx_pred.tif"          # indice de prédisposition standardisé (0-1, 5 km)
+
 # ── Sources ─────────────────────────────────────────────────────────────────
-COMB_TIF = r"C:/1_Data/Geomatique/Combustible/Quebec/MRNF/Combustibles2025_combFBP_25m.tif"
-POT_TIF = r"C:/1_Data/Geomatique/Combustible/Quebec/Propagation_feux/Potentiel_Intensite_Propagation_Feux/Couche globale/Potentiel_IP_25-26.tif"
+COMB_TIF_RAW = r"C:/1_Data/Geomatique/Combustible/Quebec/MRNF/Combustibles2025_combFBP_25m.tif"
+POT_TIF_RAW = r"C:/1_Data/Geomatique/Combustible/Quebec/Propagation_feux/Potentiel_Intensite_Propagation_Feux/Couche globale/Potentiel_IP_25-26.tif"
+# Rasters utilisés par l'application : versions corrigées (build_corrected_rasters.py)
+COMB_TIF = str(WORK / "combustibles_2025_corr.tif")
+POT_TIF = str(WORK / "potentiel_ip_2025_corr.tif")
 LUT_COMB = r"C:/1_Data/Geomatique/Combustible/Quebec/_LUT/LUT_FBP_FUELTYPE_mrnf.csv"
 LUT_POT = r"C:/1_Data/Geomatique/Combustible/Quebec/_LUT/MunicID_propag_class_lut.csv"
 
@@ -34,3 +46,5 @@ COMB_NODATA = 255
 POT_NODATA = 15
 # Codes combustibles « non combustibles » (exclus du dénominateur, cf. STEP2_Preparation_table_ficheMRC.R)
 NFUEL_CODES = (101, 102, 103, 104)
+COMB_WATER = 103          # classe « Eau » (remplissage des zones CO_TER = EAU)
+POT_NOFUEL = 0            # classe « Absence combustible » du potentiel

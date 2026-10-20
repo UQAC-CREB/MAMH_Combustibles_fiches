@@ -1,10 +1,10 @@
 // MAMH — Prédisposition des communautés aux feux de forêt — application v2
 import {
   TILES, BASEMAP, QC_BOUNDS, PROJ_LCC, YEAR_END, BUFFER_DEFAULT, BUFFER_MAX,
-  FIRE_MIN_ZOOM, EXPO_PALETTE, EXPO_MAX, COLORS, FIRE_RAMP, DATA_VERSION,
+  FIRE_MIN_ZOOM, INDEX_PALETTE, INDEX_MAX, COLORS, FIRE_RAMP, DATA_VERSION,
 } from './config.js';
 import { loadCore, loadPoints } from './data.js';
-import { unitSeries, zoneSeries, bufferStats, geomToLccPolys, makeContains, polysBBox } from './stats.js';
+import { unitSeries, zoneSeries, bufferStats, geomToLccPolys, makeContains, indexAt, indexStats } from './stats.js';
 import { occChart, supChart, hbarChart, bindChartTips, fmtInt, fmtHa, fmtPct } from './charts.js';
 import { Combo, norm } from './combobox.js';
 import { openReportDialog } from './report.js';
@@ -22,23 +22,25 @@ export const S = {
   terrLH: [],             // lieux habités du territoire courant
   series: null,           // série INFO-MRC courante
   terrName: '',
-  expoInfo: null,         // { expo, rang, unitName, majority }
+  idx: null,              // indice du territoire : { mean, sd, n }
   lh: null,               // lieu habité sélectionné (objet de lh.json)
   bufKm: BUFFER_DEFAULT,
   buf: null,              // { comb[], pot[] } superficies ha
+  lhIdx: null,            // indice dans la zone tampon : { mean, sd, n }
   log: true,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Utilitaires
 // ═══════════════════════════════════════════════════════════════════════════
-function expoColor(v) {
-  const t = Math.max(0, Math.min(1, v / EXPO_MAX));
-  for (let i = 1; i < EXPO_PALETTE.length; i++) {
-    if (t <= EXPO_PALETTE[i][0]) return EXPO_PALETTE[i][1];
+export function indexColor(v) {
+  const t = Math.max(0, Math.min(1, v / INDEX_MAX));
+  for (let i = 1; i < INDEX_PALETTE.length; i++) {
+    if (t <= INDEX_PALETTE[i][0]) return INDEX_PALETTE[i][1];
   }
-  return EXPO_PALETTE.at(-1)[1];
+  return INDEX_PALETTE.at(-1)[1];
 }
+export const fmtIdx = (v) => (v == null ? '—' : (+v).toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 function geomBBox(g) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -98,11 +100,15 @@ function addLayers() {
   map.addLayer({ id: 'pot', type: 'raster', source: 'pot', layout: { visibility: 'none' },
     paint: { 'raster-opacity': 0.8, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, firstSymbol);
 
-  // Unités MRC colorées par l'indice
+  // Indice de prédisposition standardisé (raster 5 km, rendu EPSG:3857)
+  map.addSource('indice', { type: 'image', url: `data/indice_3857.png?v=${DATA_VERSION}`, coordinates: core.indiceMeta.coords });
+  map.addLayer({ id: 'indice', type: 'raster', source: 'indice',
+    paint: { 'raster-opacity': 0.6, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, firstSymbol);
+
+  // Unités MRC (remplissage invisible : survol et clic)
   map.addSource('units', { type: 'geojson', data: core.units, promoteId: 'uid' });
-  const expoExpr = ['interpolate', ['linear'], ['get', 'expo'], ...EXPO_PALETTE.flatMap(([t, c]) => [t * EXPO_MAX, c])];
   map.addLayer({ id: 'units-fill', type: 'fill', source: 'units',
-    paint: { 'fill-color': expoExpr, 'fill-opacity': 0.55 } }, firstSymbol);
+    paint: { 'fill-color': '#000', 'fill-opacity': 0 } }, firstSymbol);
 
   // Régime de feux
   map.addSource('regime', { type: 'geojson', data: core.regime });
@@ -112,8 +118,9 @@ function addLayers() {
   // Contours de feux (FlatGeobuf → GeoJSON selon l'emprise)
   map.addSource('feux', { type: 'geojson', data: EMPTY, tolerance: 0.3 });
   const fireColor = ['interpolate', ['linear'], ['get', 'an'], ...FIRE_RAMP.flat()];
-  map.addLayer({ id: 'feux-fill', type: 'fill', source: 'feux', paint: { 'fill-color': fireColor, 'fill-opacity': 0.6 } });
-  map.addLayer({ id: 'feux-line', type: 'line', source: 'feux', minzoom: 8,
+  map.addLayer({ id: 'feux-fill', type: 'fill', source: 'feux', layout: { visibility: 'none' },
+    paint: { 'fill-color': fireColor, 'fill-opacity': 0.6 } });
+  map.addLayer({ id: 'feux-line', type: 'line', source: 'feux', minzoom: 8, layout: { visibility: 'none' },
     paint: { 'line-color': fireColor, 'line-width': 0.6, 'line-opacity': 0.9 } });
 
   map.addLayer({ id: 'units-line', type: 'line', source: 'units', paint: { 'line-color': '#555', 'line-width': 0.7, 'line-opacity': 0.55 } });
@@ -174,6 +181,10 @@ function bindMapEvents() {
     if (drawing) return;
     const feats = map.queryRenderedFeatures(e.point, { layers: layers.filter(l => map.getLayer(l) && map.getLayoutProperty(l, 'visibility') !== 'none') });
     const f = feats[0];
+    if (!f && $('ly-indice').checked) {
+      const v = indexAt(S.core, e.lngLat.lng, e.lngLat.lat);
+      if (v != null) { show(`Indice : ${fmtIdx(v)}<div class="tt-sub">pixel de 5 km</div>`, e); return; }
+    }
     map.getCanvas().style.cursor = f && (f.layer.id === 'lh-circle' || (f.layer.id === 'units-fill' && S.mode === 'mrc')) ? 'pointer' : '';
     if (!f) { tt.style.display = 'none'; return; }
     const p = f.properties;
@@ -188,7 +199,8 @@ function bindMapEvents() {
       const list = n.slice(0, 4).map(x => `${x.properties.an} : ${fmtHa(x.properties.ha)} ha`).join('<br>');
       show(`Feu${n.length > 1 ? 'x' : ''} de forêt<div class="tt-sub">${list}${n.length > 4 ? '<br>…' : ''}</div>`, e);
     } else {
-      show(`${p.nom}<div class="tt-sub">Indice : ${(+p.expo).toFixed(2)} / 6${p.rang ? ` · Rang ${p.rang} / 107` : ' · non évaluée'}</div>`, e);
+      const v = $('ly-indice').checked ? indexAt(S.core, e.lngLat.lng, e.lngLat.lat) : null;
+      show(`${p.nom}<div class="tt-sub">${v != null ? `Indice (pixel 5 km) : <b>${fmtIdx(v)}</b><br>` : ''}Indice moyen de la MRC : ${fmtIdx(p.im)} ± ${fmtIdx(p.isd)}</div>`, e);
     }
   });
   map.on('mouseout', () => { tt.style.display = 'none'; });
@@ -278,8 +290,8 @@ function bindLayerPanel() {
   });
   $('ramp-feux').style.background = `linear-gradient(to right, ${FIRE_RAMP.map(([y, c]) => `${c} ${((y - 1887) / (YEAR_END - 1887) * 100).toFixed(1)}%`).join(', ')})`;
 
-  $('ly-expo').addEventListener('change', (e) => vis('units-fill', e.target.checked));
-  $('op-expo').addEventListener('input', (e) => map.setPaintProperty('units-fill', 'fill-opacity', e.target.value / 100));
+  $('ly-indice').addEventListener('change', (e) => vis('indice', e.target.checked));
+  $('op-indice').addEventListener('input', (e) => map.setPaintProperty('indice', 'raster-opacity', e.target.value / 100));
   $('ly-feux').addEventListener('change', (e) => { vis('feux-fill', e.target.checked); vis('feux-line', e.target.checked); loadFiresInView(); });
   $('op-feux').addEventListener('input', (e) => {
     map.setPaintProperty('feux-fill', 'fill-opacity', e.target.value / 100);
@@ -289,9 +301,9 @@ function bindLayerPanel() {
   const rasterToggle = (id) => {
     $(`ly-${id}`).addEventListener('change', (e) => {
       vis(id, e.target.checked);
-      if (e.target.checked && map.getLayer('units-fill') && $('ly-expo').checked) {
-        // l'indice masquerait le raster : on l'atténue
-        $('op-expo').value = 15; map.setPaintProperty('units-fill', 'fill-opacity', 0.15);
+      if (e.target.checked && $('ly-indice').checked) {
+        // l'indice masquerait le raster : on le masque
+        $('ly-indice').checked = false; vis('indice', false);
       }
     });
     $(`op-${id}`).addEventListener('input', (e) => map.setPaintProperty(id, 'raster-opacity', e.target.value / 100));
@@ -318,7 +330,6 @@ function bindLayerPanel() {
 // ═══════════════════════════════════════════════════════════════════════════
 let comboMRC, comboLH;
 let lhLcc = null;             // coordonnées Lambert des lieux habités
-let unitPolys = null;         // polygones Lambert des unités (indice « majoritaire » des zones)
 
 function setMode(mode) {
   S.mode = mode;
@@ -328,12 +339,12 @@ function setMode(mode) {
 }
 
 function clearTerritory() {
-  S.unit = null; S.zone = null; S.series = null; S.terrLH = []; S.expoInfo = null; S.terrName = '';
+  S.unit = null; S.zone = null; S.series = null; S.terrLH = []; S.idx = null; S.terrName = '';
   S.map.setFilter('units-sel', ['==', ['get', 'id'], '__']);
   S.map.getSource('zone').setData(EMPTY);
   comboMRC.set(null, false);
   setTerritoryLH([]);
-  renderExpo(); renderMRC();
+  renderIndex(); renderMRC();
   selectLH(null);
 }
 
@@ -347,10 +358,10 @@ export function selectUnit(id, { fit = true } = {}) {
   S.map.setFilter('units-sel', ['==', ['get', 'id'], id]);
   if (fit && f) S.map.fitBounds(geomBBox(f.geometry), { padding: 40, duration: 900 });
   S.terrName = `MRC ${f.properties.nom}`;
-  S.expoInfo = { expo: f.properties.expo, rang: f.properties.rang, unitName: f.properties.nom, majority: false };
+  S.idx = f.properties.im != null ? { mean: f.properties.im, sd: f.properties.isd, n: f.properties.in } : null;
   S.series = unitSeries(S.core, id);
   setTerritoryLH(S.core.lh.filter(r => r.u === id));
-  renderExpo(); renderMRC();
+  renderIndex(); renderMRC();
   if (S.lh && S.lh.u !== id) selectLH(null);
 }
 
@@ -372,8 +383,8 @@ async function setZone(geojson, label) {
   lhLcc ??= S.core.lh.map(r => lcc.forward([r.x, r.y]));
   setTerritoryLH(S.core.lh.filter((r, i) => inZone(lhLcc[i][0], lhLcc[i][1])));
 
-  // indice : unité MRC la plus représentée dans la zone (échantillonnage régulier)
-  S.expoInfo = majorityUnit(polys, inZone);
+  // indice : moyenne et écart-type des pixels de 5 km de la zone
+  S.idx = indexStats(S.core, polys);
   try {
     S.series = await zoneSeries(S.core, polys);
   } catch (err) {
@@ -382,24 +393,8 @@ async function setZone(geojson, label) {
   if (S.zone?.polys !== polys) return;      // zone remplacée entre-temps
   const ha = S.series ? S.series.areaHa : 0;
   $('zone-msg').innerHTML = `<b>${label}</b> — ${fmtInt(ha / 100)} km² · ${S.terrLH.length} communauté(s)`;
-  renderExpo(); renderMRC();
+  renderIndex(); renderMRC();
   if (S.lh && !S.terrLH.includes(S.lh)) selectLH(null);
-}
-
-function majorityUnit(polys, inZone) {
-  unitPolys ??= S.core.units.features.map(f => ({ id: f.properties.id, p: f.properties, contains: makeContains(geomToLccPolys(f.geometry)) }));
-  const [x0, y0, x1, y1] = polysBBox(polys);
-  const n = 40, counts = new Map();
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    const x = x0 + (x1 - x0) * (i + 0.5) / n, y = y0 + (y1 - y0) * (j + 0.5) / n;
-    if (!inZone(x, y)) continue;
-    const u = unitPolys.find(u => u.contains(x, y));
-    if (u) counts.set(u, (counts.get(u) || 0) + 1);
-  }
-  const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  if (!best) return null;
-  const p = best[0].p;
-  return { expo: p.expo, rang: p.rang, unitName: p.nom, majority: true, nUnits: counts.size };
 }
 
 function setTerritoryLH(list) {
@@ -493,42 +488,56 @@ async function uploadShapefile(file) {
 // ═══════════════════════════════════════════════════════════════════════════
 // Panneau : indice, INFO-MRC, INFO-COMMUNAUTÉ
 // ═══════════════════════════════════════════════════════════════════════════
-function renderExpo() {
-  const el = $('expo-value'), mk = $('expo-marker'), e = S.expoInfo;
-  if (!e) { el.innerHTML = '<div class="expo-note">Choisissez un territoire pour afficher son indice.</div>'; mk.style.display = 'none'; return; }
-  mk.style.display = 'block';
-  mk.style.left = `${Math.min(100, (e.expo / EXPO_MAX) * 100)}%`;
-  el.innerHTML = `<div class="expo-value"><span class="expo-num" style="color:${expoColor(e.expo)}">${(+e.expo).toFixed(2)} / 6</span>
-    <span class="expo-rank">${e.rang ? `Rang de prédisposition : <b>${e.rang} / 107</b>` : 'MRC non évaluée (indice = 0)'}</span></div>
-    ${e.majority ? `<div class="expo-note">Indice de la MRC la plus représentée dans la zone : <b>${e.unitName}</b>${e.nUnits > 1 ? ` (${e.nUnits} MRC touchées)` : ''}.</div>` : ''}`;
+function renderIndex() {
+  const el = $('expo-value'), mk = $('expo-marker'), band = $('expo-band'), e = S.idx;
+  if (!e) {
+    el.innerHTML = `<div class="expo-note">${S.unit || S.zone ? 'Aucune donnée d’indice pour ce territoire.' : 'Choisissez un territoire pour afficher son indice moyen.'}</div>`;
+    mk.style.display = band.style.display = 'none';
+    return;
+  }
+  const pos = (v) => Math.max(0, Math.min(100, (v / INDEX_MAX) * 100));
+  mk.style.display = band.style.display = 'block';
+  mk.style.left = `${pos(e.mean)}%`;
+  band.style.left = `${pos(e.mean - e.sd)}%`;
+  band.style.width = `${pos(e.mean + e.sd) - pos(e.mean - e.sd)}%`;
+  el.innerHTML = `<div class="expo-value"><span class="expo-num" style="color:${indexColor(e.mean)}">${fmtIdx(e.mean)}</span>
+    <span class="expo-rank">moyenne · écart-type <b>${fmtIdx(e.sd)}</b></span></div>
+    <div class="expo-note">${S.zone ? 'Zone définie' : S.terrName} — ${e.n} pixel${e.n > 1 ? 's' : ''} de 5 km.</div>`;
 }
 
 function chartWidth(el) { return Math.max(300, Math.round(el.clientWidth || 420)); }
 
-function renderMRC() {
-  const el = $('mrc-content'), s = S.series;
-  if (!s) {
-    el.innerHTML = `<div class="placeholder">${S.unit || S.zone ? 'Aucune donnée de feux pour ce territoire.' : 'Choisissez une MRC ou définissez une zone pour afficher l\'historique des feux.'}</div>`;
-    return;
-  }
-  const w = chartWidth(el);
+/** Contenu INFO-MRC (panneau ou fiche agrandie). */
+function mrcHTML(w, big = false) {
+  const s = S.series;
   const period = `${s.y0}–${YEAR_END}`;
   const regNote = s.long && s.y0 >= 1972
     ? '<div class="expo-note">Territoire situé dans une zone de régime de feux, mais aucun feu ancien (1887-1975) n’y est répertorié.</div>'
     : S.zone && s.long && s.regimeFrac < 0.98
-    ? `<div class="expo-note">La zone chevauche une zone de régime de feux (${fmtPct(s.regimeFrac * 100, 0)} de sa superficie) : les feux anciens n'y sont comptés que dans cette portion.</div>` : '';
-  el.innerHTML = `
-    <div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:15px;color:var(--accent)">${S.terrName}</div>
+    ? `<div class="expo-note">La zone chevauche une zone de régime de feux (${fmtPct(s.regimeFrac * 100, 0)} de sa superficie) : les feux anciens n’y sont comptés que dans cette portion.</div>` : '';
+  const idx = S.idx ? `<span>Indice : <b>${fmtIdx(S.idx.mean)}</b> ± ${fmtIdx(S.idx.sd)}</span>` : '';
+  return `
+    <div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:${big ? 19 : 15}px;color:var(--accent)">${S.terrName}</div>
     <div class="stat-line"><span class="badge ${s.y0 < 1972 ? 'long' : ''}" title="${s.y0 < 1972 ? 'Feux anciens validés (zones de régime de feux) inclus' : 'Points d’origine dès 1972, contours de feux dès 1976'}">${s.y0 < 1972 ? 'Série longue' : 'Série courte'} · ${period}</span>
-      <span>Combustibles : <b>${fmtInt(s.fuelHa)}</b> ha</span></div>
+      <span>Combustibles : <b>${fmtInt(s.fuelHa)}</b> ha</span>${big ? idx : ''}</div>
     <div class="stat-line"><span>Feux (1972-${YEAR_END}) : <b>${fmtInt(s.totOcc)}</b> (H ${fmtInt(s.totH)} · F ${fmtInt(s.totF)})</span>
       <span>Brûlé : <b>${fmtInt(s.totSup)}</b> ha</span></div>
     ${regNote}
     <div class="chart-title">Occurrences et causes des feux</div>
     <div class="chart-legend"><span><i style="background:${COLORS.humain}"></i>Humain</span><span><i style="background:${COLORS.foudre}"></i>Foudre</span><span><i class="band"></i>Moyenne ± écart-type</span></div>
-    <div class="chart">${occChart(s, { width: w, height: 190, labels: w > 380 })}</div>
+    <div class="chart">${occChart(s, { width: w, height: big ? 300 : 190, labels: w > 380 })}</div>
     <div class="chart-title">Superficies brûlées annuellement${S.log ? ' (échelle log)' : ''}</div>
-    <div class="chart">${supChart(s, { width: w, height: 180, log: S.log })}</div>`;
+    <div class="chart">${supChart(s, { width: w, height: big ? 280 : 180, log: S.log })}</div>`;
+}
+
+function renderMRC() {
+  const el = $('mrc-content'), s = S.series;
+  $('btn-big-mrc').disabled = !s;
+  if (!s) {
+    el.innerHTML = `<div class="placeholder">${S.unit || S.zone ? 'Aucune donnée de feux pour ce territoire.' : 'Choisissez une MRC ou définissez une zone pour afficher l’historique des feux.'}</div>`;
+    return;
+  }
+  el.innerHTML = mrcHTML(chartWidth(el));
 }
 
 // ── Communauté ─────────────────────────────────────────────────────────────
@@ -543,26 +552,33 @@ export function sortComb(rows) {
   return rows.map((r, i) => ({ r, i })).sort((a, b) => (COMB_ORDER.indexOf(a.r.group) - COMB_ORDER.indexOf(b.r.group)) || a.i - b.i).map(x => x.r);
 }
 
+/** Indice de prédisposition dans la zone tampon (pixels de 5 km dont le centre est dans le cercle). */
+export function bufferIndex(r, km) {
+  return indexStats(S.core, geomToLccPolys(bufferCircle(r, km)), [r.x, r.y]);
+}
+
 export async function selectLH(r, { fit = true } = {}) {
   S.lh = r;
   comboLH.set(r ? r.idx : null, false);
   refreshLHLayer();
+  $('btn-big-lh').disabled = !r;
   if (!r) {
-    S.buf = null;
+    S.buf = null; S.lhIdx = null;
     S.map.getSource('buffer').setData(EMPTY);
     $('lh-content').innerHTML = '<div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div>';
     return;
   }
   // Territoire : si la communauté n'est pas dans le territoire courant, on bascule sur sa MRC
   if (!S.terrLH.includes(r)) selectUnit(r.u, { fit: false });
+  $('box-lh').classList.remove('collapsed');
   S.map.getSource('buffer').setData(bufferCircle(r, S.bufKm));
   if (fit) S.map.fitBounds(geomBBox(bufferCircle(r, S.bufKm)), { padding: 40, duration: 800 });
   $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder"><span class="spin-inline"></span> Chargement des combustibles…</div>`;
   await updateBuffer();
 }
 
-function lhHeader(r) {
-  return `<div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:15px;color:var(--accent)">${lhName(r)}</div>
+function lhHeader(r, big = false) {
+  return `<div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:${big ? 19 : 15}px;color:var(--accent)">${lhName(r)}</div>
     <div class="box-sub">${lhSub(r) ? lhSub(r) + ' · ' : ''}${r.nat ? `${r.nat} <span class="badge" title="Toponyme préliminaire à valider (IDDPNQL)">à valider</span> · ` : ''}MRC ${S.core.units.features.find(f => f.properties.id === r.u)?.properties.nom || ''}</div>`;
 }
 
@@ -571,6 +587,7 @@ async function updateBuffer() {
   if (!r) return;
   try {
     S.buf = await bufferStats(r.idx, S.bufKm);
+    S.lhIdx = bufferIndex(r, S.bufKm);
   } catch (err) {
     console.error(err);
     $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder">Données de combustibles indisponibles.</div>`;
@@ -580,28 +597,41 @@ async function updateBuffer() {
   renderLH();
 }
 
+/** Graphiques INFO-COMMUNAUTÉ (panneau ou fiche agrandie). */
+function lhChartsHTML(w, big = false) {
+  const b = S.buf, cls = S.core.classes;
+  const tot = b.comb.reduce((a, v) => a + v, 0);
+  if (!tot) return '<div class="placeholder">Aucune donnée de combustibles dans cette zone tampon (hors du territoire couvert).</div>';
+  const gap = big ? 24 : 12;
+  const cw = w >= 520 ? Math.floor((w - gap) / 2) : w;
+  return `<div style="display:flex;gap:${gap}px;flex-wrap:wrap">
+      <div style="flex:1 1 ${cw}px"><div class="chart-title">Potentiel d'intensité et de propagation</div>
+        <div class="chart">${hbarChart(potRows(b.pot, cls), { width: cw, rowH: big ? 46 : 20, labelW: 86, fontSize: big ? 11 : 10 })}</div></div>
+      <div style="flex:1 1 ${cw}px"><div class="chart-title">Superficie des combustibles</div>
+        <div class="chart">${hbarChart(sortComb(combRows(b.comb, cls)), { width: cw, rowH: big ? 19 : 14, labelW: 52, groupW: 58, fontSize: big ? 10.5 : 9.5 })}</div></div>
+    </div>`;
+}
+
+function lhStatsLine() {
+  const tot = S.buf.comb.reduce((a, v) => a + v, 0);
+  const i = S.lhIdx;
+  return `<span>Superficie analysée : <b>${fmtInt(tot)}</b> ha</span>
+    ${i ? `<span title="Moyenne ± écart-type des pixels de 5 km de la zone tampon">Indice : <b style="color:${indexColor(i.mean)}">${fmtIdx(i.mean)}</b> ± ${fmtIdx(i.sd)}</span>` : ''}`;
+}
+
 function renderLH() {
   const r = S.lh, b = S.buf, el = $('lh-content');
   if (!r || !b) return;
-  const cls = S.core.classes;
-  const tot = b.comb.reduce((a, v) => a + v, 0);
   const w = chartWidth(el);
-  const half = w >= 520;
-  const cw = half ? Math.floor((w - 12) / 2) : w;
   const prev = el.querySelector('#rng-buf');
   const focused = document.activeElement === prev;
   el.innerHTML = `${lhHeader(r)}
     <div class="slider-row"><span class="muted">Zone tampon</span>
       <input type="range" id="rng-buf" min="1" max="${BUFFER_MAX}" step="1" value="${S.bufKm}">
       <output id="out-buf">${S.bufKm} km</output></div>
-    <div class="stat-line"><span>Superficie analysée : <b>${fmtInt(tot)}</b> ha</span>
-      <label class="toggle-line"><input type="checkbox" id="chk-show-comb" ${$('ly-comb').checked ? 'checked' : ''}> voir les combustibles sur la carte</label></div>
-    ${tot ? `<div style="display:flex;gap:12px;flex-wrap:wrap">
-      <div style="flex:1 1 ${cw}px"><div class="chart-title">Potentiel d'intensité et de propagation</div>
-        <div class="chart">${hbarChart(potRows(b.pot, cls), { width: cw, rowH: 20, labelW: 86 })}</div></div>
-      <div style="flex:1 1 ${cw}px"><div class="chart-title">Superficie des combustibles</div>
-        <div class="chart">${hbarChart(sortComb(combRows(b.comb, cls)), { width: cw, rowH: 14, labelW: 52, groupW: 58, fontSize: 9.5 })}</div></div>
-    </div>` : '<div class="placeholder">Aucune donnée de combustibles dans cette zone tampon (hors du territoire couvert).</div>'}`;
+    <div class="stat-line">${lhStatsLine()}</div>
+    <div class="stat-line"><label class="toggle-line"><input type="checkbox" id="chk-show-comb" ${$('ly-comb').checked ? 'checked' : ''}> voir les combustibles sur la carte</label></div>
+    ${lhChartsHTML(w)}`;
   const rng = el.querySelector('#rng-buf');
   if (focused) rng.focus();
   rng.addEventListener('input', () => {
@@ -613,6 +643,22 @@ function renderLH() {
   el.querySelector('#chk-show-comb').addEventListener('change', (e) => {
     $('ly-comb').checked = e.target.checked; $('ly-comb').dispatchEvent(new Event('change'));
   });
+}
+
+/** Fiche agrandie (fenêtre surgissante) : 'mrc' ou 'lh'. */
+function openBig(kind) {
+  const body = $('fiche-body');
+  $('modal-fiche').classList.add('open');
+  const w = Math.max(600, body.clientWidth - 44);
+  if (kind === 'mrc' && S.series) {
+    $('fiche-title').textContent = 'Fiche régionale — historique des feux';
+    body.innerHTML = mrcHTML(w, true);
+  } else if (kind === 'lh' && S.lh && S.buf) {
+    $('fiche-title').textContent = 'Fiche communauté — combustibles';
+    body.innerHTML = `${lhHeader(S.lh, true)}
+      <div class="stat-line"><span>Zone tampon : <b>${S.bufKm} km</b></span>${lhStatsLine()}</div>
+      ${lhChartsHTML(w, true)}`;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -644,7 +690,7 @@ function bindUI() {
   const units = S.core.units.features.map(f => f.properties).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
   comboMRC.setItems(units.map(p => ({
     value: p.id, label: p.nom,
-    sub: `${p.rang ? `indice ${(+p.expo).toFixed(2)}` : 'non évaluée'}${norm(p.mrc) !== norm(p.nom) ? ` · MRC ${p.mrc}` : ''}`,
+    sub: `indice moyen ${fmtIdx(p.im)}${norm(p.mrc) !== norm(p.nom) ? ` · MRC ${p.mrc}` : ''}`,
     keys: p.mrc,
   })));
   comboLH = new Combo($('combo-lh'), { onSelect: (v) => selectLH(v == null ? null : S.core.lh[v]) });
@@ -659,6 +705,15 @@ function bindUI() {
   $('btn-upload').addEventListener('click', () => $('file-shp').click());
   $('file-shp').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) uploadShapefile(f); e.target.value = ''; });
   $('btn-zone-clear').addEventListener('click', () => { clearTerritory(); $('zone-msg').textContent = 'Zone effacée.'; });
+
+  // Boîtes repliables et fiches agrandies
+  document.querySelectorAll('.box.collapsible .box-toggle').forEach(t => t.addEventListener('click', () => {
+    t.closest('.box').classList.toggle('collapsed');
+  }));
+  $('btn-big-mrc').addEventListener('click', () => openBig('mrc'));
+  $('btn-big-lh').addEventListener('click', () => openBig('lh'));
+  $('btn-big-mrc').disabled = $('btn-big-lh').disabled = true;
+  bindChartTips($('fiche-body'));
 
   // Log
   $('chk-log').addEventListener('change', (e) => { S.log = e.target.checked; renderMRC(); });
@@ -700,7 +755,7 @@ async function init() {
     S.core = core;
     addLayers();
     bindUI();
-    renderExpo();
+    renderIndex();
     $('loading').classList.add('hidden');
     $('popup-accueil').classList.add('open');
   } catch (err) {

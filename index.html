@@ -48,7 +48,7 @@
       <p>2. Les graphiques <strong>INFO-MRC</strong> s'affichent et les communautés du territoire apparaissent sur la carte. Les contours des feux passés sont visibles une fois la carte rapprochée (panneau <strong>Couches</strong> en haut à droite).</p>
       <p>3. Cliquez sur une <strong>communauté</strong> (sur la carte ou dans le menu) pour afficher <strong>INFO-COMMUNAUTÉ</strong>, puis ajustez la zone tampon.</p>
       <p>4. Le bouton <strong>Générer un rapport PDF</strong> produit une fiche du territoire et une fiche par communauté cochée.</p>
-      <p>La carte affiche une couleur de fond de vert à rouge, indiquant l'indice de prédisposition des MRC aux feux de forêt (0 à 6). Plus l'indice est élevé, plus la MRC est prédisposée aux feux.</p>
+      <p>La carte affiche une couleur de fond de vert à rouge, indiquant l'indice de prédisposition aux feux de forêt (indice standardisé de 0 à 1, pixels de 5 km). Plus l'indice est élevé, plus le territoire est prédisposé aux feux. Survolez la carte pour lire la valeur de l'indice ; la moyenne et l'écart-type du territoire choisi s'affichent dans le panneau.</p>
       <p><strong>Note</strong> : cette étude se base sur des données scientifiques pour évaluer la prédisposition des communautés québécoises et autochtones aux feux de forêt selon deux échelles d'analyse : régionale et locale. Pour envisager des actions concrètes pour protéger les communautés, adressez-vous aux autorités compétentes — voir l'onglet <span class="lien-onglet" data-goto="ressources">RESSOURCES UTILES</span>.</p>
       <p>Pour plus de détails, consultez l'onglet <span class="lien-onglet" data-goto="intro">INTRODUCTION</span>.</p>
     </div>
@@ -189,16 +189,17 @@
       <div class="box has-tip" id="expo-box" tabindex="0">
         <span class="panel-label">Indice de prédisposition aux feux ℹ</span>
         <div class="tooltip-info">La prédisposition des communautés vise à refléter la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt, en fonction de son emplacement géographique, de l'historique des feux et du climat régional, ainsi que de la végétation (combustibles). Ce concept ne doit donc pas être confondu avec le danger d'incendie, qui varie au fil de la saison selon les conditions météorologiques (sopfeu.qc.ca/carte).<br><br>
-          L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>Plus l'indice s'approche de la valeur seuil de 6, plus la MRC est prédisposée aux grands feux. Les MRC non évaluées ont un indice de 0.</div>
-        <div class="legend-bar"><div class="marker" id="expo-marker"></div></div>
-        <div class="legend-labels"><span>0</span><span>Faible → Élevé</span><span>6</span></div>
+          L'indice de prédisposition des MRC aux feux de forêt a été déterminé à partir de 4 indicateurs clés :<br>(1) les superficies historiques brûlées<br>(2) la fréquence des départs de feux historiques<br>(3) les indices forêt-météo projetés pour la période 2021-2050<br>(4) la nature des combustibles actuels.<br><br>L'indice est standardisé de 0 à 1 (pixels de 5 km) : plus il s'approche de 1, plus le territoire est prédisposé aux grands feux. Pour une MRC ou une zone, la moyenne et l'écart-type des pixels sont indiqués (bande grise sur la barre).</div>
+        <div class="legend-bar"><div class="band" id="expo-band"></div><div class="marker" id="expo-marker"></div></div>
+        <div class="legend-labels"><span>0</span><span>Faible → Élevé</span><span>1</span></div>
         <div id="expo-value"></div>
       </div>
 
       <!-- INFO-MRC -->
-      <div class="box" id="box-mrc">
-        <div class="box-title"><span>INFO-MRC</span>
+      <div class="box collapsible" id="box-mrc">
+        <div class="box-title"><span class="box-toggle" title="Replier / déplier"><span class="chev">▾</span> INFO-MRC</span>
           <span class="box-tools">
+            <button class="btn secondary btn-xs" id="btn-big-mrc" title="Agrandir la fiche régionale">⤢ Agrandir</button>
             <label class="toggle-line" title="Échelle logarithmique pour les superficies"><input type="checkbox" id="chk-log" checked> log</label>
             <span class="has-tip" style="position:relative" tabindex="0"><button class="icon-btn">?</button>
               <span class="tooltip-info" style="left:auto;right:0;width:300px">
@@ -209,20 +210,23 @@
               </span></span>
           </span>
         </div>
-        <div id="mrc-content"><div class="placeholder">Choisissez une MRC ou définissez une zone pour afficher l'historique des feux.</div></div>
+        <div id="mrc-content" class="box-body"><div class="placeholder">Choisissez une MRC ou définissez une zone pour afficher l'historique des feux.</div></div>
       </div>
 
       <!-- INFO-COMMUNAUTÉ -->
-      <div class="box" id="box-lh">
-        <div class="box-title"><span>INFO-COMMUNAUTÉ</span>
+      <div class="box collapsible" id="box-lh">
+        <div class="box-title"><span class="box-toggle" title="Replier / déplier"><span class="chev">▾</span> INFO-COMMUNAUTÉ</span>
+          <span class="box-tools">
+          <button class="btn secondary btn-xs" id="btn-big-lh" title="Agrandir la fiche communauté">⤢ Agrandir</button>
           <span class="has-tip" style="position:relative" tabindex="0"><button class="icon-btn">?</button>
             <span class="tooltip-info" style="left:auto;right:0;width:300px">
               <b>Potentiel d'intensité et de propagation</b> (MRNF 2025-2026) : part de la zone tampon selon le potentiel de comportement du feu (faible à extrême). Il mesure la gravité potentielle <u>s'il y a ignition</u>, et non la probabilité d'un feu.<br><br>
               <b>Superficie des combustibles</b> (MRNF 2025) : types de combustibles selon la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br><br>
-              Pourcentages calculés sur la superficie terrestre et aquatique de la zone tampon (pixels de 25 m), au Québec seulement.
+              Pourcentages calculés sur la superficie terrestre et aquatique de la zone tampon (pixels de 25 m), au Québec seulement : les portions hors Québec (autres provinces, États-Unis) sont exclues, et les plans d'eau hors de la couche MRNF sont comptés comme « Eau ».
             </span></span>
+          </span>
         </div>
-        <div id="lh-content"><div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div></div>
+        <div id="lh-content" class="box-body"><div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div></div>
       </div>
 
       <button class="btn green full" id="btn-rapport" disabled>⬇ Générer un rapport PDF</button>
@@ -266,11 +270,14 @@
       <div class="lp-head" id="lp-toggle"><span>☰ Couches</span><span id="lp-arrow">▾</span></div>
       <div class="lp-body">
         <div class="lyr" style="border-top:none;padding-top:0">
-          <label class="lyr-head"><input type="checkbox" id="ly-expo" checked> Indice de prédisposition (MRC)</label>
-          <div class="lyr-opts"><label>Opacité <input type="range" id="op-expo" min="0" max="100" value="55"></label></div>
+          <label class="lyr-head"><input type="checkbox" id="ly-indice" checked> Indice de prédisposition (5 km)</label>
+          <div class="lyr-opts"><label>Opacité <input type="range" id="op-indice" min="0" max="100" value="60"></label>
+            <div class="legend-bar" style="margin:2px 0 0"></div>
+            <div class="ramp-labels"><span>0</span><span>Faible → Élevé</span><span>1</span></div>
+            <div class="lyr-note">Survolez la carte pour lire la valeur d'un pixel.</div></div>
         </div>
         <div class="lyr">
-          <label class="lyr-head"><input type="checkbox" id="ly-feux" checked> Contours de feux</label>
+          <label class="lyr-head"><input type="checkbox" id="ly-feux"> Contours de feux</label>
           <div class="lyr-opts">
             <label>Période <select id="sel-periode"></select></label>
             <label>Opacité <input type="range" id="op-feux" min="0" max="100" value="60"></label>
@@ -305,6 +312,17 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ Fiche agrandie (graphiques) ═══ -->
+<div id="modal-fiche" class="modal">
+  <div class="modal-box" style="width:min(96vw,1250px);max-height:94vh">
+    <div class="modal-head">
+      <h2 id="fiche-title">Fiche</h2>
+      <button class="modal-close" data-close>✕</button>
+    </div>
+    <div class="modal-body" id="fiche-body"></div>
   </div>
 </div>
 
