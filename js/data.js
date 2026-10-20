@@ -46,6 +46,9 @@ async function loadIndice() {
 }
 
 // ── Points d'origine (colonnes) ────────────────────────────────────────────
+// ── Contour provincial simplifié (carte de localisation du rapport) ────────
+export const loadProvince = once(() => getJSON('province.geojson'));
+
 export const loadPoints = once(async () => {
   const p = await getJSON('pts_origine.json');
   return {

@@ -64,7 +64,21 @@ def load_fires(regime_union):
     return feux
 
 
+def export_province():
+    """Contour provincial simplifié (carte de localisation du rapport PDF) → data/province.geojson."""
+    prov = gpd.read_file(PROV_SHORE).to_crs(CRS_LCC)
+    g = shapely.make_valid(shapely.union_all(prov.geometry.values))
+    parts = [p for p in getattr(g, "geoms", [g]) if p.geom_type == "Polygon" and p.area > 20e6]   # îles > 20 km²
+    g = shapely.MultiPolygon(parts).simplify(1500, preserve_topology=True)
+    out = gpd.GeoDataFrame(geometry=[g], crs=CRS_LCC).to_crs(4326)
+    p = OUT / "province.geojson"
+    p.unlink(missing_ok=True)
+    out.to_file(p, driver="GeoJSON", COORDINATE_PRECISION=3)
+    log(f"  → province.geojson ({p.stat().st_size/1024:.0f} Ko, {len(parts)} parties)")
+
+
 if __name__ == "__main__":
+    export_province()
     # ── Régime de feux ────────────────────────────────────────────────────
     regime = pyogrio.read_dataframe(REGIME_GDB, layer="ZONES_FEUX")
     regime = regime[regime.ZONE_ID.notna()].to_crs(CRS_LCC)

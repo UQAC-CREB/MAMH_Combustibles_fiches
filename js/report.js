@@ -2,6 +2,7 @@
 import { YEAR_END, COLORS } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';
+import { loadProvince } from './data.js';
 import { S, lhName, lhSub, lhChartPair, loadFiresInView, bufferCircle, bufferIndex, fmtIdx } from './app.js';
 
 const $ = (id) => document.getElementById(id);
@@ -82,19 +83,67 @@ async function captureMap(bounds, aspect) {
   return c.toDataURL('image/jpeg', 0.88);
 }
 
-function bboxOf(geom) {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  const walk = (c) => {
-    if (typeof c[0] === 'number') { x0 = Math.min(x0, c[0]); x1 = Math.max(x1, c[0]); y0 = Math.min(y0, c[1]); y1 = Math.max(y1, c[1]); }
-    else c.forEach(walk);
-  };
-  (geom.features || [geom]).forEach(f => walk((f.geometry || f).coordinates));
-  return [[x0, y0], [x1, y1]];
-}
-
 function circleBounds(r, km) {
   const dLat = km / 111.2, dLon = km / (111.2 * Math.cos(r.y * Math.PI / 180));
   return [[r.x - dLon, r.y - dLat], [r.x + dLon, r.y + dLat]];
+}
+
+// ── Carte de localisation (Québec en Lambert, territoire en rouge) ─────────
+const LCC_DEF = '+proj=lcc +lat_1=60 +lat_2=46 +lat_0=44 +lon_0=-68.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs';
+
+/** Anneaux [lon,lat] d'une géométrie GeoJSON (Feature, FeatureCollection, Polygon, MultiPolygon). */
+function ringsOf(g, out = []) {
+  if (!g) return out;
+  if (g.type === 'FeatureCollection') g.features.forEach(f => ringsOf(f, out));
+  else if (g.type === 'Feature') ringsOf(g.geometry, out);
+  else if (g.type === 'Polygon') out.push(...g.coordinates);
+  else if (g.type === 'MultiPolygon') g.coordinates.forEach(p => out.push(...p));
+  return out;
+}
+
+async function locatorMap(territory, aspect, pxW = 900) {
+  const prov = await loadProvince();
+  const t = proj4('EPSG:4326', LCC_DEF);
+  const provRings = ringsOf(prov).map(r => r.map(c => t.forward(c)));
+  const terrRings = ringsOf(territory).map(r => r.map(c => t.forward(c)));
+  // emprise : Québec + 6 % de marge, ajustée au ratio de la boîte du PDF
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const r of provRings) for (const [x, y] of r) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = (x1 - x0) * 1.06, h = (y1 - y0) * 1.06;
+  if (w / h > aspect) h = w / aspect; else w = h * aspect;
+  const W = pxW, H = Math.round(pxW / aspect), k = W / w;
+  const px = ([x, y]) => [(x - (cx - w / 2)) * k, (cy + h / 2 - y) * k];
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  const path = (rings) => {
+    ctx.beginPath();
+    for (const r of rings) r.forEach((p, i) => { const [a, b] = px(p); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); });
+  };
+  // Territoire (MRC ou zone) : rouge semi-transparent
+  if (terrRings.length) {
+    path(terrRings);
+    ctx.fillStyle = 'rgba(214, 39, 40, 0.55)'; ctx.fill('evenodd');
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 1.5; ctx.stroke();
+    // territoire trop petit pour être visible : cercle de repérage
+    let tx0 = Infinity, ty0 = Infinity, tx1 = -Infinity, ty1 = -Infinity;
+    for (const r of terrRings) for (const p of r) { const [a, b] = px(p); tx0 = Math.min(tx0, a); tx1 = Math.max(tx1, a); ty0 = Math.min(ty0, b); ty1 = Math.max(ty1, b); }
+    if (Math.max(tx1 - tx0, ty1 - ty0) < 14) {
+      ctx.beginPath(); ctx.arc((tx0 + tx1) / 2, (ty0 + ty1) / 2, 12, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+  }
+  // Périmètre du Québec : contour noir, fond transparent
+  path(provRings);
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+  // Échelle 500 km
+  const L = 500000 * k, sx = 24, sy = H - 26;
+  ctx.fillStyle = '#111'; ctx.fillRect(sx, sy, L, 5);
+  ctx.fillStyle = '#fff'; for (let i = 1; i < 5; i += 2) ctx.fillRect(sx + (L / 5) * i, sy + 1, L / 5, 3);
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(sx, sy, L, 5);
+  ctx.fillStyle = '#111'; ctx.font = `${Math.round(W / 40)}px Arial`; ctx.fillText('500 km', sx + L + 8, sy + 6);
+  return c.toDataURL('image/png');
 }
 
 // ── Mise en page ───────────────────────────────────────────────────────────
@@ -143,7 +192,7 @@ async function territoryPage(doc, mapImg) {
   doc.text(pdfTxt(`Superficie combustible : ${fmtInt(s.fuelHa)} ha`), x + 14, ty);
   // Carte
   const mapY = y + titleH, mapH = h - titleH;
-  doc.addImage(mapImg, 'JPEG', x, mapY, LEFT_W, mapH);
+  doc.addImage(mapImg, 'PNG', x, mapY, LEFT_W, mapH, undefined, 'FAST');
   doc.setDrawColor(60); doc.rect(x, mapY, LEFT_W, mapH);
   // Graphiques
   const rx = x + LEFT_W, rw = PW - M - rx, footH = 52;
@@ -264,7 +313,7 @@ async function generate() {
     if (withTerr) {
       prog('Page territoire…');
       const geom = S.zone ? S.zone.geojson : S.core.units.features.find(f => f.properties.id === S.unit);
-      const img = await captureMap(bboxOf(geom), LEFT_W / ((PH - 2 * M) * 0.58));
+      const img = await locatorMap(geom, LEFT_W / ((PH - 2 * M) * 0.58));
       newPage();
       await territoryPage(doc, img);
     }
