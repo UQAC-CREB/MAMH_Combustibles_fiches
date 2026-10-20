@@ -73,6 +73,7 @@
       <input id="rep-filter" placeholder="Filtrer…" style="width:100%;margin-top:8px;padding:6px 8px;border:1px solid var(--panel-border);border-radius:6px;font-size:13px" />
       <div class="rep-list" id="rep-list"></div>
       <label class="toggle-line"><input type="checkbox" id="rep-terr-page" checked> Inclure la page territoire (MRC / zone)</label>
+      <div class="rep-bar" id="rep-bar" hidden><div class="rep-bar-fill" id="rep-bar-fill"></div><span id="rep-bar-pct">0 %</span></div>
       <p class="rep-progress" id="rep-progress"></p>
     </div>
     <div class="modal-foot">
@@ -196,8 +197,8 @@
       </div>
 
       <!-- INFO-MRC -->
-      <div class="box collapsible" id="box-mrc">
-        <div class="box-title"><span class="box-toggle" title="Replier / déplier"><span class="chev">▾</span> INFO-MRC</span>
+      <div class="box collapsible collapsed" id="box-mrc">
+        <div class="box-title"><span class="box-toggle" title="Afficher / masquer les graphiques"><span class="chev">▾</span> INFO-MRC <span class="box-summary" id="sum-mrc"></span></span>
           <span class="box-tools">
             <button class="btn secondary btn-xs" id="btn-big-mrc" title="Agrandir la fiche régionale">⤢ Agrandir</button>
             <label class="toggle-line" title="Échelle logarithmique pour les superficies"><input type="checkbox" id="chk-log" checked> log</label>
@@ -208,8 +209,8 @@
       </div>
 
       <!-- INFO-COMMUNAUTÉ -->
-      <div class="box collapsible" id="box-lh">
-        <div class="box-title"><span class="box-toggle" title="Replier / déplier"><span class="chev">▾</span> INFO-COMMUNAUTÉ</span>
+      <div class="box collapsible collapsed" id="box-lh">
+        <div class="box-title"><span class="box-toggle" title="Afficher / masquer les graphiques"><span class="chev">▾</span> INFO-COMMUNAUTÉ <span class="box-summary" id="sum-lh"></span></span>
           <span class="box-tools">
           <button class="btn secondary btn-xs" id="btn-big-lh" title="Agrandir la fiche communauté">⤢ Agrandir</button>
           <button class="btn secondary btn-xs" data-legend="lh" title="Légende et explication">📋 Légende</button>

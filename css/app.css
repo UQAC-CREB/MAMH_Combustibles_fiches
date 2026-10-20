@@ -170,6 +170,18 @@ body {
 .box.collapsible.collapsed .chev { transform: rotate(-90deg); }
 .box.collapsible.collapsed .box-body { display: none; }
 .btn-xs { padding: 3px 8px; font-size: 10.5px; }
+.box-summary {
+  font-family: 'Source Sans 3', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0;
+  text-transform: none; color: var(--accent); max-width: 170px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; display: none;
+}
+.box.collapsed .box-summary.on { display: inline-block; }
+.box-summary::before { content: '●'; color: #4a7c4e; margin-right: 4px; font-size: 10px; vertical-align: 1px; }
+
+/* Barre de progression du rapport */
+.rep-bar { position: relative; height: 18px; border-radius: 9px; background: #e8edf2; overflow: hidden; margin-top: 10px; }
+.rep-bar-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #4a7c4e, #6a9f6e); transition: width 0.3s; }
+.rep-bar span { position: relative; display: block; text-align: center; font-size: 11.5px; line-height: 18px; font-weight: 600; color: #1a2e1a; }
 #fiche-body .chart-title { font-size: 13px; }
 .pair-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: end; }
 .pair-grid .chart { align-self: start; }

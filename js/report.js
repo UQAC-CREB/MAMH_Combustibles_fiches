@@ -23,6 +23,7 @@ export function openReportDialog() {
   autoTerr = true;
   syncTerr();
   $('rep-progress').textContent = '';
+  $('rep-bar').hidden = true;
   $('rep-go').disabled = false;
   $('modal-rapport').classList.add('open');
 }
@@ -233,7 +234,20 @@ async function generate() {
   if (!comms.length && !withTerr) { $('rep-progress').textContent = 'Cochez au moins une communauté ou la page territoire.'; return; }
   if (!window.jspdf) { $('rep-progress').textContent = 'Bibliothèque PDF en cours de chargement, réessayez.'; return; }
   $('rep-go').disabled = true;
-  const prog = (t) => { $('rep-progress').innerHTML = `<span class="spin-inline"></span> ${t}`; };
+  // Progression par étapes : page territoire + une page par communauté + enregistrement
+  const nSteps = (withTerr ? 1 : 0) + comms.length + 1;
+  let step = 0;
+  const setBar = (pct) => {
+    $('rep-bar').hidden = false;
+    $('rep-bar-fill').style.width = `${pct}%`;
+    $('rep-bar-pct').textContent = `${Math.round(pct)} %`;
+  };
+  const prog = (t) => {
+    setBar((step / nSteps) * 100);
+    $('rep-progress').innerHTML = `<span class="spin-inline"></span> Étape ${step + 1} / ${nSteps} — ${t}`;
+    step++;
+  };
+  setBar(0);
 
   const map = S.map;
   const saved = {
@@ -271,8 +285,10 @@ async function generate() {
       newPage();
       await communityPage(doc, r, img, buf);
     }
+    prog('Enregistrement du PDF…');
     const name = (S.terrName || 'territoire').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
     doc.save(`Rapport_feux_${name}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    setBar(100);
     $('rep-progress').textContent = `Rapport généré (${doc.getNumberOfPages()} page${doc.getNumberOfPages() > 1 ? 's' : ''}).`;
   } finally {
     // Restauration de l'état de la carte

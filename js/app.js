@@ -569,9 +569,17 @@ function mrcHTML(w, big = false) {
     <div class="chart">${supChart(s, { width: w, height: big ? 280 : 180, log: S.log })}</div>`;
 }
 
+function setSummary(id, text) {
+  const el = $(id);
+  el.textContent = text || '';
+  el.title = text ? `${text} — cliquez pour afficher les graphiques` : '';
+  el.classList.toggle('on', !!text);
+}
+
 function renderMRC() {
   const el = $('mrc-content'), s = S.series;
   $('btn-big-mrc').disabled = !s;
+  setSummary('sum-mrc', s ? S.terrName.replace(/^MRC /, '') : '');
   if (!s) {
     el.innerHTML = `<div class="placeholder">${S.unit || S.zone ? 'Aucune donnée de feux pour ce territoire.' : 'Choisissez une MRC ou définissez une zone pour afficher l’historique des feux.'}</div>`;
     return;
@@ -601,6 +609,7 @@ export async function selectLH(r, { fit = true } = {}) {
   comboLH.set(r ? r.idx : null, false);
   refreshLHLayer();
   $('btn-big-lh').disabled = !r;
+  setSummary('sum-lh', r ? lhName(r) : '');
   if (!r) {
     S.buf = null; S.lhIdx = null;
     S.map.getSource('buffer').setData(EMPTY);
@@ -609,7 +618,6 @@ export async function selectLH(r, { fit = true } = {}) {
   }
   // Territoire : si la communauté n'est pas dans le territoire courant, on bascule sur sa MRC
   if (!S.terrLH.includes(r)) selectUnit(r.u, { fit: false });
-  $('box-lh').classList.remove('collapsed');
   S.map.getSource('buffer').setData(bufferCircle(r, S.bufKm));
   if (fit) S.map.fitBounds(geomBBox(bufferCircle(r, S.bufKm)), { padding: 40, duration: 800 });
   $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder"><span class="spin-inline"></span> Chargement des combustibles…</div>`;
@@ -778,7 +786,10 @@ function bindUI() {
 
   // Boîtes repliables et fiches agrandies
   document.querySelectorAll('.box.collapsible .box-toggle').forEach(t => t.addEventListener('click', () => {
-    t.closest('.box').classList.toggle('collapsed');
+    const box = t.closest('.box');
+    box.classList.toggle('collapsed');
+    // graphiques redessinés à la largeur réelle une fois la boîte dépliée
+    if (!box.classList.contains('collapsed')) { if (box.id === 'box-mrc') renderMRC(); else renderLH(); }
   }));
   $('btn-big-mrc').addEventListener('click', () => openBig('mrc'));
   $('btn-big-lh').addEventListener('click', () => openBig('lh'));
