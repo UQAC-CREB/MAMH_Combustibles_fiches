@@ -69,6 +69,19 @@ export function bufferCircle(r, km) {
   return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } };
 }
 
+/** Masque mondial troué par la zone tampon (anneau intérieur = cercle, sens inverse). */
+function bufferMask(r, km) {
+  const hole = bufferCircle(r, km).geometry.coordinates[0].slice().reverse();
+  const world = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]];
+  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [world, hole] } };
+}
+
+/** Affiche (ou retire) la zone tampon et son masque. */
+function showBuffer(r) {
+  S.map.getSource('buffer').setData(r ? bufferCircle(r, S.bufKm) : EMPTY);
+  S.map.getSource('buffer-mask').setData(r ? bufferMask(r, S.bufKm) : EMPTY);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Carte
 // ═══════════════════════════════════════════════════════════════════════════
@@ -135,7 +148,11 @@ function addLayers() {
 
   // Zone tampon de la communauté
   map.addSource('buffer', { type: 'geojson', data: EMPTY });
-  map.addLayer({ id: 'buffer-fill', type: 'fill', source: 'buffer', paint: { 'fill-color': COLORS.lh, 'fill-opacity': 0.08 } });
+  map.addLayer({ id: 'buffer-fill', type: 'fill', source: 'buffer', paint: { 'fill-color': COLORS.lh, 'fill-opacity': 0 } });
+  // Masque : tout l'extérieur de la zone tampon est grisé (l'intérieur reste entièrement visible)
+  map.addSource('buffer-mask', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'buffer-mask', type: 'fill', source: 'buffer-mask',
+    paint: { 'fill-color': '#6b7280', 'fill-opacity': 0.5, 'fill-antialias': false } });
   map.addLayer({ id: 'buffer-line', type: 'line', source: 'buffer', paint: { 'line-color': '#111', 'line-width': 2 } });
 
   // Points d'origine
@@ -246,7 +263,7 @@ function bindMapEvents() {
   map.on('click', (e) => {
     if (drawing) return;
     const lhF = map.queryRenderedFeatures(e.point, { layers: ['lh-circle'] })[0];
-    if (lhF) { selectLH(S.core.lh[lhF.properties.idx], { fit: false }); return; }
+    if (lhF) { selectLH(S.core.lh[lhF.properties.idx]); return; }
     if (S.mode !== 'mrc') return;
     const u = map.queryRenderedFeatures(e.point, { layers: ['units-fill'] })[0];
     if (u) selectUnit(u.properties.id);
@@ -612,13 +629,15 @@ export async function selectLH(r, { fit = true } = {}) {
   setSummary('sum-lh', r ? lhName(r) : '');
   if (!r) {
     S.buf = null; S.lhIdx = null;
-    S.map.getSource('buffer').setData(EMPTY);
+    showBuffer(null);
     $('lh-content').innerHTML = '<div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div>';
     return;
   }
   // Territoire : si la communauté n'est pas dans le territoire courant, on bascule sur sa MRC
   if (!S.terrLH.includes(r)) selectUnit(r.u, { fit: false });
-  S.map.getSource('buffer').setData(bufferCircle(r, S.bufKm));
+  showBuffer(r);
+  // combustibles affichés et zoom sur la zone tampon
+  if (!$('ly-comb').checked) { $('ly-comb').checked = true; $('ly-comb').dispatchEvent(new Event('change')); }
   if (fit) S.map.fitBounds(geomBBox(bufferCircle(r, S.bufKm)), { padding: 40, duration: 800 });
   $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder"><span class="spin-inline"></span> Chargement des combustibles…</div>`;
   await updateBuffer();
@@ -698,7 +717,7 @@ function renderLH() {
   rng.addEventListener('input', () => {
     S.bufKm = +rng.value;
     el.querySelector('#out-buf').textContent = `${S.bufKm} km`;
-    S.map.getSource('buffer').setData(bufferCircle(r, S.bufKm));
+    showBuffer(r);
     clearTimeout(rng._t); rng._t = setTimeout(updateBuffer, 40);
   });
   el.querySelector('#chk-show-comb').addEventListener('change', (e) => {
