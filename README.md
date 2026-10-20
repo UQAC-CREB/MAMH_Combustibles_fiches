@@ -3,7 +3,8 @@
 > Application cartographique interactive : historique des feux par MRC ou par zone définie par l'utilisateur, combustibles et potentiel d'intensité et de propagation autour des communautés, et rapport PDF généré à la demande.
 
 **🔗 Production (v1.0, branche `main`) :** <https://uqac-creb.github.io/MAMH_Combustibles_fiches/>
-**🛠 Développement (v2, branche `v2-dev`) :** tester localement (voir [Développement local](#développement-local)).
+**🛠 Aperçu v2 (branche `v2-dev`) :** <https://uqac-creb.github.io/MAMH_Combustibles_fiches_v2/> — [English version](https://uqac-creb.github.io/MAMH_Combustibles_fiches_v2/?lang=en)
+publié depuis le dépôt de prévisualisation [UQAC-CREB/MAMH_Combustibles_fiches_v2](https://github.com/UQAC-CREB/MAMH_Combustibles_fiches_v2) (voir [Aperçu de la v2](#aperçu-de-la-v2-github-pages)) ; tests locaux : voir [Développement local](#développement-local).
 
 La version 1.0 (fiches JPEG téléchargeables) est figée par le tag `v1.0`.
 
@@ -126,6 +127,19 @@ Puis inscrire l'URL publique dans `js/config.js` (`R2_TILES_URL`).
 ## Hébergement : GitHub Pages + R2
 
 L'application est **100 % statique** : GitHub Pages sert `index.html`, `css/`, `js/`, `lib/` et `data/` tels quels, et tous les calculs se font dans le navigateur. **Aucun Python ne tourne en ligne** : les scripts de `scripts/` servent uniquement à préparer les données sur le poste, et `serve.py` remplace `python -m http.server` pour les tests locaux.
+
+## Aperçu de la v2 (GitHub Pages)
+
+GitHub Pages ne publie qu'une branche par dépôt : la production (`main`) reste dans ce dépôt, et la branche `v2-dev` est poussée vers un dépôt de prévisualisation dont GitHub Pages publie la branche `main`.
+
+```powershell
+# une seule fois
+git remote add preview git@github.com:UQAC-CREB/MAMH_Combustibles_fiches_v2.git
+# à chaque mise à jour de l'aperçu
+git push preview v2-dev:main
+```
+
+Lien : <https://uqac-creb.github.io/MAMH_Combustibles_fiches_v2/>. Les tuiles et contours de feux (Cloudflare R2) fonctionnent sans changement : l'origine `uqac-creb.github.io` est déjà autorisée dans `scripts/r2_cors.json`.
 
 ## Développement local
 
