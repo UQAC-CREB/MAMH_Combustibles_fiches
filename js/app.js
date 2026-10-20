@@ -597,19 +597,33 @@ async function updateBuffer() {
   renderLH();
 }
 
+/**
+ * Paire de graphiques communauté de MÊME hauteur (comme les fiches v1) : les classes de
+ * potentiel s'alignent grossièrement sur les groupes de combustibles correspondants.
+ */
+export function lhChartPair(buf, cls, width, { combRowH = 14, fontSize = 9.5 } = {}) {
+  const comb = sortComb(combRows(buf.comb, cls)), pot = potRows(buf.pot, cls);
+  const potRowH = (combRowH * comb.length) / pot.length;
+  return {
+    pot: hbarChart(pot, { width, rowH: potRowH, labelW: 86, fontSize: fontSize + 1 }),
+    comb: hbarChart(comb, { width, rowH: combRowH, labelW: 52, groupW: 58, fontSize }),
+  };
+}
+
 /** Graphiques INFO-COMMUNAUTÉ (panneau ou fiche agrandie). */
 function lhChartsHTML(w, big = false) {
   const b = S.buf, cls = S.core.classes;
   const tot = b.comb.reduce((a, v) => a + v, 0);
   if (!tot) return '<div class="placeholder">Aucune donnée de combustibles dans cette zone tampon (hors du territoire couvert).</div>';
   const gap = big ? 24 : 12;
-  const cw = w >= 520 ? Math.floor((w - gap) / 2) : w;
-  return `<div style="display:flex;gap:${gap}px;flex-wrap:wrap">
-      <div style="flex:1 1 ${cw}px"><div class="chart-title">Potentiel d'intensité et de propagation</div>
-        <div class="chart">${hbarChart(potRows(b.pot, cls), { width: cw, rowH: big ? 46 : 20, labelW: 86, fontSize: big ? 11 : 10 })}</div></div>
-      <div style="flex:1 1 ${cw}px"><div class="chart-title">Superficie des combustibles</div>
-        <div class="chart">${hbarChart(sortComb(combRows(b.comb, cls)), { width: cw, rowH: big ? 19 : 14, labelW: 52, groupW: 58, fontSize: big ? 10.5 : 9.5 })}</div></div>
-    </div>`;
+  const side = (w - gap) / 2 >= 230;               // côte à côte si la place le permet
+  const cw = side ? Math.floor((w - gap) / 2) : w;
+  const c = lhChartPair(b, cls, cw, big ? { combRowH: 19, fontSize: 10.5 } : { combRowH: 14, fontSize: 9.5 });
+  const t1 = '<div class="chart-title">Potentiel d’intensité et de propagation</div>';
+  const t2 = '<div class="chart-title">Superficie des combustibles</div>';
+  return side
+    ? `<div class="pair-grid" style="column-gap:${gap}px">${t1}${t2}<div class="chart">${c.pot}</div><div class="chart">${c.comb}</div></div>`
+    : `${t1}<div class="chart">${c.pot}</div>${t2}<div class="chart">${c.comb}</div>`;
 }
 
 function lhStatsLine() {
@@ -645,11 +659,25 @@ function renderLH() {
   });
 }
 
+/** Légende de la fiche communauté : classes et couleurs issues des LUT (classes.json). */
+function buildLegends() {
+  const cls = S.core.classes, groups = new Map();
+  for (const c of cls.comb) {
+    if (!groups.has(c.grp)) groups.set(c.grp, []);
+    groups.get(c.grp).push(c);
+  }
+  const row = (hex, txt) => `<div class="leg-row"><div class="leg-swatch" style="background:${hex}"></div><span>${txt}</span></div>`;
+  $('leg-comb-list').innerHTML = COMB_ORDER.filter(g => groups.has(g)).map(g =>
+    `<div class="leg-group">${g}</div>` + groups.get(g).map(c => row(c.hex, `${c.abb} — ${c.lbl}`)).join('')).join('');
+  $('leg-pot-list').innerHTML = '<div class="leg-group">Classes</div>' + cls.pot.map(c => row(c.hex, c.lbl)).join('');
+}
+
 /** Fiche agrandie (fenêtre surgissante) : 'mrc' ou 'lh'. */
 function openBig(kind) {
   const body = $('fiche-body');
   $('modal-fiche').classList.add('open');
   const w = Math.max(600, body.clientWidth - 44);
+  $('fiche-legend').dataset.kind = kind;
   if (kind === 'mrc' && S.series) {
     $('fiche-title').textContent = 'Fiche régionale — historique des feux';
     body.innerHTML = mrcHTML(w, true);
@@ -676,7 +704,10 @@ function bindUI() {
   // Modals
   const closeModals = () => document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeModals));
-  document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (e) => { if (e.target === m) closeModals(); }));
+  document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (e) => {
+    if (e.target !== m) return;
+    if (m.classList.contains('modal-top')) m.classList.remove('open'); else closeModals();
+  }));
   $('btn-info').addEventListener('click', () => $('popup-accueil').classList.add('open'));
 
   // Mode
@@ -714,6 +745,13 @@ function bindUI() {
   $('btn-big-lh').addEventListener('click', () => openBig('lh'));
   $('btn-big-mrc').disabled = $('btn-big-lh').disabled = true;
   bindChartTips($('fiche-body'));
+
+  // Légendes des fiches (fenêtres par-dessus la fiche agrandie au besoin)
+  buildLegends();
+  const openLegend = (k) => $(`modal-leg-${k}`).classList.add('open');
+  document.querySelectorAll('[data-legend]').forEach(b => b.addEventListener('click', () => openLegend(b.dataset.legend)));
+  $('fiche-legend').addEventListener('click', () => openLegend($('fiche-legend').dataset.kind || 'mrc'));
+  document.querySelectorAll('[data-close-self]').forEach(b => b.addEventListener('click', () => b.closest('.modal').classList.remove('open')));
 
   // Log
   $('chk-log').addEventListener('change', (e) => { S.log = e.target.checked; renderMRC(); });

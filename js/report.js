@@ -2,7 +2,7 @@
 import { YEAR_END, COLORS } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';
-import { S, lhName, lhSub, combRows, potRows, sortComb, loadFiresInView, bufferCircle, bufferIndex, fmtIdx } from './app.js';
+import { S, lhName, lhSub, lhChartPair, loadFiresInView, bufferCircle, bufferIndex, fmtIdx } from './app.js';
 
 const $ = (id) => document.getElementById(id);
 let autoTerr = true;
@@ -206,9 +206,8 @@ async function communityPage(doc, r, mapImg, buf) {
   // Graphiques
   const gy = ty + 8, gh = y + h - gy - 8;
   const cw = (lw - 30) / 2;
-  const potSvg = hbarChart(potRows(buf.pot, cls), { width: 250, rowH: 52, labelW: 86, fontSize: 11 });
-  const combSvg = hbarChart(sortComb(combRows(buf.comb, cls)), { width: 250, rowH: 19, labelW: 52, groupW: 54, fontSize: 9.5 });
-  const pot = await svgToPng(potSvg, 2.5), comb = await svgToPng(combSvg, 2.5);
+  const pair = lhChartPair(buf, cls, 250, { combRowH: 19, fontSize: 9.5 });   // même hauteur
+  const pot = await svgToPng(pair.pot, 2.5), comb = await svgToPng(pair.comb, 2.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
   doc.text(pdfTxt("Potentiel d'intensité et de propagation"), x + 12, gy + 6);
   doc.text(pdfTxt('Superficie des combustibles'), x + 18 + cw, gy + 6);

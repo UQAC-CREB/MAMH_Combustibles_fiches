@@ -201,13 +201,7 @@
           <span class="box-tools">
             <button class="btn secondary btn-xs" id="btn-big-mrc" title="Agrandir la fiche régionale">⤢ Agrandir</button>
             <label class="toggle-line" title="Échelle logarithmique pour les superficies"><input type="checkbox" id="chk-log" checked> log</label>
-            <span class="has-tip" style="position:relative" tabindex="0"><button class="icon-btn">?</button>
-              <span class="tooltip-info" style="left:auto;right:0;width:300px">
-                <b>Occurrences et causes des feux</b> : nombre annuel de départs de feux (points d'origine 1972-2024) selon la cause, humaine ou foudre. Axe de droite : taux d'occurrence pour 100 000 ha de combustibles.<br><br>
-                <b>Superficies brûlées</b> : superficie annuelle brûlée (contours de feux). Axe de droite : pourcentage de la superficie combustible du territoire.<br><br>
-                Trait pointillé : moyenne des années avec feux ; bande grise : ± 1 écart-type.<br><br>
-                <b>Séries longues</b> : les feux anciens (1887-1975) ne sont validés que dans les zones de régime de feux ; ils ne sont comptés que dans ces zones.
-              </span></span>
+            <button class="btn secondary btn-xs" data-legend="mrc" title="Légende et explication">📋 Légende</button>
           </span>
         </div>
         <div id="mrc-content" class="box-body"><div class="placeholder">Choisissez une MRC ou définissez une zone pour afficher l'historique des feux.</div></div>
@@ -218,12 +212,7 @@
         <div class="box-title"><span class="box-toggle" title="Replier / déplier"><span class="chev">▾</span> INFO-COMMUNAUTÉ</span>
           <span class="box-tools">
           <button class="btn secondary btn-xs" id="btn-big-lh" title="Agrandir la fiche communauté">⤢ Agrandir</button>
-          <span class="has-tip" style="position:relative" tabindex="0"><button class="icon-btn">?</button>
-            <span class="tooltip-info" style="left:auto;right:0;width:300px">
-              <b>Potentiel d'intensité et de propagation</b> (MRNF 2025-2026) : part de la zone tampon selon le potentiel de comportement du feu (faible à extrême). Il mesure la gravité potentielle <u>s'il y a ignition</u>, et non la probabilité d'un feu.<br><br>
-              <b>Superficie des combustibles</b> (MRNF 2025) : types de combustibles selon la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br><br>
-              Pourcentages calculés sur la superficie terrestre et aquatique de la zone tampon (pixels de 25 m), au Québec seulement : les portions hors Québec (autres provinces, États-Unis) sont exclues, et les plans d'eau hors de la couche MRNF sont comptés comme « Eau ».
-            </span></span>
+          <button class="btn secondary btn-xs" data-legend="lh" title="Légende et explication">📋 Légende</button>
           </span>
         </div>
         <div id="lh-content" class="box-body"><div class="placeholder">Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.</div></div>
@@ -320,9 +309,69 @@
   <div class="modal-box" style="width:min(96vw,1250px);max-height:94vh">
     <div class="modal-head">
       <h2 id="fiche-title">Fiche</h2>
-      <button class="modal-close" data-close>✕</button>
+      <span style="display:flex;gap:10px;align-items:center">
+        <button class="btn btn-legend" id="fiche-legend">📋 Légende et explication</button>
+        <button class="modal-close" data-close>✕</button>
+      </span>
     </div>
     <div class="modal-body" id="fiche-body"></div>
+  </div>
+</div>
+
+<!-- ═══ Légende — fiche régionale (INFO-MRC) ═══ -->
+<div id="modal-leg-mrc" class="modal modal-top">
+  <div class="modal-box" style="width:min(92vw,640px)">
+    <div class="modal-head"><h2>Légende — Fiche régionale</h2><button class="modal-close" data-close-self>✕</button></div>
+    <div class="modal-body leg-body">
+      <div class="leg-block">
+        <div class="leg-sub">Graphique « Occurrences et causes des feux »</div>
+        <p>Ce graphique illustre l'évolution annuelle de la fréquence des départs de feux (points d'origine, 1972-2024), en distinguant les causes anthropiques (<span class="sw-inline" style="background:#56B4E9"></span>humain) des causes naturelles (<span class="sw-inline" style="background:#E69F00"></span>foudre).</p>
+        <p>L'axe de droite exprime le <b>taux d'occurrence</b> : nombre de feux pour 100 000 ha de combustibles du territoire.</p>
+      </div>
+      <div class="leg-block">
+        <div class="leg-sub">Graphique « Superficies brûlées annuellement »</div>
+        <p>Ce graphique présente les superficies brûlées annuellement (contours des feux de forêt). L'échelle logarithmique (case « log ») permet de comparer les petites et les très grandes années de feux ; décochez-la pour une échelle linéaire.</p>
+        <p>L'axe de droite exprime la superficie brûlée en <b>pourcentage de la superficie combustible</b> du territoire.</p>
+      </div>
+      <div class="leg-block">
+        <div class="leg-sub">Moyenne et écart-type</div>
+        <p><span class="sw-inline band"></span>Le trait pointillé indique la moyenne des années avec feux ; la bande grise couvre ± 1 écart-type autour de cette moyenne.</p>
+      </div>
+      <div class="leg-block">
+        <div class="leg-sub">Séries longues (1887-1975)</div>
+        <p>Les feux anciens n'ont été validés que dans les <b>zones de régime de feux</b>. Ils ne sont donc comptés que dans ces zones : les territoires qui s'y trouvent présentent une « série longue », les autres une série à partir de 1972 (points d'origine) et 1976 (contours de feux).</p>
+      </div>
+      <div class="leg-block">
+        <div class="leg-sub">Indice de prédisposition</div>
+        <p>Indice standardisé de 0 à 1 (pixels de 5 km). Pour une MRC ou une zone, la moyenne et l'écart-type des pixels du territoire sont indiqués. La prédisposition reflète la probabilité à long terme qu'un milieu habité soit menacé ou atteint par un feu de forêt ; elle ne doit pas être confondue avec le danger d'incendie quotidien.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Légende — fiche communauté (INFO-COMMUNAUTÉ) ═══ -->
+<div id="modal-leg-lh" class="modal modal-top">
+  <div class="modal-box" style="width:min(94vw,920px)">
+    <div class="modal-head"><h2>Légende — Fiche communauté</h2><button class="modal-close" data-close-self>✕</button></div>
+    <div class="modal-body leg-body leg-grid">
+      <div>
+        <div class="leg-col-title">Combustibles MRNF 2025</div>
+        <p class="leg-intro">Ce graphique représente les différents types de combustibles végétaux présents dans la zone tampon (1 à 50 km, 25 km par défaut) autour du lieu habité. Chaque type de combustible présente une structure et une composition différentes, qui influencent grandement le potentiel d'intensité et de propagation des feux de forêt. Ces données sont issues de la Méthode canadienne de prévision du comportement des incendies de forêt (MCPCI).<br>
+          <a href="https://ressources-naturelles.canada.ca" target="_blank" rel="noopener">→ Combustibles MCPCI (ressources-naturelles.canada.ca)</a></p>
+        <div id="leg-comb-list"></div>
+      </div>
+      <div>
+        <div class="leg-col-title">Potentiel d'intensité et de propagation MRNF 2025</div>
+        <p class="leg-intro">Ce graphique fournit de l'information sur le potentiel d'intensité et de propagation du feu (faible à extrême) et sa superficie relative dans la zone tampon. Le pourcentage indiqué mesure la gravité potentielle et non la probabilité réelle d'ignition ou de propagation du feu.<br><br>
+          Par exemple : si la classe « Élevé » a une valeur de 22 %, cela signifie que 22 % de la zone tampon peut mener à un taux de propagation et d'intensité du feu élevé SEULEMENT s'il y a ignition.<br>
+          <a href="https://www.donneesquebec.ca/recherche/dataset/potentiel-d-intensite-et-de-propagation-des-feux-de-foret" target="_blank" rel="noopener">→ Potentiel d'intensité (donneesquebec.ca)</a></p>
+        <div id="leg-pot-list"></div>
+        <div class="leg-col-title" style="margin-top:16px">Lecture des deux graphiques</div>
+        <p class="leg-intro">Les deux graphiques ont volontairement la même hauteur : les classes de potentiel s'alignent grossièrement sur les groupes de combustibles correspondants (par exemple, les résineux et les mixtes vis-à-vis des potentiels élevés). Cette correspondance est approximative et sert à faciliter la lecture.</p>
+        <div class="leg-col-title" style="margin-top:16px">Superficie analysée</div>
+        <p class="leg-intro">Les pourcentages sont calculés sur la superficie de la zone tampon située au Québec (pixels de 25 m). Les portions hors Québec (autres provinces, États-Unis) sont exclues ; les plans d'eau situés hors de la couche MRNF (fleuve, golfe, baies) sont comptés comme « Eau » et « Absence combustible ».</p>
+      </div>
+    </div>
   </div>
 </div>
 
