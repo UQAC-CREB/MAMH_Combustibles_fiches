@@ -8,6 +8,7 @@ import { unitSeries, zoneSeries, bufferStats, geomToLccPolys, makeContains, inde
 import { occChart, supChart, hbarChart, bindChartTips, fmtInt, fmtHa, fmtPct } from './charts.js';
 import { Combo, norm } from './combobox.js';
 import { openReportDialog } from './report.js';
+import { RasterPicker } from './rasterpick.js';
 
 const $ = (id) => document.getElementById(id);
 const EMPTY = { type: 'FeatureCollection', features: [] };
@@ -169,39 +170,77 @@ function addLayers() {
 function bindMapEvents() {
   const map = S.map, tt = $('map-tooltip');
   const layers = ['lh-circle', 'pts', 'feux-fill', 'units-fill'];
-  const show = (html, e) => {
-    tt.innerHTML = html; tt.style.display = 'block';
+  const pickers = { comb: new RasterPicker(TILES.comb), pot: new RasterPicker(TILES.pot) };
+  const combByV = new Map(S.core.classes.comb.map(c => [c.v, c]));
+  const potByV = new Map(S.core.classes.pot.map(c => [c.v, c]));
+  const sw = (hex) => `<i class="tt-sw" style="background:${hex}"></i>`;
+  let token = 0;
+
+  const place = (pt) => {
     const r = $('map').getBoundingClientRect();
-    let x = e.point.x + 14, y = e.point.y + 14;
-    if (x + tt.offsetWidth > r.width - 6) x = e.point.x - tt.offsetWidth - 14;
-    if (y + tt.offsetHeight > r.height - 6) y = e.point.y - tt.offsetHeight - 14;
+    let x = pt.x + 14, y = pt.y + 14;
+    if (x + tt.offsetWidth > r.width - 6) x = pt.x - tt.offsetWidth - 14;
+    if (y + tt.offsetHeight > r.height - 6) y = pt.y - tt.offsetHeight - 14;
     tt.style.left = `${x}px`; tt.style.top = `${y}px`;
   };
-  map.on('mousemove', (e) => {
-    if (drawing) return;
-    const feats = map.queryRenderedFeatures(e.point, { layers: layers.filter(l => map.getLayer(l) && map.getLayoutProperty(l, 'visibility') !== 'none') });
-    const f = feats[0];
-    if (!f && $('ly-indice').checked) {
-      const v = indexAt(S.core, e.lngLat.lng, e.lngLat.lat);
-      if (v != null) { show(`Indice : ${fmtIdx(v)}<div class="tt-sub">pixel de 5 km</div>`, e); return; }
-    }
-    map.getCanvas().style.cursor = f && (f.layer.id === 'lh-circle' || (f.layer.id === 'units-fill' && S.mode === 'mrc')) ? 'pointer' : '';
-    if (!f) { tt.style.display = 'none'; return; }
+
+  /** Élément vectoriel survolé (titre + sous-titre). */
+  function featureHTML(f, feats) {
+    if (!f) return '';
     const p = f.properties;
     if (f.layer.id === 'lh-circle') {
       const r = S.core.lh[p.idx];
-      show(`${lhName(r)}<div class="tt-sub">${lhSub(r) || ''}</div>`, e);
-    } else if (f.layer.id === 'pts') {
-      const d = p.j ? `${String(p.j % 100).padStart(2, '0')}/${String(Math.floor(p.j / 100)).padStart(2, '0')}/${p.an}` : p.an;
-      show(`Départ de feu — ${d}<div class="tt-sub">Cause : ${p.c ? 'foudre' : 'humaine'} · ${fmtHa(p.ha)} ha</div>`, e);
-    } else if (f.layer.id === 'feux-fill') {
-      const n = feats.filter(x => x.layer.id === 'feux-fill');
-      const list = n.slice(0, 4).map(x => `${x.properties.an} : ${fmtHa(x.properties.ha)} ha`).join('<br>');
-      show(`Feu${n.length > 1 ? 'x' : ''} de forêt<div class="tt-sub">${list}${n.length > 4 ? '<br>…' : ''}</div>`, e);
-    } else {
-      const v = $('ly-indice').checked ? indexAt(S.core, e.lngLat.lng, e.lngLat.lat) : null;
-      show(`${p.nom}<div class="tt-sub">${v != null ? `Indice (pixel 5 km) : <b>${fmtIdx(v)}</b><br>` : ''}Indice moyen de la MRC : ${fmtIdx(p.im)} ± ${fmtIdx(p.isd)}</div>`, e);
+      return `${lhName(r)}<div class="tt-sub">${lhSub(r) || ''}</div>`;
     }
+    if (f.layer.id === 'pts') {
+      const d = p.j ? `${String(p.j % 100).padStart(2, '0')}/${String(Math.floor(p.j / 100)).padStart(2, '0')}/${p.an}` : p.an;
+      return `Départ de feu — ${d}<div class="tt-sub">Cause : ${p.c ? 'foudre' : 'humaine'}</div>`;
+    }
+    if (f.layer.id === 'feux-fill') {
+      // un feu peut compter plusieurs polygones : on n'affiche que l'année
+      const years = [...new Set(feats.filter(x => x.layer.id === 'feux-fill').map(x => x.properties.an))].sort((a, b) => b - a);
+      return `Feu de forêt — ${years.slice(0, 5).join(', ')}${years.length > 5 ? '…' : ''}`;
+    }
+    return `${p.nom}<div class="tt-sub">Indice moyen de la MRC : ${fmtIdx(p.im)} ± ${fmtIdx(p.isd)}</div>`;
+  }
+
+  map.on('mousemove', async (e) => {
+    if (drawing) return;
+    const my = ++token;
+    const feats = map.queryRenderedFeatures(e.point, { layers: layers.filter(l => map.getLayer(l) && map.getLayoutProperty(l, 'visibility') !== 'none') });
+    const f = feats[0];
+    map.getCanvas().style.cursor = f && (f.layer.id === 'lh-circle' || (f.layer.id === 'units-fill' && S.mode === 'mrc')) ? 'pointer' : '';
+    const { lng, lat } = e.lngLat;
+
+    // Valeurs des couches raster activées
+    const lines = [];
+    if ($('ly-indice').checked) {
+      const v = indexAt(S.core, lng, lat);
+      if (v != null) lines.push(`${sw(indexColor(v))}Indice de prédisposition : <b>${fmtIdx(v)}</b>`);
+    }
+    const head = featureHTML(f, feats);
+    const render = () => {
+      if (!head && !lines.length) { tt.style.display = 'none'; return; }
+      tt.innerHTML = head + (lines.length ? `<div class="tt-sub tt-rasters">${lines.join('<br>')}</div>` : '');
+      tt.style.display = 'block';
+      place(e.point);
+    };
+    render();
+
+    const want = ['comb', 'pot'].filter(k => $(`ly-${k}`).checked);
+    if (!want.length) return;
+    const vals = await Promise.all(want.map(k => pickers[k].valueAt(lng, lat, map.getZoom())));
+    if (my !== token) return;                      // le curseur a bougé entre-temps
+    want.forEach((k, n) => {
+      const v = vals[n];
+      if (v == null) return;
+      const c = (k === 'comb' ? combByV : potByV).get(v);
+      if (!c) return;
+      lines.push(k === 'comb'
+        ? `${sw(c.hex)}Combustible : <b>${c.abb}</b>${c.lbl !== c.abb ? ` — ${c.lbl}` : ""}`
+        : `${sw(c.hex)}Potentiel d’intensité et de propagation : <b>${c.lbl}</b>`);
+    });
+    render();
   });
   map.on('mouseout', () => { tt.style.display = 'none'; });
   map.on('click', (e) => {
