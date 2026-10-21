@@ -12,14 +12,15 @@ export const TILES = {
   feux: `${TILES_BASE}/feux.fgb`,
 };
 
-export const DATA_VERSION = '20261020b';
+export const DATA_VERSION = '20261021';
 export const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 export const QC_BOUNDS = [[-79.8, 44.9], [-57.0, 62.6]];
 
 // NAD83 / Québec Lambert (EPSG:32198)
 export const PROJ_LCC = '+proj=lcc +lat_1=60 +lat_2=46 +lat_0=44 +lon_0=-68.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs';
 
-export const YEAR_END = 2024;
+export const YEAR_END = 2025;       // dernière année des contours de feux (MAJ2026)
+export const PT_YEAR_END = 2024;    // dernière année des points d'origine (occurrences)
 export const BUFFER_DEFAULT = 25;
 export const BUFFER_MAX = 50;
 export const FIRE_MIN_ZOOM = 6.5;     // zoom à partir duquel les contours de feux sont chargés
@@ -37,5 +38,5 @@ export const COLORS = { humain: '#56B4E9', foudre: '#E69F00', burn: '#8b0000', l
 // Rampe de couleurs des contours de feux selon l'année
 export const FIRE_RAMP = [
   [1887, '#5b3a8c'], [1940, '#7b5fb0'], [1975, '#a68bd0'],
-  [1976, '#2c7fb8'], [1990, '#41b6c4'], [2005, '#fdae61'], [2015, '#f46d43'], [2024, '#a50026'],
+  [1976, '#2c7fb8'], [1990, '#41b6c4'], [2005, '#fdae61'], [2015, '#f46d43'], [2025, '#a50026'],
 ];

@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
     pt = gpd.read_file(PT_ORI_SHP)
     pt["ANNEE"] = pd.to_numeric(pt.ANNEE, errors="coerce")
-    pt = pt[pt.ANNEE.between(1972, YEAR_END)].to_crs(CRS_LCC)
+    pt = pt[pt.ANNEE.between(1972, PT_YEAR_END)].to_crs(CRS_LCC)
     pt["c"] = np.where(pt.CAUSE.str.startswith("Foudre"), 1, 0)
     pj = gpd.sjoin(pt[["ANNEE", "c", "geometry"]], units[["MRC_IDm", "geometry"]], predicate="within")
     occ = pj.groupby(["MRC_IDm", "ANNEE", "c"]).size()

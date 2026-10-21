@@ -31,14 +31,15 @@ UNITS_SHP = r"C:/0_Projet/MAMH_prediposition_feux/3_Analyse_carto/20260514_MAMH_
 V1_MRC_GEOJSON = WEB / "data" / "mrc_s.geojson"
 V1_LH_GEOJSON = WEB / "data" / "lh_p.geojson"
 
-FEUX_GDB = r"C:/1_Data/Geomatique/Feux/Original/MAJ2025/FEUX_PROV.gdb"
+FEUX_GDB = r"C:/1_Data/Geomatique/Feux/Original/MAJ2026/FEUX_PROV.gdb"           # contours 1976-2025
 FEUX_ANC_GDB = r"C:/1_Data/Geomatique/Feux/Original_ancien/FEUX_ANCIENS_PROV.gdb"
-PT_ORI_SHP = r"C:/1_Data/Geomatique/Feux/Original/MAJ2025/Feux_pt_ori_SHP/FEUX_PT_ORI_1972_2024.shp"
+PT_ORI_SHP = r"C:/1_Data/Geomatique/Feux/Original/MAJ2026/FEUX_PT_ORI_1972_2024.shp"  # identique à MAJ2025 (pas encore de 2025)
 REGIME_GDB = r"C:/1_Data/Geomatique/Feux/Regime_feux/REGIME_FEUX/REGIME_FEUX.gdb"
 
 # ── Constantes ──────────────────────────────────────────────────────────────
 CRS_LCC = "EPSG:32198"   # NAD83 / Québec Lambert
-YEAR_END = 2024
+YEAR_END = 2025          # dernière année des contours de feux (superficies brûlées)
+PT_YEAR_END = 2024       # dernière année des points d'origine (occurrences)
 YEAR0 = 1880             # origine des années encodées sur 1 octet
 GRID_RES = 1000          # grille de statistiques (m)
 RING_KM = 50             # rayon max. des zones tampons communautés

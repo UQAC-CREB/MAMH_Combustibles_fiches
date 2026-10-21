@@ -1,6 +1,6 @@
 // MAMH — Prédisposition des communautés aux feux de forêt — application v2
 import {
-  TILES, BASEMAP, QC_BOUNDS, PROJ_LCC, YEAR_END, BUFFER_DEFAULT, BUFFER_MAX,
+  TILES, BASEMAP, QC_BOUNDS, PROJ_LCC, YEAR_END, PT_YEAR_END, BUFFER_DEFAULT, BUFFER_MAX,
   FIRE_MIN_ZOOM, INDEX_PALETTE, INDEX_MAX, COLORS, FIRE_RAMP, DATA_VERSION,
 } from './config.js';
 import { loadCore, loadPoints } from './data.js';
@@ -339,7 +339,10 @@ function periodFilter() {
 function buildPeriods() {
   const sel = $('sel-periode'), cur = sel.value;
   const opts = [['', t('period.all')], [`1976-${YEAR_END}`, t('period.recent', { y: YEAR_END })], ['1880-1975', t('period.old')]];
-  for (let a = 2020; a >= 1885; a -= 5) opts.push([`${a}-${Math.min(a + 4, YEAR_END)}`, `${a}-${Math.min(a + 4, YEAR_END)}`]);
+  for (let a = YEAR_END - (YEAR_END - 1885) % 5; a >= 1885; a -= 5) {
+    const b = Math.min(a + 4, YEAR_END);
+    opts.push([`${a}-${b}`, a === b ? `${a}` : `${a}-${b}`]);
+  }
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
   sel.value = cur || '';
 }
@@ -619,7 +622,7 @@ function mrcHTML(w, big = false) {
     <div style="margin-top:4px;font-family:'Oswald',sans-serif;font-size:${big ? 19 : 15}px;color:var(--accent)">${S.terrName}</div>
     <div class="stat-line"><span class="badge ${long ? 'long' : ''}" title="${t(long ? 'mrc.longTitle' : 'mrc.shortTitle')}">${t(long ? 'mrc.long' : 'mrc.short')} · ${period}</span>
       <span>${t('mrc.fuel', { v: fmtInt(s.fuelHa) })}</span>${big ? idx : ''}</div>
-    <div class="stat-line"><span>${t('mrc.fires', { y: YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })}</span>
+    <div class="stat-line"><span>${t('mrc.fires', { y: PT_YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })}</span>
       <span>${t('mrc.burned', { v: fmtInt(s.totSup) })}</span></div>
     ${regNote}
     <div class="chart-title">${t('chart.occ')}</div>

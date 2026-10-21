@@ -36,7 +36,7 @@ Les **feux anciens (1887-1975)** n'ont été validés que dans les **zones de r�
 
 - **MRC** : les unités territoriales de `MRC_MAJ_20260604.shp` (MRC subdivisées selon les régimes, suffixe `A` = dans un régime) affichent la série longue lorsqu'elles sont majoritairement dans un régime ; sinon la série commence en 1976.
 - **Zone libre** : dès que la zone touche un régime, la série longue est affichée ; les feux anciens n'y sont comptés que dans la portion en régime (une note l'indique).
-- Les occurrences (points d'origine) couvrent 1972-2024.
+- Les occurrences (points d'origine) couvrent 1972-2024 ; les contours de feux récents, 1976-2025 (MAJ2026 : le fichier des points n'inclut pas encore 2025).
 
 ---
 
@@ -93,7 +93,7 @@ Si seuls les découpages ou l'indice changent : `build_units.py` puis `build_ras
 | Combustibles 2025 (25 m) | `C:\1_Data\Geomatique\Combustible\Quebec\MRNF\Combustibles2025_combFBP_25m.tif` |
 | Potentiel I/P 2025-26 | `...\Potentiel_Intensite_Propagation_Feux\Couche globale\Potentiel_IP_25-26.tif` |
 | LUT | `C:\1_Data\Geomatique\Combustible\Quebec\_LUT` |
-| Feux récents / points d'origine | `C:\1_Data\Geomatique\Feux\Original\MAJ2025\` |
+| Feux récents / points d'origine | `C:\1_Data\Geomatique\Feux\Original\MAJ2026\` |
 | Feux anciens | `C:\1_Data\Geomatique\Feux\Original_ancien\FEUX_ANCIENS_PROV.gdb` |
 | Régime de feux | `C:\1_Data\Geomatique\Feux\Regime_feux\REGIME_FEUX\REGIME_FEUX.gdb` |
 | Unités MRC (subdivisions régime) | `3_Analyse_carto\20260514_MAMH_feux\shp\MRC_MAJ_20260604.shp` |

@@ -11,6 +11,8 @@ Sorties :
 
 Les unités MRC, les lieux habités et les statistiques par unité : build_units.py.
 
+Contours récents : 1976-2025 (MAJ2026) ; points d'origine : 1972-2024 (pas encore de 2025).
+
 Règle « séries longues » : les feux anciens (1887-1975) ne sont comptés que dans
 les zones de régime de feux (REGIME_FEUX.gdb / ZONES_FEUX), seules zones où ils
 ont été validés. Les feux récents (1976+) sont comptés partout.
@@ -57,7 +59,7 @@ reg_out.to_file(OUT / "regime.geojson", driver="GeoJSON", COORDINATE_PRECISION=4
 log("Points d'origine")
 pt = gpd.read_file(PT_ORI_SHP)
 pt["ANNEE"] = pd.to_numeric(pt.ANNEE, errors="coerce")
-pt = pt[pt.ANNEE.between(1972, YEAR_END)]
+pt = pt[pt.ANNEE.between(1972, PT_YEAR_END)]
 pt_ll = pt.to_crs(4326)
 date = pd.to_datetime(pt.DATE_DEBUT, errors="coerce")
 cause = np.where(pt.CAUSE.str.startswith("Foudre"), 1, 0)   # 0 = Humain, 1 = Foudre

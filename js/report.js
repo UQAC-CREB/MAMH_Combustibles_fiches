@@ -1,5 +1,5 @@
 // Rapport PDF généré dans le navigateur (jsPDF) — fiche territoire + fiches communautés
-import { YEAR_END, COLORS, BASEMAP } from './config.js';
+import { YEAR_END, PT_YEAR_END, COLORS, BASEMAP } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';
 import { loadProvince } from './data.js';
@@ -336,7 +336,7 @@ async function territoryPage(doc, mapImg) {
   }
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
   ty += 8;
-  doc.text(pdfTxt(t('pdf.fires', { y: YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })), x + 14, ty); ty += 11;
+  doc.text(pdfTxt(t('pdf.fires', { y: PT_YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })), x + 14, ty); ty += 11;
   doc.text(pdfTxt(t('pdf.burned', { a: s.y0, b: YEAR_END, v: fmtInt(s.totSup) })), x + 14, ty); ty += 11;
   doc.text(pdfTxt(t('pdf.fuel', { v: fmtInt(s.fuelHa) })), x + 14, ty);
   // Carte
