@@ -3,8 +3,11 @@
 build_units.py — Unités territoriales (MRC), lieux habités et statistiques par unité
 
 Sorties (data/) :
-  units.geojson     unités MRC découpées au trait de côte (parties terrestres seulement),
-                    indice de prédisposition standardisé : moyenne (im) et écart-type (isd)
+  units.geojson     MRC d'origine découpées au trait de côte (parties terrestres seulement) ;
+                    une MRC aux parties non contiguës est scindée (Eeyou Istchee : une unité par
+                    communauté crie ; Caniapiscau : secteurs Fermont et Schefferville) ;
+                    indice de prédisposition standardisé : moyenne (im) et écart-type (isd) ;
+                    lr = série longue (contours de feux anciens 1887-1975 présents dans l'unité)
   lh.json           lieux habités (+ toponymes autochtones, brouillon) et leur unité
   unit_stats.json   occurrences / superficies brûlées par unité et par année (exact)
   indice.bin.gz     grille de l'indice (Float32, 5 km, EPSG:32198) : infobulle + statistiques des zones
@@ -35,11 +38,11 @@ def write_json(name, obj):
         json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
     log(f"  → {name} ({p.stat().st_size/1024:.0f} Ko)")
 
-FEUX_CACHE = WORK / "_feux_lcc.gpkg"
+FEUX_CACHE = WORK / "_feux_lcc_v3.gpkg"     # feux anciens non découpés (sans zones de régime)
 
 
-def load_fires(regime_union):
-    """Feux récents (1976+) + anciens (< 1976) découpés aux zones de régime."""
+def load_fires():
+    """Feux récents (1976+) + anciens (< 1976), tels que disponibles."""
     if FEUX_CACHE.exists():
         return gpd.read_file(FEUX_CACHE)
     fr = pyogrio.read_dataframe(FEUX_GDB, layer="FEUX_PROV", columns=["EXERCICE", "SUPERFICIE"])
@@ -49,7 +52,6 @@ def load_fires(regime_union):
     fa = pyogrio.read_dataframe(FEUX_ANC_GDB, layer="FEUX_ANCIENS_PROV", columns=["EXERCICE", "SUPERFICIE"])
     fa["EXERCICE"] = pd.to_numeric(fa.EXERCICE, errors="coerce")
     fa = fa[fa.EXERCICE < 1976]
-    fa["geometry"] = shapely.intersection(shapely.make_valid(fa.geometry.values), regime_union)
     fa["t"] = 1
     feux = gpd.GeoDataFrame(pd.concat([fr, fa], ignore_index=True), geometry="geometry", crs=CRS_LCC)
     feux["geometry"] = shapely.make_valid(feux.geometry.values)
@@ -104,33 +106,84 @@ def export_province():
     log(f"  → province.geojson ({p.stat().st_size/1024:.0f} Ko, {len(parts)} parties)")
 
 
+def split_groups(geom, lh):
+    """Parties d'une MRC regroupées par proximité (< SPLIT_TOL). Un groupe sans communauté
+    (miette, TNO isolé) est rattaché au groupe le plus proche : chaque secteur entoure une communauté."""
+    parts = [p for p in getattr(geom, "geoms", [geom]) if p.geom_type == "Polygon"]
+    if len(parts) == 1:
+        return [geom]
+    hull = shapely.union_all([p.buffer(SPLIT_TOL / 2) for p in parts])
+    groups = [shapely.union_all([p for p in parts if h.intersects(p)]) for h in getattr(hull, "geoms", [hull])]
+    big = [g for g in groups if (lh.distance(g) < LH_NEAR).any()] or [max(groups, key=lambda g: g.area)]
+    for g in groups:
+        if not any(g is b for b in big):
+            k = int(np.argmin([b.distance(g) for b in big]))
+            big[k] = shapely.union_all([big[k], g])
+    return sorted(big, key=lambda g: -g.area)
+
+
+# MRC au libellé provisoire dans le découpage officiel
+MRC_NAME_FIX = {"993": "Eeyou Istchee"}
+# Communautés qui nomment de préférence un secteur de MRC scindée (sinon : la plus proche du plus grand morceau)
+SECTOR_PREF = {"Fermont", "Schefferville"}
+
+
+def build_unit_geoms(shore, lh):
+    """MRC d'origine (mrc_s, lecture seule) → unités terrestres.
+    La contiguïté est évaluée AVANT le découpage au trait de côte : dans mrc_s, la mer relie les îles
+    (Anticosti, Îles-de-la-Madeleine…) à leur MRC ; seules les MRC réellement morcelées sont scindées."""
+    mrc = gpd.read_file(MRC_SHP).to_crs(CRS_LCC)
+    mrc["geometry"] = shapely.make_valid(mrc.geometry.values)
+    mrc = mrc.dissolve(by="MRS_CO_MRC", aggfunc="first", as_index=False)
+    rows = []
+    for r in mrc.itertuples():
+        name = MRC_NAME_FIX.get(r.MRS_CO_MRC, r.MRS_NM_MRC.strip())
+        groups = split_groups(r.geometry, lh)
+        for k, g in enumerate(groups):
+            land = shapely.intersection(g, shore)
+            land = shapely.union_all([p for p in getattr(land, "geoms", [land])
+                                      if p.geom_type == "Polygon" and p.area > 1e4])
+            if land.is_empty:
+                continue
+            nom, sect = name, None
+            if len(groups) > 1:
+                near = lh[lh.distance(g) < SPLIT_TOL]
+                pref = near[near.nomcartrou.isin(SECTOR_PREF)]
+                if len(pref):
+                    sect = pref.nomcartrou.iloc[0]
+                else:
+                    core = max(getattr(g, "geoms", [g]), key=lambda p: p.area)
+                    sect = lh.nomcartrou.iloc[int(np.argmin(lh.distance(core).values))]
+                nom = f"{name} — {sect}"
+            rows.append({"MRC_IDm": f"MRC_{r.MRS_CO_MRC}" + (f"_{k + 1}" if len(groups) > 1 else ""),
+                         "MOD_NM_MRC": nom, "MRS_NM_MRC": name, "split": len(groups) > 1, "sect": sect,
+                         "geometry": land})
+    return gpd.GeoDataFrame(rows, geometry="geometry", crs=CRS_LCC)
+
+
+def write_units(units):
+    u_out = units[["uid", "MRC_IDm", "MOD_NM_MRC", "MRS_NM_MRC", "IM", "ISD", "IN", "LR", "AREA_HA", "geometry"]].copy()
+    u_out.columns = ["uid", "id", "nom", "mrc", "im", "isd", "in", "lr", "ha", "geometry"]
+    u_out["geometry"] = u_out.geometry.simplify(150, preserve_topology=True)
+    u_out = u_out.to_crs(4326)
+    (OUT / "units.geojson").unlink(missing_ok=True)
+    u_out.to_file(OUT / "units.geojson", driver="GeoJSON", COORDINATE_PRECISION=4)
+    log(f"  → units.geojson ({(OUT/'units.geojson').stat().st_size/1024:.0f} Ko, {len(u_out)} unités, {int(u_out.lr.sum())} en série longue)")
+
+
 if __name__ == "__main__":
     export_province()
-    # ── Régime de feux ────────────────────────────────────────────────────
-    regime = pyogrio.read_dataframe(REGIME_GDB, layer="ZONES_FEUX")
-    regime = regime[regime.ZONE_ID.notna()].to_crs(CRS_LCC)
-    regime_union = shapely.union_all(shapely.make_valid(regime.geometry.values))
-
-    # ── Unités : parties terrestres seulement (trait de côte provincial) ──
-    log("Unités : découpage au trait de côte")
+    # ── Unités : MRC d'origine, parties terrestres seulement (trait de côte) ──
+    log("Unités : MRC d'origine découpées au trait de côte")
     prov = gpd.read_file(PROV_SHORE).to_crs(CRS_LCC)
     shore = shapely.make_valid(shapely.union_all(prov.geometry.values))
     shapely.prepare(shore)
-    units = gpd.read_file(UNITS_SHP).to_crs(CRS_LCC)
-    units["geometry"] = shapely.make_valid(units.geometry.values)
-    units = units.dissolve(by="MRC_IDm", aggfunc="first", as_index=False)
-    units["geometry"] = shapely.intersection(units.geometry.values, shore)
-    units = units.explode(index_parts=False)
-    units = units[units.geometry.geom_type.isin(["Polygon", "MultiPolygon"]) & (units.area > 1e4)]
-    units = units.dissolve(by="MRC_IDm", aggfunc="first", as_index=False)
-    units["MOD_NM_MRC"] = units.MOD_NM_MRC.str.strip()
-    area = units.geometry.area
-    reg_frac = shapely.area(shapely.intersection(units.geometry.values, regime_union)) / area
-    units["LR"] = reg_frac > 0.5
-    units["AREA_HA"] = (area / 1e4).round(0)
+    lh_src = gpd.read_file(V1_LH_GEOJSON).to_crs(CRS_LCC)
+    units = build_unit_geoms(shore, lh_src)
+    units["AREA_HA"] = (units.geometry.area / 1e4).round(0)
     units = units.sort_values("MRC_IDm").reset_index(drop=True)
     units["uid"] = np.arange(len(units), dtype=np.int32)
-    log(f"  {len(units)} unités terrestres, {int(units.LR.sum())} en série longue")
+    log(f"  {len(units)} unités terrestres ({int(units.split.sum())} issues de MRC scindées)")
     units[["uid", "MRC_IDm", "geometry"]].to_file(OUT.parent / "scripts" / "_units_lcc.gpkg", driver="GPKG")
 
     # ── Indice de prédisposition standardisé (5 km) ───────────────────────
@@ -160,28 +213,28 @@ if __name__ == "__main__":
 
     render_index_png(idx, itr, icrs)
 
-    u_out = units[["uid", "MRC_IDm", "MOD_NM_MRC", "MRS_NM_MRC", "IM", "ISD", "IN", "LR", "AREA_HA", "geometry"]].copy()
-    u_out.columns = ["uid", "id", "nom", "mrc", "im", "isd", "in", "lr", "ha", "geometry"]
-    u_out["geometry"] = u_out.geometry.simplify(150, preserve_topology=True)
-    u_out = u_out.to_crs(4326)
-    (OUT / "units.geojson").unlink(missing_ok=True)
-    u_out.to_file(OUT / "units.geojson", driver="GeoJSON", COORDINATE_PRECISION=4)
-    log(f"  → units.geojson ({(OUT/'units.geojson').stat().st_size/1024:.0f} Ko)")
 
     # ── Lieux habités ─────────────────────────────────────────────────────
     log("Lieux habités")
-    lh = gpd.read_file(V1_LH_GEOJSON).to_crs(CRS_LCC)
+    lh = lh_src
     src = gpd.read_file(LIEUHABITE).to_crs(CRS_LCC)[["nomcartrou", "mus_de_ind", "geometry"]]
     lh = gpd.sjoin_nearest(lh, src.rename(columns={"nomcartrou": "nom_src"}), how="left", max_distance=500)
     lh = lh[~lh.index.duplicated()].drop(columns="index_right")
     topo = pd.read_csv(OUT.parent / "scripts" / "toponymes_autochtones.csv", sep=";", dtype=str).fillna("").set_index("nomcartrou")
-    valid_ids = set(units.MRC_IDm)
     uj = gpd.sjoin(lh[["geometry"]], units[["MRC_IDm", "geometry"]], predicate="within", how="left")
     uj = uj[~uj.index.duplicated()]
     nn = gpd.sjoin_nearest(lh[["geometry"]], units[["MRC_IDm", "geometry"]], how="left")
     nn = nn[~nn.index.duplicated()]
     uj["MRC_IDm"] = uj.MRC_IDm.fillna(nn.MRC_IDm)
-    lh["unit"] = [m if m in valid_ids else s for m, s in zip(lh.MRC_IDm, uj.MRC_IDm)]
+    # secteurs scindés (Eeyou Istchee…) : la communauté qui nomme le secteur est souvent en bordure
+    # de ses terres (Waswanipi) ; les autres lieux voisins gardent leur MRC (Kuujjuarapik → Kativik)
+    sp = units[units.split]
+    dn = gpd.sjoin_nearest(lh[["nomcartrou", "geometry"]], sp[["MRC_IDm", "sect", "geometry"]], how="left", max_distance=LH_NEAR)
+    dn = dn[~dn.index.duplicated()]
+    moved = dn.MRC_IDm.notna() & (dn.MRC_IDm != uj.MRC_IDm) & (dn.nomcartrou == dn.sect)
+    uj.loc[moved, "MRC_IDm"] = dn.MRC_IDm[moved]
+    log(f"  {int(moved.sum())} lieu(x) rattaché(s) à un secteur voisin : {', '.join(lh.nomcartrou[moved])}")
+    lh["unit"] = uj.MRC_IDm
     ll = lh.to_crs(4326)
     rows = []
     for _, r in ll.iterrows():
@@ -196,10 +249,9 @@ if __name__ == "__main__":
 
     # ── Statistiques de feux par unité ────────────────────────────────────
     log("Feux (cache ou calcul)")
-    feux = load_fires(regime_union)
-    log(f"  {len(feux)} feux")
-    pairs = gpd.sjoin(feux[["an", "t", "geometry"]], units[["MRC_IDm", "LR", "geometry"]], predicate="intersects")
-    pairs = pairs[(pairs.t == 0) | pairs.LR]           # anciens : unités en régime seulement
+    feux = load_fires()
+    log(f"  {len(feux)} feux ({int((feux.t == 1).sum())} anciens)")
+    pairs = gpd.sjoin(feux[["an", "t", "geometry"]], units[["MRC_IDm", "geometry"]], predicate="intersects")
     fg = feux.geometry.values[feux.index.get_indexer(pairs.index)]
     ug = units.set_index("MRC_IDm").geometry.loc[pairs.MRC_IDm].values
     shapely.prepare(ug)
@@ -220,18 +272,26 @@ if __name__ == "__main__":
 
     stats = {}
     sup_ids = set(sup.index.get_level_values(0))
+    long_ids = set()
     for _, u in units.iterrows():
         uid = u.MRC_IDm
         s = sup.loc[uid] if uid in sup_ids else pd.Series(dtype=float)
-        # Début de série : points d'origine dès 1972 ; feux anciens (régimes) avant
-        y0 = min(int(s.index.min()), 1972) if (u.LR and len(s)) else 1972
+        s = s[s > 0]
+        # Série longue si des contours de feux anciens (< 1976) existent dans l'unité ;
+        # sinon la série débute avec les points d'origine (1972).
+        y0 = min(int(s.index.min()), 1972) if len(s) else 1972
+        if y0 < 1972: long_ids.add(uid)
         years = range(y0, YEAR_END + 1)
         stats[uid] = {"y0": y0,
                       "sup": [round(float(s.get(y, 0.0)), 1) for y in years],
                       "h": [int(occ.get((uid, y, 0), 0)) for y in years],
                       "f": [int(occ.get((uid, y, 1), 0)) for y in years]}
     write_json("unit_stats.json", stats)
-    c = stats.get("MRC_93A")
+    c = stats.get("MRC_93")
     if c:
-        log(f"  contrôle MRC_93A : y0={c['y0']}, sup1918={c['sup'][1918-c['y0']]:.0f} ha, feux1987={c['h'][1987-c['y0']]+c['f'][1987-c['y0']]}")
+        log(f"  contrôle MRC_93 : y0={c['y0']}, sup1918={c['sup'][1918-c['y0']]:.0f} ha, feux1987={c['h'][1987-c['y0']]+c['f'][1987-c['y0']]}")
+
+    # ── units.geojson (après les statistiques : lr = série longue) ────────
+    units["LR"] = units.MRC_IDm.isin(long_ids)
+    write_units(units)
     log("Terminé.")

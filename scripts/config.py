@@ -26,7 +26,8 @@ LUT_COMB = r"C:/1_Data/Geomatique/Combustible/Quebec/_LUT/LUT_FBP_FUELTYPE_mrnf.
 LUT_POT = r"C:/1_Data/Geomatique/Combustible/Quebec/_LUT/MunicID_propag_class_lut.csv"
 
 LIEUHABITE = r"C:/1_Data/Geomatique/Territoire_limite/Villes/lieuhabite.shp"
-UNITS_SHP = r"C:/0_Projet/MAMH_prediposition_feux/3_Analyse_carto/20260514_MAMH_feux/shp/MRC_MAJ_20260604.shp"
+# MRC d'origine (SDA 20k) — source en lecture seule : ne jamais modifier les fichiers de C:/1_Data
+MRC_SHP = r"C:/1_Data/Geomatique/Territoire_limite/Region_administrative/mrc_s.shp"
 # Indice EXPO / RANG (v1) : 107 unités ; les unités absentes reçoivent EXPO = 0
 V1_MRC_GEOJSON = WEB / "data" / "mrc_s.geojson"
 V1_LH_GEOJSON = WEB / "data" / "lh_p.geojson"
@@ -34,7 +35,6 @@ V1_LH_GEOJSON = WEB / "data" / "lh_p.geojson"
 FEUX_GDB = r"C:/1_Data/Geomatique/Feux/Original/MAJ2026/FEUX_PROV.gdb"           # contours 1976-2025
 FEUX_ANC_GDB = r"C:/1_Data/Geomatique/Feux/Original_ancien/FEUX_ANCIENS_PROV.gdb"
 PT_ORI_SHP = r"C:/1_Data/Geomatique/Feux/Original/MAJ2026/FEUX_PT_ORI_1972_2024.shp"  # identique à MAJ2025 (pas encore de 2025)
-REGIME_GDB = r"C:/1_Data/Geomatique/Feux/Regime_feux/REGIME_FEUX/REGIME_FEUX.gdb"
 
 # ── Constantes ──────────────────────────────────────────────────────────────
 CRS_LCC = "EPSG:32198"   # NAD83 / Québec Lambert
@@ -43,6 +43,8 @@ PT_YEAR_END = 2024       # dernière année des points d'origine (occurrences)
 YEAR0 = 1880             # origine des années encodées sur 1 octet
 GRID_RES = 1000          # grille de statistiques (m)
 RING_KM = 50             # rayon max. des zones tampons communautés
+SPLIT_TOL = 5000         # parties d'une MRC distantes de plus de 5 km → unités distinctes (ex. Eeyou Istchee)
+LH_NEAR = 2000           # une communauté à moins de 2 km d'un secteur scindé lui appartient (ex. Waswanipi)
 COMB_NODATA = 255
 POT_NODATA = 15
 # Codes combustibles « non combustibles » (exclus du dénominateur, cf. STEP2_Preparation_table_ficheMRC.R)

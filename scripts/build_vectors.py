@@ -3,19 +3,18 @@
 build_vectors.py — Données vectorielles de l'application v2 (feux)
 
 Sorties :
-  data/regime.geojson     contour des zones de régime de feux (séries longues validées)
   data/pts_origine.json   points d'origine 1972-2024 (colonnes compactes)
   tiles_v2/feux.fgb       contours de feux (FlatGeobuf indexé, lecture par emprise ; R2)
   data/grid_burn.bin.gz   superficies brûlées par cellule 1 km et par année (zones libres)
-  ../work_v2/_feux_lcc.gpkg  cache des feux préparés (utilisé par build_units.py)
+  ../work_v2/_feux_lcc_v3.gpkg  cache des feux préparés (utilisé par build_units.py)
 
 Les unités MRC, les lieux habités et les statistiques par unité : build_units.py.
 
 Contours récents : 1976-2025 (MAJ2026) ; points d'origine : 1972-2024 (pas encore de 2025).
 
-Règle « séries longues » : les feux anciens (1887-1975) ne sont comptés que dans
-les zones de régime de feux (REGIME_FEUX.gdb / ZONES_FEUX), seules zones où ils
-ont été validés. Les feux récents (1976+) sont comptés partout.
+Séries selon les données disponibles : les feux anciens (1887-1975) sont utilisés
+tels quels (sans découpage aux zones de régime) ; un territoire qui en contient
+affiche la série longue, les autres débutent en 1972 (points d'origine).
 """
 import gzip, json, struct, time
 import numpy as np
@@ -39,21 +38,6 @@ def write_json(name, obj):
     log(f"  → {name} ({p.stat().st_size/1024:.0f} Ko)")
 
 # ════════════════════════════════════════════════════════════════════════════
-# 1. Régime de feux
-# ════════════════════════════════════════════════════════════════════════════
-log("Régime de feux")
-regime = pyogrio.read_dataframe(REGIME_GDB, layer="ZONES_FEUX")
-regime = regime[regime.ZONE_ID.notna()].to_crs(CRS_LCC)
-regime["geometry"] = shapely.make_valid(regime.geometry.values)
-regime_union = shapely.union_all(regime.geometry.values)
-
-reg_out = regime[["ZONE_ID", "CYCLE_FEU", "geometry"]].copy()
-reg_out["geometry"] = reg_out.geometry.simplify(250)
-reg_out = reg_out.to_crs(4326)
-reg_out.to_file(OUT / "regime.geojson", driver="GeoJSON", COORDINATE_PRECISION=4)
-
-# ════════════════════════════════════════════════════════════════════════════
-# ════════════════════════════════════════════════════════════════════════════
 # 4. Points d'origine
 # ════════════════════════════════════════════════════════════════════════════
 log("Points d'origine")
@@ -75,11 +59,11 @@ pts = {
 write_json("pts_origine.json", pts)
 
 # ════════════════════════════════════════════════════════════════════════════
-# 5. Contours de feux (récents + anciens validés)
+# 5. Contours de feux (récents + anciens)
 # ════════════════════════════════════════════════════════════════════════════
-log("Feux récents + anciens (découpés aux zones de régime)")
+log("Feux récents + anciens")
 from build_units import load_fires
-feux = load_fires(regime_union)
+feux = load_fires()
 feux["area_ha"] = feux.geometry.area / 1e4
 log(f"  {len(feux)} feux ({int((feux.t == 1).sum())} anciens)")
 

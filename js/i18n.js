@@ -116,11 +116,9 @@ const STR = {
   // INFO-MRC
   'mrc.noData': ['Aucune donnée de feux pour ce territoire.', 'No fire data for this territory.'],
   'mrc.choose': ['Choisissez une MRC ou définissez une zone pour afficher l’historique des feux.', 'Choose an RCM or define an area to display the fire history.'],
-  'mrc.regNoOld': ['Territoire situé dans une zone de régime de feux, mais aucun feu ancien (1887-1975) n’y est répertorié.', 'Territory located in a fire regime zone, but no historical fire (1887-1975) is recorded there.'],
-  'mrc.regPart': ['La zone chevauche une zone de régime de feux ({p} de sa superficie) : les feux anciens n’y sont comptés que dans cette portion.', 'The area overlaps a fire regime zone ({p} of its surface): historical fires are counted only in that portion.'],
   'mrc.long': ['Série longue', 'Long series'], 'mrc.short': ['Série courte', 'Short series'],
-  'mrc.longTitle': ['Feux anciens validés (zones de régime de feux) inclus', 'Validated historical fires (fire regime zones) included'],
-  'mrc.shortTitle': ['Points d’origine dès 1972, contours de feux dès 1976', 'Fire origins from 1972, fire perimeters from 1976'],
+  'mrc.longTitle': ['Contours de feux anciens (1887-1975) disponibles pour ce territoire', 'Historical fire perimeters (1887-1975) available for this territory'],
+  'mrc.shortTitle': ['Aucun contour de feu ancien (1887-1975) pour ce territoire : points d’origine dès 1972, contours de feux dès 1976', 'No historical fire perimeter (1887-1975) for this territory: fire origins from 1972, fire perimeters from 1976'],
   'mrc.fuel': ['Combustibles : <b>{v}</b> ha', 'Fuels: <b>{v}</b> ha'],
   'mrc.fires': ['Nombre de feux (1972-{y}) : <b>{n}</b> (humains {h} · foudre {f})', 'Number of fires (1972-{y}): <b>{n}</b> (human {h} · lightning {f})'],
   'mrc.burned': ['Brûlé : <b>{v}</b> ha', 'Burned: <b>{v}</b> ha'],
@@ -140,7 +138,7 @@ const STR = {
   'tip.rate': ['Taux : {r} / 100 000 ha', 'Rate: {r} / 100,000 ha'],
   'tip.burned': ['{v} ha brûlés', '{v} ha burned'],
   'tip.pctFuel': ['{p} de la superficie combustible', '{p} of the fuel area'],
-  'tip.old': ['Feux anciens (zones de régime)', 'Historical fires (regime zones)'],
+  'tip.old': ['Feux anciens (1887-1975)', 'Historical fires (1887-1975)'],
   // INFO-COMMUNAUTÉ
   'lh.choose': ['Cliquez sur une communauté (point orange sur la carte) ou choisissez-la dans le menu.', 'Click a community (orange dot on the map) or choose it from the menu.'],
   'lh.loading': ['Chargement des combustibles…', 'Loading fuels…'],
@@ -180,8 +178,8 @@ const STR = {
   'pdf.fires': ['Nombre de feux 1972-{y} : {n} (humains {h}, foudre {f})', 'Number of fires 1972-{y}: {n} (human {h}, lightning {f})'],
   'pdf.burned': ['Superficie brûlée {a}-{b} : {v} ha', 'Area burned {a}-{b}: {v} ha'],
   'pdf.fuel': ['Superficie combustible : {v} ha', 'Fuel area: {v} ha'],
-  'pdf.terrSources': ['Sources (donneesquebec.ca) : Cartographie des points d\'origine des feux de forêt (1972-2024) - Feux de forêt (depuis 1976) - Feux anciens (1887-1975, zones de régime de feux seulement) - Combustibles 2025 (MRNF). Trait pointillé : moyenne des années avec feux ; bande grise : +/- 1 écart-type.',
-    'Sources (donneesquebec.ca): Forest fire origin points (1972-2024) - Forest fires (since 1976) - Historical fires (1887-1975, fire regime zones only) - Fuels 2025 (MRNF). Dashed line: mean of years with fires; grey band: +/- 1 standard deviation.'],
+  'pdf.terrSources': ['Sources (donneesquebec.ca) : Cartographie des points d\'origine des feux de forêt (1972-2024) - Feux de forêt (depuis 1976) - Feux anciens (1887-1975, si disponibles) - Combustibles 2025 (MRNF). Trait pointillé : moyenne des années avec feux ; bande grise : +/- 1 écart-type.',
+    'Sources (donneesquebec.ca): Forest fire origin points (1972-2024) - Forest fires (since 1976) - Historical fires (1887-1975, where available) - Fuels 2025 (MRNF). Dashed line: mean of years with fires; grey band: +/- 1 standard deviation.'],
   'pdf.combTitle': ['Cartographie des combustibles', 'Fuel mapping'],
   'pdf.community': ['Communauté :', 'Community:'],
   'pdf.municipality': ['Municipalité de {m}', 'Municipality of {m}'],
@@ -218,8 +216,8 @@ export function LEGEND() {
           : 'The dashed line shows the mean of the years with fires; the grey band covers ± 1 standard deviation around that mean.',
       ] },
       { h: fr ? 'Séries longues (1887-1975)' : 'Long series (1887-1975)', p: [
-        fr ? 'Les feux anciens n’ont été validés que dans les **zones de régime de feux**. Ils ne sont donc comptés que dans ces zones : les territoires qui s’y trouvent présentent une « série longue », les autres une série à partir de 1972 (points d’origine) et 1976 (contours de feux).'
-          : 'Historical fires have only been validated within **fire regime zones**. They are therefore counted only in those zones: territories located there show a “long series”, others a series starting in 1972 (origin points) and 1976 (fire perimeters).',
+        fr ? 'Les graphiques s’ajustent aux données disponibles. Lorsque des **contours de feux anciens (1887-1975)** existent pour le territoire, la « série longue » est affichée ; sinon, la série débute en 1972 (points d’origine) et 1976 (contours de feux).'
+          : 'Charts adjust to the available data. Where **historical fire perimeters (1887-1975)** exist for the territory, the “long series” is shown; otherwise, the series starts in 1972 (origin points) and 1976 (fire perimeters).',
       ] },
       { h: fr ? 'Indice de prédisposition' : 'Predisposition index', p: [
         fr ? 'Indice standardisé de 0 à 1 (pixels de 5 km). Pour une MRC ou une zone, la moyenne et l’écart-type des pixels du territoire sont indiqués. La prédisposition reflète la probabilité à long terme qu’un milieu habité soit menacé ou atteint par un feu de forêt ; elle ne doit pas être confondue avec le danger d’incendie quotidien.'
@@ -302,7 +300,7 @@ const EN_STATIC = {
   'intro.authors': 'Authors',
   'src.title': 'Data sources',
   'src.fires': 'Forest fires',
-  'src.fires.txt': 'Fire origin points (1972-2024) · Forest fires (since 1976) · Historical fires (1887-1975) · Fire regimes of southern Québec',
+  'src.fires.txt': 'Fire origin points (1972-2024) · Forest fires (since 1976) · Historical fires (1887-1975)',
   'src.fuels': 'Forest fuels',
   'src.fuels.txt': 'Fuels 2025 (MRNF, 25 m) · Fire intensity and spread potential 2025-2026',
   'src.admin': 'Administrative boundaries',
@@ -344,7 +342,6 @@ const EN_STATIC = {
   'ly.human': 'Human', 'ly.lightning': 'Lightning',
   'ly.comb': 'Fuels 2025', 'ly.pot': 'Fire intensity and spread potential',
   'ly.rasterNote': 'Fuels and potential are mapped within 50 km of populated places.',
-  'ly.regime': 'Fire regime zones', 'ly.regimeNote': 'Zones where historical fires (1887-1975) were validated (long series).',
   'fiche.title': 'Sheet',
   'leg.mrcTitle': 'Legend — Regional sheet', 'leg.lhTitle': 'Legend — Community sheet',
 };

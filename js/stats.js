@@ -145,23 +145,17 @@ export function unitSeries(core, unitId) {
   });
 }
 
-let regimeMask = null;      // cellules 1 km situées dans une zone de régime de feux
-
 /** Série calculée à la volée pour une zone libre (polygones Lambert). */
 export async function zoneSeries(core, polys) {
   const [pts, gf, gb] = await Promise.all([loadPoints(), loadGridFuel(), loadGridBurn()]);
-  if (!regimeMask) {
-    regimeMask = new Uint8Array(gf.ncols * gf.nrows);
-    for (const i of cellsInPolys(geomToLccPolys(core.regime, 100), gf)) regimeMask[i] = 1;
-  }
   const inZone = makeContains(polys);
   const [bx0, by0, bx1, by1] = polysBBox(polys);
 
   // 1. Cellules 1 km dont le centre est dans la zone
   const { res } = gf;
   const cells = cellsInPolys(polys, gf);
-  let fuelPx = 0, nRegime = 0;
-  for (const idx of cells) { fuelPx += gf.fuel[idx]; nRegime += regimeMask[idx]; }
+  let fuelPx = 0;
+  for (const idx of cells) fuelPx += gf.fuel[idx];
   const nCells = cells.length;
   if (!nCells) return null;
 
@@ -189,9 +183,9 @@ export async function zoneSeries(core, polys) {
     occ.set(key, (occ.get(key) || 0) + 1);
   }
 
-  // Séries longues : dès que la zone touche un régime de feux (choix : privilégier la série longue)
-  const long = nRegime > 0;
-  const ys = long && yMin < 1972 ? yMin : 1972;      // points d'origine dès 1972
+  // Série selon les données disponibles : longue si la zone contient des contours de feux anciens
+  const long = yMin < 1976;
+  const ys = long ? Math.min(yMin, 1972) : 1972;     // points d'origine dès 1972
   const n = YEAR_END - ys + 1;
   const h = new Array(n), f = new Array(n), sup = new Array(n);
   for (let i = 0; i < n; i++) {
@@ -202,7 +196,7 @@ export async function zoneSeries(core, polys) {
   }
   return finalizeSeries({
     y0: ys, h, f, sup, fuelHa: fuelPx * gf.px_ha, long,
-    areaHa: nCells * (res * res) / 1e4, regimeFrac: nRegime / nCells,
+    areaHa: nCells * (res * res) / 1e4,
   });
 }
 

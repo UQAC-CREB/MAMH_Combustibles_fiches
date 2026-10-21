@@ -10,8 +10,13 @@ Sorties (data/) :
   unit_fuel.json   superficie combustible (ha) exacte par unité (dénominateur des taux, MRC)
   classes.json     classes, couleurs et libellés (LUT)
 
-Prérequis : build_vectors.py (fichiers _units_lcc.gpkg et _lh_lcc.gpkg).
+Prérequis : build_units.py (fichiers _units_lcc.gpkg et _lh_lcc.gpkg).
+
+  python build_rasters.py              tout recalculer
+  python build_rasters.py --unit-fuel  unit_fuel.json seulement (après un changement des unités MRC ;
+                                       les anneaux et la grille ne dépendent pas des unités)
 """
+import sys
 import gzip, json, struct, time
 from multiprocessing import Pool
 import numpy as np
@@ -95,11 +100,29 @@ def work_comb(b0):
     pad[:h, :W] = fuel
     grid = pad.reshape(nrow_c, CELL, ncell_c, CELL).sum(axis=(1, 3)).astype(np.uint16)
     # 3. Superficie combustible par unité
+    ufuel = unit_fuel_block(arr, b0, tr, W)
+    return b0, sel, rings, grid, ufuel
+
+
+def unit_fuel_block(arr, b0, tr, W):
+    """Pixels combustibles par unité (uid + 1) dans le bloc [b0, b0+h)."""
     btr = tr * tr.translation(0, b0)
     shapes = [(g, int(u) + 1) for g, u in zip(UNITS.geometry.values, UNITS.uid.values)]
-    ur = rasterize(shapes, out_shape=(h, W), transform=btr, fill=0, dtype="uint8")
-    ufuel = np.bincount(ur[fuel], minlength=256)
-    return b0, sel, rings, grid, ufuel
+    ur = rasterize(shapes, out_shape=(arr.shape[0], W), transform=btr, fill=0, dtype="uint8")
+    return np.bincount(ur[FUEL_C[arr]], minlength=256)
+
+
+def work_ufuel(b0):
+    with rasterio.open(COMB_TIF) as s:
+        h = min(BLOCK, s.height - b0)
+        arr = s.read(1, window=Window(0, b0, s.width, h))
+        return unit_fuel_block(arr, b0, s.transform, s.width)
+
+
+def write_unit_fuel(units, ufuel):
+    uf = {mid: round(float(ufuel[int(u) + 1]) * 0.0625, 0) for mid, u in zip(units.MRC_IDm, units.uid)}
+    (OUT / "unit_fuel.json").write_text(json.dumps(uf, ensure_ascii=False), encoding="utf-8")
+    log(f"→ unit_fuel.json ({len(uf)} unités, MRC_93 = {uf.get('MRC_93')} ha)")
 
 
 def work_pot(b0):
@@ -123,6 +146,14 @@ if __name__ == "__main__":
     nlh = len(gpd.read_file(OUT.parent / "scripts" / "_lh_lcc.gpkg"))
     units = gpd.read_file(OUT.parent / "scripts" / "_units_lcc.gpkg")
     with rasterio.open(COMB_TIF) as s: HC, WC = s.height, s.width
+    if "--unit-fuel" in sys.argv:
+        ufuel = np.zeros(256, dtype=np.int64)
+        with Pool(7, initializer=init_worker) as pool:
+            log(f"Superficie combustible par unité : {int(np.ceil(HC/BLOCK))} blocs")
+            for uf in pool.imap_unordered(work_ufuel, range(0, HC, BLOCK)):
+                ufuel += uf
+        write_unit_fuel(units, ufuel)
+        sys.exit()
     with rasterio.open(POT_TIF) as s: HP = s.height
 
     rings_c = np.zeros((nlh, RING_KM, NC), dtype=np.uint32)
@@ -160,9 +191,7 @@ if __name__ == "__main__":
     log(f"→ grid_fuel.bin.gz ({(OUT/'grid_fuel.bin.gz').stat().st_size/1e6:.1f} Mo)")
 
     # ── unit_fuel.json
-    uf = {mid: round(float(ufuel[int(u) + 1]) * 0.0625, 0) for mid, u in zip(units.MRC_IDm, units.uid)}
-    (OUT / "unit_fuel.json").write_text(json.dumps(uf, ensure_ascii=False), encoding="utf-8")
-    log(f"→ unit_fuel.json (MRC_93A = {uf.get('MRC_93A')} ha)")
+    write_unit_fuel(units, ufuel)
 
     # ── classes.json
     classes = {

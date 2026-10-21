@@ -5,7 +5,7 @@ import {
 } from './config.js';
 import { loadCore, loadPoints } from './data.js';
 import { unitSeries, zoneSeries, bufferStats, geomToLccPolys, makeContains, indexAt, indexStats } from './stats.js';
-import { occChart, supChart, hbarChart, bindChartTips, fmtInt, fmtPct } from './charts.js';
+import { occChart, supChart, hbarChart, bindChartTips, fmtInt } from './charts.js';
 import { Combo, norm } from './combobox.js';
 import { openReportDialog, refreshReportDialog } from './report.js';
 import { RasterPicker } from './rasterpick.js';
@@ -145,11 +145,6 @@ function addLayers() {
   map.addSource('units', { type: 'geojson', data: core.units, promoteId: 'uid' });
   map.addLayer({ id: 'units-fill', type: 'fill', source: 'units',
     paint: { 'fill-color': '#000', 'fill-opacity': 0 } }, firstSymbol);
-
-  // Régime de feux
-  map.addSource('regime', { type: 'geojson', data: core.regime });
-  map.addLayer({ id: 'regime-line', type: 'line', source: 'regime', layout: { visibility: 'none' },
-    paint: { 'line-color': '#9a5b10', 'line-width': 1.6, 'line-dasharray': [3, 2] } });
 
   // Contours de feux (FlatGeobuf → GeoJSON selon l'emprise)
   map.addSource('feux', { type: 'geojson', data: EMPTY, tolerance: 0.3 });
@@ -419,7 +414,6 @@ function bindLayerPanel() {
     $(`op-${id}`).addEventListener('input', (e) => map.setPaintProperty(id, 'raster-opacity', e.target.value / 100));
   };
   rasterToggle('comb'); rasterToggle('pot');
-  $('ly-regime').addEventListener('change', (e) => vis('regime-line', e.target.checked));
 
   buildMiniLegends();
 
@@ -437,7 +431,7 @@ function setLayer(id, on) {
 
 /** Couches et réglages de départ. */
 function resetLayers() {
-  const on = { 'ly-indice': true, 'ly-feux': false, 'ly-pts': false, 'ly-comb': false, 'ly-pot': false, 'ly-regime': false };
+  const on = { 'ly-indice': true, 'ly-feux': false, 'ly-pts': false, 'ly-comb': false, 'ly-pot': false };
   for (const [id, v] of Object.entries(on)) setLayer(id, v);
   for (const el of document.querySelectorAll('#layers-panel input[type=range][id^="op-"]')) {
     el.value = el.defaultValue; el.dispatchEvent(new Event('input'));
@@ -651,10 +645,6 @@ function chartWidth(el) { return Math.max(300, Math.round(el.clientWidth || 420)
 function mrcHTML(w, big = false) {
   const s = S.series;
   const period = `${s.y0}–${YEAR_END}`;
-  const regNote = s.long && s.y0 >= 1972
-    ? `<div class="expo-note">${t('mrc.regNoOld')}</div>`
-    : S.zone && s.long && s.regimeFrac < 0.98
-    ? `<div class="expo-note">${t('mrc.regPart', { p: fmtPct(s.regimeFrac * 100, 0) })}</div>` : '';
   const idx = S.idx ? `<span>${t('idx.short', { m: fmtIdx(S.idx.mean), s: fmtIdx(S.idx.sd) })}</span>` : '';
   const long = s.y0 < 1972;
   return `
@@ -663,7 +653,6 @@ function mrcHTML(w, big = false) {
       <span>${t('mrc.fuel', { v: fmtInt(s.fuelHa) })}</span>${big ? idx : ''}</div>
     <div class="stat-line"><span>${t('mrc.fires', { y: PT_YEAR_END, n: fmtInt(s.totOcc), h: fmtInt(s.totH), f: fmtInt(s.totF) })}</span>
       <span>${t('mrc.burned', { v: fmtInt(s.totSup) })}</span></div>
-    ${regNote}
     <div class="chart-title">${t('chart.occ')}</div>
     <div class="chart-legend"><span><i style="background:${COLORS.humain}"></i>${t('leg.human')}</span><span><i style="background:${COLORS.foudre}"></i>${t('leg.lightning')}</span><span><i class="band"></i>${t('leg.meanSd')}</span></div>
     <div class="chart">${occChart(s, { width: w, height: big ? 300 : 190, labels: w > 380 })}</div>
@@ -1010,7 +999,7 @@ function appState() {
   return {
     territoire: S.unit || (S.zone ? `zone:${S.zone.kind.k}` : null), communaute: S.lh?.id || null, zoneTamponKm: S.bufKm,
     zoom: m ? +m.getZoom().toFixed(2) : null, centre: m ? m.getCenter().toArray().map(v => +v.toFixed(3)) : null,
-    couches: ['indice', 'feux', 'pts', 'comb', 'pot', 'regime'].filter(k => $(`ly-${k}`)?.checked),
+    couches: ['indice', 'feux', 'pts', 'comb', 'pot'].filter(k => $(`ly-${k}`)?.checked),
     contoursFeuxEnCache: fireCache.feats.size,
   };
 }

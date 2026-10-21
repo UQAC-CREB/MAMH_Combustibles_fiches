@@ -12,7 +12,7 @@ export const TILES = {
   feux: `${TILES_BASE}/feux.fgb`,
 };
 
-export const DATA_VERSION = '20261021';
+export const DATA_VERSION = '20261021b';
 export const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 export const QC_BOUNDS = [[-79.8, 44.9], [-57.0, 62.6]];
 

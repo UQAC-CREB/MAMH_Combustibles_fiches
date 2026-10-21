@@ -141,7 +141,7 @@ async function paintBasemap(ctx, W, H, inv) {
 
 // ── Cartes de la zone tampon (A : combustibles, B : potentiel) ─────────────
 const APP_LAYERS = ['indice', 'units-fill', 'units-line', 'units-sel', 'zone-fill', 'zone-line', 'buffer-fill', 'buffer-line', 'buffer-mask',
-  'pts', 'lh-circle', 'lh-label', 'feux-fill', 'feux-line', 'regime-line', 'comb', 'pot'];
+  'pts', 'lh-circle', 'lh-label', 'feux-fill', 'feux-line', 'comb', 'pot'];
 
 function niceKm(km) {
   const c = [1, 2, 5, 10, 20, 25, 50, 100];

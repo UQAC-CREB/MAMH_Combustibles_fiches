@@ -29,13 +29,13 @@ function splitHeader(buf) {
 
 // ── Données de base (démarrage) ────────────────────────────────────────────
 export async function loadCore() {
-  const [units, lh, unitStats, unitFuel, classes, regime, indiceMeta, indice] = await Promise.all([
+  const [units, lh, unitStats, unitFuel, classes, indiceMeta, indice] = await Promise.all([
     getJSON('units.geojson'), getJSON('lh.json'), getJSON('unit_stats.json'),
-    getJSON('unit_fuel.json'), getJSON('classes.json'), getJSON('regime.geojson'),
+    getJSON('unit_fuel.json'), getJSON('classes.json'),
     getJSON('indice_meta.json'), loadIndice(),
   ]);
   lh.forEach((r, i) => { r.idx = i; });
-  return { units, lh, unitStats, unitFuel, classes, regime, indiceMeta, indice };
+  return { units, lh, unitStats, unitFuel, classes, indiceMeta, indice };
 }
 
 // ── Indice de prédisposition standardisé (grille 5 km, Float32, NaN = sans donnée)
