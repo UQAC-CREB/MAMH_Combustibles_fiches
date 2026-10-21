@@ -1,5 +1,5 @@
 // Graphiques SVG (affichage à l'écran et export PDF)
-import { COLORS, PT_YEAR_END } from './config.js';
+import { COLORS } from './config.js';
 import { t, loc } from './i18n.js';
 
 const FONT = "'Source Sans 3', Arial, sans-serif";
@@ -48,9 +48,6 @@ function frame(W, H, m) {
 
 /** Occurrences annuelles par cause (barres empilées) + taux pour 100 000 ha de combustibles. */
 export function occChart(s, { width = 460, height = 200, labels = true, fontScale = 1 } = {}) {
-  // Points d'origine jusqu'à PT_YEAR_END seulement : pas de barre vide pour les années sans données
-  const k = PT_YEAR_END - s.y0 + 1;
-  if (k < s.years.length) s = { ...s, years: s.years.slice(0, k), tot: s.tot.slice(0, k), h: s.h.slice(0, k), f: s.f.slice(0, k) };
   const W = width, H = height, m = { l: 34, r: 42, t: 8, b: 22 };
   const n = s.years.length, pw = W - m.l - m.r, ph = H - m.t - m.b;
   const band = pw / n, bw = Math.max(1, band * 0.8);

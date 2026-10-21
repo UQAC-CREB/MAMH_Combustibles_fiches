@@ -113,7 +113,17 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   map.on('style.load', () => { try { map.setProjection({ type: 'globe' }); } catch (e) { /* MapLibre < 5 */ } });
   S.map = map;
-  return new Promise((res) => map.on('load', res));
+  // Le cadrage initial est calculé en Mercator : on recadre une fois le globe actif,
+  // en laissant de la place à droite pour le panneau des couches.
+  return new Promise((res) => map.on('load', () => { fitQuebec(); res(); }));
+}
+
+/** Cadre toute la province, sans la cacher sous le panneau des couches. */
+function fitQuebec() {
+  const lp = $('layers-panel'), cw = S.map.getContainer().clientWidth;
+  const lpw = lp && !lp.classList.contains('collapsed') ? lp.offsetWidth + 10 : 0;
+  const right = lpw && cw - lpw > 300 ? lpw + 10 : 20;   // petit écran : le panneau chevauche la carte
+  S.map.fitBounds(QC_BOUNDS, { padding: { top: 20, bottom: 20, left: 20, right }, duration: 0 });
 }
 
 function addLayers() {
