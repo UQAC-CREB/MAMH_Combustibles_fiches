@@ -29,7 +29,6 @@
   <script src="lib/flatgeobuf-geojson.min.js"></script>
   <script src="lib/proj4.js"></script>
   <script defer src="lib/jspdf.umd.min.js"></script>
-  <script defer src="lib/shp.min.js"></script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -47,7 +46,7 @@
       <p><strong>INFO-COMMUNAUTÉ</strong> : la composition en combustibles et le potentiel d'intensité et de propagation des feux autour d'une communauté, dans une zone tampon ajustable (1 à 50 km).</p>
       <br>
       <p><strong><u>INSTRUCTIONS</u></strong></p>
-      <p>1. Choisissez le <strong>territoire</strong> : une <strong>MRC</strong> (tapez son nom ou cliquez sur la carte) ou une <strong>zone</strong> (tracez un rectangle, utilisez l'emprise de la carte ou importez un fichier de formes).</p>
+      <p>1. Choisissez le <strong>territoire</strong> : une <strong>MRC</strong> (tapez son nom ou cliquez sur la carte) ou une <strong>zone</strong> (tracez un rectangle ou utilisez l'emprise de la carte). Le bouton <strong>↺ Réinitialiser</strong> remet l'interface à zéro.</p>
       <p>2. Les graphiques <strong>INFO-MRC</strong> deviennent disponibles et les communautés du territoire apparaissent sur la carte. Les contours des feux passés sont visibles une fois la carte rapprochée (panneau <strong>Couches</strong> en haut à droite).</p>
       <p>3. Cliquez sur une <strong>communauté</strong> (sur la carte ou dans le menu) pour afficher <strong>INFO-COMMUNAUTÉ</strong>, puis ajustez la zone tampon.</p>
       <p>4. Le bouton <strong>Générer un rapport PDF</strong> produit une fiche du territoire, une fiche par communauté cochée et une page de légendes.</p>
@@ -151,7 +150,10 @@
 
     <!-- ═══ Onglet Explorer ═══ -->
     <div id="tab-explorer" class="tab-pane active">
-      <button class="btn navy full" id="btn-info" data-i18n="btn.info">ℹ Instructions</button>
+      <div class="btn-row">
+        <button class="btn navy" id="btn-info" data-i18n="btn.info">ℹ Instructions</button>
+        <button class="btn secondary" id="btn-reset" data-i18n="btn.reset" data-i18n-title="title.reset" title="Effacer le territoire et la communauté, et rétablir l'affichage initial de la carte">↺ Réinitialiser</button>
+      </div>
 
       <div class="panel-section">
         <span class="panel-label" data-i18n="lbl.territory">Territoire</span>
@@ -174,13 +176,9 @@
         <div class="btn-row">
           <button class="btn secondary" id="btn-draw" data-i18n="btn.draw">✏ Tracer un rectangle</button>
           <button class="btn secondary" id="btn-extent" data-i18n="btn.extent">▭ Emprise de la carte</button>
-        </div>
-        <div class="btn-row">
-          <button class="btn secondary" id="btn-upload" data-i18n="btn.upload">⬆ Importer un shapefile (.zip)</button>
           <button class="btn secondary" id="btn-zone-clear" title="✕" style="flex:0 0 auto">✕</button>
         </div>
-        <input type="file" id="file-shp" accept=".zip" hidden />
-        <div class="muted" id="zone-msg" data-i18n="zone.help">Tracez un rectangle sur la carte (cliquer-glisser), utilisez l'emprise actuelle de la carte ou importez un fichier de formes zippé (.shp, .dbf, .prj).</div>
+        <div class="muted" id="zone-msg" data-i18n="zone.help">Tracez un rectangle sur la carte (cliquer-glisser) ou utilisez l'emprise actuelle de la carte.</div>
       </div>
 
       <div class="panel-section">
@@ -272,16 +270,20 @@
           <div class="lyr-opts"><label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-indice" min="0" max="100" value="80"></label>
             <div class="legend-bar" style="margin:2px 0 0"></div>
             <div class="ramp-labels"><span>0</span><span data-i18n="lowHigh">Faible → Élevé</span><span>1</span></div>
-            <div class="lyr-note" data-i18n="ly.indiceNote">Survolez la carte pour lire la valeur d'un pixel.</div>
-            <div class="idx-vars" id="idx-vars"></div></div>
+            <div class="lyr-note" data-i18n="ly.indiceNote">Survolez la carte pour lire la valeur d'un pixel.</div></div>
         </div>
         <div class="lyr">
           <label class="lyr-head"><input type="checkbox" id="ly-feux"> <span data-i18n="ly.feux">Contours de feux</span></label>
           <div class="lyr-opts">
             <label><span data-i18n="ly.period">Période</span> <select id="sel-periode"></select></label>
             <label><span data-i18n="ly.opacity">Opacité</span> <input type="range" id="op-feux" min="0" max="100" value="60"></label>
-            <div class="ramp" id="ramp-feux"></div>
-            <div class="ramp-labels"><span>1887</span><span>1976</span><span>2025</span></div>
+            <div class="yr-range" id="yr-range">
+              <div class="ramp" id="ramp-feux"></div>
+              <div class="yr-shade" id="yr-shade-a"></div><div class="yr-shade" id="yr-shade-b"></div>
+              <input type="range" id="yr-a" step="1" data-i18n-title="title.yrA" title="Année de début">
+              <input type="range" id="yr-b" step="1" data-i18n-title="title.yrB" title="Année de fin">
+            </div>
+            <div class="ramp-labels"><span id="yr-lo"></span><b id="yr-sel"></b><span id="yr-hi"></span></div>
             <div class="lyr-note" id="feux-note" data-i18n="ly.feuxNote">Visibles à partir d'un zoom régional. Survolez un feu pour connaître son année.</div>
           </div>
         </div>

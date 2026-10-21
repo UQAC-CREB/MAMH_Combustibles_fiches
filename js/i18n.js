@@ -90,20 +90,15 @@ const STR = {
   'fires.loading': ['Chargement des contours de feux…', 'Loading fire perimeters…'],
   'fires.hover': ['Survolez un feu pour connaître son année.', 'Hover over a fire to see its year.'],
   'fires.na': ['Contours de feux indisponibles.', 'Fire perimeters unavailable.'],
-  'period.all': ['Toutes les périodes', 'All periods'],
   'period.recent': ['Feux récents (1976-{y})', 'Recent fires (1976-{y})'],
   'period.old': ['Feux anciens (1887-1975)', 'Historical fires (1887-1975)'],
   // Territoire
   'zone.drawn': ['Zone tracée', 'Drawn area'],
   'zone.extent': ['Emprise de la carte', 'Map extent'],
-  'zone.import': ['Zone importée ({f})', 'Imported area ({f})'],
   'zone.invalid': ['Géométrie non valide (polygone attendu).', 'Invalid geometry (polygon expected).'],
   'zone.computing': ['calcul en cours…', 'computing…'],
   'zone.computingStats': ['Calcul des statistiques de la zone…', 'Computing area statistics…'],
   'zone.summary': ['{km2} km² · {n} communauté(s)', '{km2} km² · {n} community(ies)'],
-  'zone.reading': ['Lecture de {f}…', 'Reading {f}…'],
-  'zone.noPoly': ['Aucun polygone trouvé dans le fichier.', 'No polygon found in the file.'],
-  'zone.readErr': ['Impossible de lire le fichier : {e}. Fournissez un .zip contenant .shp, .dbf et .prj.', 'Unable to read the file: {e}. Provide a .zip containing .shp, .dbf and .prj.'],
   'zone.cleared': ['Zone effacée.', 'Area cleared.'],
   'lh.ph.choose': ['Tapez ou choisissez ({n})…', 'Type or choose ({n})…'],
   'lh.ph.none': ['Aucune communauté dans ce territoire', 'No community in this territory'],
@@ -285,7 +280,7 @@ const EN_STATIC = {
       <p><strong>INFO-COMMUNITY</strong>: the fuel composition and the fire intensity and spread potential around a community, within an adjustable buffer zone (1 to 50 km).</p>
       <br>
       <p><strong><u>INSTRUCTIONS</u></strong></p>
-      <p>1. Choose the <strong>territory</strong>: an <strong>RCM</strong> (type its name or click on the map) or an <strong>area</strong> (draw a rectangle, use the map extent or import a shapefile).</p>
+      <p>1. Choose the <strong>territory</strong>: an <strong>RCM</strong> (type its name or click on the map) or an <strong>area</strong> (draw a rectangle or use the map extent). The <strong>↺ Reset</strong> button clears the interface.</p>
       <p>2. The <strong>INFO-RCM</strong> charts become available and the territory’s communities appear on the map. Past fire perimeters are visible once you zoom in (<strong>Layers</strong> panel at the top right).</p>
       <p>3. Click a <strong>community</strong> (on the map or in the menu) to display <strong>INFO-COMMUNITY</strong>, then adjust the buffer zone.</p>
       <p>4. The <strong>Generate a PDF report</strong> button produces a territory sheet, one sheet per checked community and a legend page.</p>
@@ -314,11 +309,12 @@ const EN_STATIC = {
   'src.admin.txt': 'RCM · Municipality',
   'src.places': 'Populated places',
   'src.places.txt': 'Indigenous place names: preliminary version, to be validated (FNQLSDI)',
-  'btn.info': 'ℹ Instructions',
+  'btn.info': 'ℹ Instructions', 'btn.reset': '↺ Reset',
+  'title.reset': 'Clear the territory and the community, and restore the initial map display',
   'lbl.territory': 'Territory', 'mode.mrc': 'RCM', 'mode.zone': 'Defined area',
   'ph.mrc': 'Type or choose an RCM…',
-  'btn.draw': '✏ Draw a rectangle', 'btn.extent': '▭ Map extent', 'btn.upload': '⬆ Import a shapefile (.zip)',
-  'zone.help': 'Draw a rectangle on the map (click and drag), use the current map extent or import a zipped shapefile (.shp, .dbf, .prj).',
+  'btn.draw': '✏ Draw a rectangle', 'btn.extent': '▭ Map extent',
+  'zone.help': 'Draw a rectangle on the map (click and drag) or use the current map extent.',
   'lbl.community': 'Community',
   'idx.label': 'Forest fire predisposition index ℹ',
   'lowHigh': 'Low → High',
@@ -343,7 +339,7 @@ const EN_STATIC = {
   'draw.hint': 'Click and drag to draw the area · Esc to cancel',
   'lp.title': '☰ Layers',
   'ly.indice': 'Predisposition index (5 km)', 'ly.opacity': 'Opacity', 'ly.indiceNote': 'Hover over the map to read a pixel value.',
-  'ly.feux': 'Fire perimeters', 'ly.period': 'Period', 'ly.feuxNote': 'Visible at a regional zoom. Hover over a fire to see its year.',
+  'ly.feux': 'Fire perimeters', 'ly.period': 'Period', 'title.yrA': 'Start year', 'title.yrB': 'End year', 'ly.feuxNote': 'Visible at a regional zoom. Hover over a fire to see its year.',
   'ly.pts': 'Fire origin points (1972-2024)', 'ly.ptsNote': 'Follows the period chosen for perimeters. Hover over a point for the date and cause.',
   'ly.human': 'Human', 'ly.lightning': 'Lightning',
   'ly.comb': 'Fuels 2025', 'ly.pot': 'Fire intensity and spread potential',

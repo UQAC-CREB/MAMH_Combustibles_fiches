@@ -21,7 +21,7 @@ export const S = {
   core: null, map: null,
   mode: 'mrc',            // 'mrc' | 'zone'
   unit: null,             // id de l'unité MRC sélectionnée
-  zone: null,             // { geojson, polys, kind: { k: 'drawn'|'extent'|'import', f } }
+  zone: null,             // { geojson, polys, kind: { k: 'drawn'|'extent' } }
   terrLH: [],             // lieux habités du territoire courant
   series: null,           // série INFO-MRC courante
   terrName: '',
@@ -30,6 +30,7 @@ export const S = {
   bufKm: BUFFER_DEFAULT,
   buf: null,              // { comb[], pot[] } superficies ha
   lhIdx: null,            // indice dans la zone tampon : { mean, sd, n }
+  autoComb: false,        // combustibles affichés automatiquement à la sélection d'une communauté
   log: true,
 };
 
@@ -65,10 +66,7 @@ export const unitProps = (id) => S.core.units.features.find(f => f.properties.id
 /** Nom du territoire courant dans la langue active. */
 function terrLabel() {
   if (S.unit) return `${t('mrc')} ${unitProps(S.unit)?.nom || ''}`;
-  if (S.zone) {
-    const k = S.zone.kind;
-    return k.k === 'import' ? t('zone.import', { f: k.f }) : t(k.k === 'extent' ? 'zone.extent' : 'zone.drawn');
-  }
+  if (S.zone) return t(S.zone.kind.k === 'extent' ? 'zone.extent' : 'zone.drawn');
   return '';
 }
 
@@ -339,22 +337,38 @@ export async function loadFiresInView() {
 }
 
 // ── Panneau des couches ───────────────────────────────────────────────────
-function periodFilter() {
-  const v = $('sel-periode').value;
-  if (!v) return null;
-  const [a, b] = v.split('-').map(Number);
-  return ['all', ['>=', ['get', 'an'], a], ['<=', ['get', 'an'], b]];
-}
+// Deux grandes périodes ; le curseur double choisit les années de début et de fin dans la période.
+const PERIODS = { recent: [1976, YEAR_END], old: [1887, 1975] };
+const PERIOD_DEFAULT = 'recent';
 
 function buildPeriods() {
-  const sel = $('sel-periode'), cur = sel.value;
-  const opts = [['', t('period.all')], [`1976-${YEAR_END}`, t('period.recent', { y: YEAR_END })], ['1880-1975', t('period.old')]];
-  for (let a = YEAR_END - (YEAR_END - 1885) % 5; a >= 1885; a -= 5) {
-    const b = Math.min(a + 4, YEAR_END);
-    opts.push([`${a}-${b}`, a === b ? `${a}` : `${a}-${b}`]);
-  }
-  sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
-  sel.value = cur || '';
+  const sel = $('sel-periode'), cur = sel.value || PERIOD_DEFAULT;
+  sel.innerHTML = [['recent', t('period.recent', { y: YEAR_END })], ['old', t('period.old')]]
+    .map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  sel.value = cur;
+}
+
+/** Bornes du curseur et rampe de couleurs selon la période choisie (années remises aux extrémités). */
+function setPeriodRange() {
+  const [lo, hi] = PERIODS[$('sel-periode').value];
+  for (const [id, v] of [['yr-a', lo], ['yr-b', hi]]) Object.assign($(id), { min: lo, max: hi, value: v });
+  $('yr-lo').textContent = lo; $('yr-hi').textContent = hi;
+  const pct = (y) => ((y - lo) / (hi - lo) * 100).toFixed(1);
+  $('ramp-feux').style.background = `linear-gradient(to right, ${FIRE_RAMP.map(([y, c]) => `${c} ${pct(y)}%`).join(', ')})`;
+  applyYears();
+}
+
+/** Années choisies → filtre des contours et des points d'origine. */
+function applyYears() {
+  const [lo, hi] = PERIODS[$('sel-periode').value];
+  let a = +$('yr-a').value, b = +$('yr-b').value;
+  if (a > b) [a, b] = [b, a];
+  const pct = (y) => `${(y - lo) / (hi - lo) * 100}%`;
+  $('yr-shade-a').style.width = pct(a);
+  $('yr-shade-b').style.left = pct(b);
+  $('yr-sel').textContent = a === b ? `${a}` : `${a} – ${b}`;
+  const f = ['all', ['>=', ['get', 'an'], a], ['<=', ['get', 'an'], b]];
+  ['feux-fill', 'feux-line', 'pts'].forEach(id => S.map.setFilter(id, f));
 }
 
 function buildMiniLegends() {
@@ -381,11 +395,10 @@ function bindLayerPanel() {
   const vis = (id, on) => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
 
   buildPeriods();
-  $('sel-periode').addEventListener('change', () => {
-    const f = periodFilter();
-    ['feux-fill', 'feux-line', 'pts'].forEach(id => map.setFilter(id, f));
-  });
-  $('ramp-feux').style.background = `linear-gradient(to right, ${FIRE_RAMP.map(([y, c]) => `${c} ${((y - 1887) / (YEAR_END - 1887) * 100).toFixed(1)}%`).join(', ')})`;
+  setPeriodRange();
+  $('sel-periode').addEventListener('change', setPeriodRange);
+  $('yr-a').addEventListener('input', applyYears);
+  $('yr-b').addEventListener('input', applyYears);
 
   $('ly-indice').addEventListener('change', (e) => vis('indice', e.target.checked));
   $('op-indice').addEventListener('input', (e) => map.setPaintProperty('indice', 'raster-opacity', e.target.value / 100));
@@ -416,6 +429,22 @@ function bindLayerPanel() {
   });
 }
 
+/** Coche / décoche une couche du panneau (mêmes effets qu'un clic). */
+function setLayer(id, on) {
+  if ($(id).checked === on) return;
+  $(id).checked = on; $(id).dispatchEvent(new Event('change'));
+}
+
+/** Couches et réglages de départ. */
+function resetLayers() {
+  const on = { 'ly-indice': true, 'ly-feux': false, 'ly-pts': false, 'ly-comb': false, 'ly-pot': false, 'ly-regime': false };
+  for (const [id, v] of Object.entries(on)) setLayer(id, v);
+  for (const el of document.querySelectorAll('#layers-panel input[type=range][id^="op-"]')) {
+    el.value = el.defaultValue; el.dispatchEvent(new Event('input'));
+  }
+  $('sel-periode').value = PERIOD_DEFAULT; setPeriodRange();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Territoire : MRC ou zone
 // ═══════════════════════════════════════════════════════════════════════════
@@ -439,8 +468,25 @@ function clearTerritory() {
   selectLH(null);
 }
 
-export function selectUnit(id, { fit = true } = {}) {
+/** Bouton Réinitialiser : territoire, communauté, zone tampon, couches et cadrage de départ. */
+function resetAll() {
+  if (drawing) window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  clearTerritory();
+  setMode('mrc');
+  S.bufKm = BUFFER_DEFAULT;
+  S.autoComb = false;
+  resetLayers();
+  applyStatic();                       // textes d'aide d'origine (zone, notes des couches)
+  document.querySelectorAll('#box-mrc, #box-lh').forEach(b => b.classList.add('collapsed'));
+  document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+  S.map.stop();
+  fitQuebec();
+}
+
+export function selectUnit(id, { fit = true, keepLH = false } = {}) {
   if (!id) { clearTerritory(); return; }
+  // nouveau territoire : l'affichage communauté repart à zéro (sauf bascule depuis selectLH)
+  if (S.lh && !keepLH && id !== S.unit) selectLH(null);
   setMode('mrc');
   const f = S.core.units.features.find(x => x.properties.id === id);
   S.unit = id; S.zone = null;
@@ -453,7 +499,6 @@ export function selectUnit(id, { fit = true } = {}) {
   S.series = unitSeries(S.core, id);
   setTerritoryLH(S.core.lh.filter(r => r.u === id));
   renderIndex(); renderMRC();
-  if (S.lh && S.lh.u !== id) selectLH(null);
 }
 
 function zoneMsg() {
@@ -465,6 +510,7 @@ function zoneMsg() {
 }
 
 async function setZone(geojson, kind) {
+  if (S.lh) selectLH(null);
   setMode('zone');
   S.unit = null;
   comboMRC.set(null, false);
@@ -493,7 +539,6 @@ async function setZone(geojson, kind) {
   S.zone.pending = false;
   zoneMsg();
   renderIndex(); renderMRC();
-  if (S.lh && !S.terrLH.includes(S.lh)) selectLH(null);
 }
 
 function lhPlaceholder() {
@@ -578,22 +623,6 @@ function screenRectToPolygon([x0, y0], [x1, y1]) {
   const ring = pts.map(p => { const ll = S.map.unproject(p); return [+ll.lng.toFixed(5), +ll.lat.toFixed(5)]; });
   ring.push(ring[0]);
   return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } };
-}
-
-async function uploadShapefile(file) {
-  $('zone-msg').innerHTML = `<span class="spin-inline"></span> ${t('zone.reading', { f: file.name })}`;
-  try {
-    let gj = await shp(await file.arrayBuffer());
-    if (Array.isArray(gj)) gj = { type: 'FeatureCollection', features: gj.flatMap(g => g.features) };
-    const polys = gj.features.filter(f => f.geometry && /Polygon/.test(f.geometry.type));
-    if (!polys.length) throw new Error(t('zone.noPoly'));
-    const fc = { type: 'FeatureCollection', features: polys };
-    S.map.fitBounds(geomBBox(fc), { padding: 40, duration: 800 });
-    await setZone(fc, { k: 'import', f: file.name.replace(/\.zip$/i, '') });
-  } catch (err) {
-    console.error(err);
-    $('zone-msg').textContent = t('zone.readErr', { e: err.message || err });
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -687,13 +716,18 @@ export async function selectLH(r, { fit = true } = {}) {
     S.buf = null; S.lhIdx = null;
     showBuffer(null);
     $('lh-content').innerHTML = `<div class="placeholder">${t('lh.choose')}</div>`;
+    // combustibles ouverts automatiquement : on revient à l'indice
+    if (S.autoComb) {
+      S.autoComb = false;
+      setLayer('ly-comb', false); setLayer('ly-indice', true);
+    }
     return;
   }
   // Territoire : si la communauté n'est pas dans le territoire courant, on bascule sur sa MRC
-  if (!S.terrLH.includes(r)) selectUnit(r.u, { fit: false });
+  if (!S.terrLH.includes(r)) selectUnit(r.u, { fit: false, keepLH: true });
   showBuffer(r);
   // combustibles affichés et zoom sur la zone tampon
-  if (!$('ly-comb').checked) { $('ly-comb').checked = true; $('ly-comb').dispatchEvent(new Event('change')); }
+  if (!$('ly-comb').checked) { setLayer('ly-comb', true); S.autoComb = true; }
   if (fit) S.map.fitBounds(geomBBox(bufferCircle(r, S.bufKm)), { padding: 40, duration: 800 });
   $('lh-content').innerHTML = `${lhHeader(r)}<div class="placeholder"><span class="spin-inline"></span> ${t('lh.loading')}</div>`;
   await updateBuffer();
@@ -779,9 +813,7 @@ function renderLH() {
     showBuffer(r);
     clearTimeout(rng._t); rng._t = setTimeout(updateBuffer, 40);
   });
-  el.querySelector('#chk-show-comb').addEventListener('change', (e) => {
-    $('ly-comb').checked = e.target.checked; $('ly-comb').dispatchEvent(new Event('change'));
-  });
+  el.querySelector('#chk-show-comb').addEventListener('change', (e) => { setLayer('ly-comb', e.target.checked); S.autoComb = false; });
 }
 
 // ── Légendes des fiches (contenu commun aux fenêtres et au rapport PDF) ────
@@ -798,14 +830,13 @@ export function combGroups() {
 }
 
 /** Liste des 6 variables de l'indice (HTML). */
-export function idxVarsHTML(L, withUnits = true) {
-  return `<ol class="vars-list">${L.idxVars.map(([n, d, p]) => `<li><b>${n}</b>${withUnits ? ` — ${d}` : ''} <span class="vars-p">P=${p}</span></li>`).join('')}</ol>`;
+export function idxVarsHTML(L) {
+  return `<ol class="vars-list">${L.idxVars.map(([n, d, p]) => `<li><b>${n}</b> — ${d} <span class="vars-p">P=${p}</span></li>`).join('')}</ol>`;
 }
 
 function buildLegends() {
   const L = LEGEND();
   $('idx-tip').innerHTML = `${L.idxConcept}<br><br><b>${L.idxVarsTitle}</b>${idxVarsHTML(L)}${L.idxVarsNote}<br><br>${L.idxScale}`;
-  $('idx-vars').innerHTML = `<div class="idx-vars-title">${L.idxVarsTitle}</div>${idxVarsHTML(L, false)}`;
   const row = (hex, txt) => `<div class="leg-row"><div class="leg-swatch" style="background:${hex}"></div><span>${txt}</span></div>`;
   const block = (b, extra = '') => `<div class="leg-block"><div class="leg-sub">${b.h}</div>${b.p.map(p => `<p>${mdBold(p)}</p>`).join('')}${extra}</div>`;
   $('leg-mrc-body').innerHTML = L.mrc.map(b => block(b,
@@ -894,6 +925,7 @@ function bindUI() {
     if (m.classList.contains('modal-top')) m.classList.remove('open'); else closeModals();
   }));
   $('btn-info').addEventListener('click', () => $('popup-accueil').classList.add('open'));
+  $('btn-reset').addEventListener('click', resetAll);
 
   // Langue
   document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
@@ -917,8 +949,6 @@ function bindUI() {
     const c = S.map.getCanvas();
     setZone(screenRectToPolygon([0, 0], [c.clientWidth, c.clientHeight]), { k: 'extent' });
   });
-  $('btn-upload').addEventListener('click', () => $('file-shp').click());
-  $('file-shp').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) uploadShapefile(f); e.target.value = ''; });
   $('btn-zone-clear').addEventListener('click', () => { clearTerritory(); $('zone-msg').textContent = t('zone.cleared'); });
 
   // Boîtes repliables et fiches agrandies

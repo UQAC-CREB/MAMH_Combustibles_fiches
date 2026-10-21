@@ -413,15 +413,20 @@ async function communityPage(doc, r, maps, buf) {
   const pair = lhChartPair(buf, cls, 250, { combRowH: 19, fontSize: 9.5 });
   const comb = await svgToPng(pair.comb, 2.5), pot = await svgToPng(pair.pot, 2.5);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-  doc.text(pdfTxt(t('lh.chartA')), x + 12, gy + 6);
-  doc.text(wrap(doc, t('lh.chartB'), cw), x + 18 + cw, gy + 6);
-  const fit = (img, bx, by, bw, bh) => {
-    let iw = bw, ih = bw * img.h / img.w;
+  // titres éventuellement sur deux lignes : les graphiques démarrent sous le plus haut des deux
+  const tA = wrap(doc, t('lh.chartA'), cw), tB = wrap(doc, t('lh.chartB'), cw), lineH = 11;
+  doc.text(tA, x + 12, gy + 6, { lineHeightFactor: lineH / 9.5 });
+  doc.text(tB, x + 18 + cw, gy + 6, { lineHeightFactor: lineH / 9.5 });
+  const cy = gy + 6 + (Math.max(tA.length, tB.length) - 1) * lineH + 12;
+  // même boîte pour A et B : hauteur et haut des graphiques identiques
+  const bh = y + h - cy - 8;
+  const fit = (img, bx) => {
+    let iw = cw, ih = cw * img.h / img.w;
     if (ih > bh) { ih = bh; iw = bh * img.w / img.h; }
-    doc.addImage(img.data, 'PNG', bx, by, iw, ih, undefined, 'FAST');
+    doc.addImage(img.data, 'PNG', bx, cy, iw, ih, undefined, 'FAST');
   };
-  fit(comb, x + 8, gy + 18, cw, gh - 20);
-  fit(pot, x + 14 + cw, gy + 18, cw, gh - 20);
+  fit(comb, x + 8);
+  fit(pot, x + 14 + cw);
 
   // Cartes A et B empilées
   const mx = x + lw, mw = w - lw, footH = 60, mh = (h - footH) / 2;

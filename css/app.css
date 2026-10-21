@@ -335,7 +335,8 @@ body {
 
 /* Panneau de contrôle des couches */
 #layers-panel {
-  position: absolute; top: 10px; right: 10px; z-index: 30; width: 270px; max-height: calc(100% - 80px);
+  /* large et plafonné en hauteur : les boutons de zoom (en bas à droite) restent visibles */
+  position: absolute; top: 10px; right: 10px; z-index: 30; width: 380px; max-width: calc(100% - 20px); max-height: calc(100% - 130px);
   overflow-y: auto; background: rgba(255,255,255,0.97); border: 1px solid var(--panel-border);
   border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.14); font-size: 12.5px;
 }
@@ -356,23 +357,43 @@ body {
 .lyr-note { font-size: 11px; color: var(--text-muted); line-height: 1.35; }
 .ramp { height: 8px; border-radius: 3px; }
 .ramp-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); }
+.ramp-labels b { color: var(--text-label); font-size: 11px; }
+
+/* Curseur double : années de début et de fin des contours de feux */
+.yr-range { position: relative; height: 18px; margin-top: 2px; }
+.yr-range .ramp, .yr-shade { position: absolute; top: 5px; height: 8px; }
+.yr-range .ramp { left: 0; right: 0; }
+.yr-shade { background: rgba(255,255,255,0.78); }
+#yr-shade-a { left: 0; border-radius: 3px 0 0 3px; }
+#yr-shade-b { right: 0; border-radius: 0 3px 3px 0; }
+.yr-range input[type=range] {
+  position: absolute; inset: 0; width: 100%; height: 18px; margin: 0; background: none;
+  -webkit-appearance: none; appearance: none; pointer-events: none;
+}
+.yr-range input[type=range]::-webkit-slider-runnable-track { background: none; }
+.yr-range input[type=range]::-moz-range-track { background: none; }
+.yr-range input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto; cursor: pointer;
+  width: 10px; height: 18px; border-radius: 3px; background: #fff; border: 1.5px solid var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+.yr-range input[type=range]::-moz-range-thumb {
+  pointer-events: auto; cursor: pointer;
+  width: 8px; height: 16px; border-radius: 3px; background: #fff; border: 1.5px solid var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
 .leg-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 10.5px; color: var(--text-label); }
 .leg-mini span { display: flex; align-items: center; gap: 4px; }
 .leg-mini i { width: 10px; height: 8px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.12); flex-shrink: 0; }
-#leg-comb { grid-template-columns: 1fr; gap: 1px; }
+#leg-comb { grid-template-columns: 1fr 1fr; gap: 1px 8px; }
 #leg-comb span { align-items: baseline; line-height: 1.25; }
 #leg-comb i { transform: translateY(1px); }
 #leg-comb b { font-weight: 700; margin-right: 1px; white-space: nowrap; }
-#leg-comb .leg-mini-grp { display: block; font-family: 'Oswald', sans-serif; font-size: 9.5px; letter-spacing: 0.8px;
+#leg-comb .leg-mini-grp { display: block; grid-column: 1 / -1; font-family: 'Oswald', sans-serif; font-size: 9.5px; letter-spacing: 0.8px;
   text-transform: uppercase; color: var(--text-muted); margin-top: 4px; }
 
 /* Variables de l'indice */
 .vars-list { margin: 4px 0 6px 18px; padding: 0; }
 .vars-list li { margin-bottom: 2px; }
 .vars-p { font-size: 0.9em; opacity: 0.8; white-space: nowrap; }
-.idx-vars { font-size: 10.5px; color: var(--text-label); margin-top: 4px; }
-.idx-vars-title { font-family: 'Oswald', sans-serif; font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-muted); }
-.idx-vars .vars-list { margin: 2px 0 0 16px; }
 #idx-tip .vars-list { margin: 4px 0 6px 16px; }
 
 /* Bandeau d'erreur */
@@ -431,5 +452,6 @@ body {
   #resizer { display: none; }
   #header h1 { font-size: 14px; }
   #header-logo img { height: 42px; }
-  #layers-panel { width: 220px; }
+  #layers-panel { width: 240px; }
+  #leg-comb { grid-template-columns: 1fr; }
 }
