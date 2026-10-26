@@ -11,7 +11,7 @@ function highlight(label, q) {
 }
 
 /**
- * items : [{ value, label, sub?, keys? }] — `keys` : texte supplémentaire recherché (alias).
+ * items : [{ value, label, sub?, keys? }] - `keys` : texte supplémentaire recherché (alias).
  * onSelect(value|null)
  */
 export class Combo {

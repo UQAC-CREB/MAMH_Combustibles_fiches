@@ -1,4 +1,4 @@
-// Rapport PDF généré dans le navigateur (jsPDF) — fiche territoire + fiches communautés
+// Rapport PDF généré dans le navigateur (jsPDF) - fiche territoire + fiches communautés
 import { YEAR_END, PT_YEAR_END, COLORS, BASEMAP } from './config.js';
 import { occChart, supChart, hbarChart, svgToPng, fmtInt, fmtPct } from './charts.js';
 import { bufferStats } from './stats.js';

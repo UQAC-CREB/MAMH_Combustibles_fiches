@@ -166,7 +166,7 @@ export function hbarChart(rows, { width = 260, rowH = 15, labelW = 74, groupW = 
   rows.forEach((r, i) => {
     if (groupW && r.group !== prevGroup) { flushGroup(i); prevGroup = r.group; groupStart = i; }
     const p = (r.ha / total) * 100, y = m.t + i * rowH;
-    const tip = `<b>${esc(r.title || r.label)}</b><br>${fmtHa(r.ha)} ha — ${fmtPct(p)}`;
+    const tip = `<b>${esc(r.title || r.label)}</b><br>${fmtHa(r.ha)} ha - ${fmtPct(p)}`;
     g += `<g data-tip="${esc(tip)}">`;
     g += `<rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>`;
     g += text(m.l - 5, y + rowH / 2 + 3.5, r.label, { 'text-anchor': 'end', 'font-size': fontSize, 'font-weight': 600 });

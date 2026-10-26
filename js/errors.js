@@ -17,7 +17,7 @@ function buildReport() {
   let st = {};
   try { st = stateFn(); } catch (e) { st = { erreur_etat: String(e) }; }
   return [
-    '=== Rapport d’erreur — application MAMH feux de forêt (v2) ===',
+    '=== Rapport d’erreur - application MAMH feux de forêt (v2) ===',
     `Date : ${new Date().toISOString()}`,
     `Adresse : ${location.href}`,
     `Langue : ${getLang()}`,

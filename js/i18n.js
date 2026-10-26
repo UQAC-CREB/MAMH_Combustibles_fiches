@@ -47,7 +47,7 @@ export function applyStatic() {
 
 // ── Classes de combustibles et de potentiel ────────────────────────────────
 const COMB_EN = {
-  1: 'Spruce–lichen woodland', 2: 'Boreal spruce', 3: 'Mature jack pine', 5: 'Red and white pine',
+  1: 'Spruce-lichen woodland', 2: 'Boreal spruce', 3: 'Mature jack pine', 5: 'Red and white pine',
   6: 'Conifer plantation', 7: 'Grass with conifers (ponderosa pine)', 8: 'Deciduous stands',
   9: 'Boreal mixedwood <50% conifer', 10: 'Boreal mixedwood >50% conifer',
   11: 'Mixedwood with dead balsam fir <50%', 12: 'Mixedwood with dead balsam fir >50%', 13: 'Mixedwood with dead balsam fir 100%',
@@ -69,7 +69,7 @@ export const pShort = (c) => (c.v === 0 ? (lang === 'en' ? 'No fuel' : 'Absence 
 const STR = {
   'app.title': ['Prédisposition des communautés aux feux de forêt - version 2.0 (bêta)', 'Predisposition of communities to forest fires - version 2.0 (beta)'],
   'mrc': ['MRC', 'RCM'],
-  'loading.error': ['Erreur de chargement — voir la console.', 'Loading error — see the console.'],
+  'loading.error': ['Erreur de chargement - voir la console.', 'Loading error - see the console.'],
   'err.generic': ['Une erreur est survenue. Si l’application ne répond plus, rechargez la page ; pour nous aider, copiez le rapport d’erreur et transmettez-le à l’équipe.',
     'An error occurred. If the application stops responding, reload the page; to help us, copy the error report and send it to the team.'],
   'err.webgl': ['La carte a perdu l’accès à la carte graphique (mémoire insuffisante probable). Rechargez la page ; pour nous aider, copiez le rapport d’erreur.',
@@ -102,14 +102,14 @@ const STR = {
   'zone.cleared': ['Zone effacée.', 'Area cleared.'],
   'lh.ph.choose': ['Tapez ou choisissez ({n})…', 'Type or choose ({n})…'],
   'lh.ph.none': ['Aucune communauté dans ce territoire', 'No community in this territory'],
-  'lh.ph.first': ['— Choisissez d’abord un territoire —', '— Choose a territory first —'],
+  'lh.ph.first': ['- Choisissez d’abord un territoire -', '- Choose a territory first -'],
   'mrc.sub': ['indice moyen {i}', 'mean index {i}'],
   'combo.none': ['Aucun résultat', 'No results'],
   // Indice
   'idx.none': ['Aucune donnée d’indice pour ce territoire.', 'No index data for this territory.'],
   'idx.choose': ['Choisissez un territoire pour afficher son indice moyen.', 'Choose a territory to display its mean index.'],
   'idx.meanSd': ['moyenne · écart-type <b>{s}</b>', 'mean · standard deviation <b>{s}</b>'],
-  'idx.note': ['{t} — {n} pixel(s) de 5 km.', '{t} — {n} 5-km pixel(s).'],
+  'idx.note': ['{t} - {n} pixel(s) de 5 km.', '{t} - {n} 5-km pixel(s).'],
   'idx.zone': ['Zone définie', 'Defined area'],
   'idx.short': ['Indice : <b>{m}</b> ± {s}', 'Index: <b>{m}</b> ± {s}'],
   'idx.shortTitle': ['Moyenne ± écart-type des pixels de 5 km de la zone tampon', 'Mean ± standard deviation of the 5-km pixels in the buffer zone'],
@@ -128,13 +128,13 @@ const STR = {
   'chart.logPdf': [' (échelle logarithmique)', ' (logarithmic scale)'],
   'leg.human': ['Humain', 'Human'], 'leg.lightning': ['Foudre', 'Lightning'],
   'leg.meanSd': ['Moyenne ± écart-type', 'Mean ± standard deviation'],
-  'summary.click': ['{t} — cliquez pour afficher les graphiques', '{t} — click to display the charts'],
+  'summary.click': ['{t} - cliquez pour afficher les graphiques', '{t} - click to display the charts'],
   // Graphiques (SVG)
   'ax.nFires': ['Nombre de feux', 'Number of fires'],
   'ax.rate': ['Taux / 100 000 ha comb.', 'Rate / 100,000 ha fuel'],
   'ax.burned': ['Superficie brûlée (ha)', 'Area burned (ha)'],
   'ax.pctFuel': ['% sup. combustible', '% of fuel area'],
-  'tip.occ': ['{n} feux — Humain : {h} · Foudre : {f}', '{n} fires — Human: {h} · Lightning: {f}'],
+  'tip.occ': ['{n} feux - Humain : {h} · Foudre : {f}', '{n} fires - Human: {h} · Lightning: {f}'],
   'tip.rate': ['Taux : {r} / 100 000 ha', 'Rate: {r} / 100,000 ha'],
   'tip.burned': ['{v} ha brûlés', '{v} ha burned'],
   'tip.pctFuel': ['{p} de la superficie combustible', '{p} of the fuel area'],
@@ -152,8 +152,8 @@ const STR = {
   'lh.chartA': ['A) Superficie des combustibles', 'A) Fuel area'],
   'lh.chartB': ['B) Potentiel d’intensité et de propagation', 'B) Fire intensity and spread potential'],
   'lh.bufferKm': ['Zone tampon : <b>{k} km</b>', 'Buffer zone: <b>{k} km</b>'],
-  'big.mrc': ['Fiche régionale — historique des feux', 'Regional sheet — fire history'],
-  'big.lh': ['Fiche communauté — combustibles', 'Community sheet — fuels'],
+  'big.mrc': ['Fiche régionale - historique des feux', 'Regional sheet - fire history'],
+  'big.lh': ['Fiche communauté - combustibles', 'Community sheet - fuels'],
   // Rapport (fenêtre)
   'rep.terr': ['Territoire : <b>{t}</b>', 'Territory: <b>{t}</b>'],
   'rep.territory': ['Territoire', 'Territory'],
@@ -161,7 +161,7 @@ const STR = {
   'rep.err': ['Erreur : {e}', 'Error: {e}'],
   'rep.pick': ['Cochez au moins une communauté ou la page territoire.', 'Check at least one community or the territory page.'],
   'rep.lib': ['Bibliothèque PDF en cours de chargement, réessayez.', 'PDF library still loading, please retry.'],
-  'rep.step': ['Étape {i} / {n} — {t}', 'Step {i} / {n} — {t}'],
+  'rep.step': ['Étape {i} / {n} - {t}', 'Step {i} / {n} - {t}'],
   'rep.stepTerr': ['Page territoire…', 'Territory page…'],
   'rep.stepLh': ['Communauté {i} / {n} : {name}…', 'Community {i} / {n}: {name}…'],
   'rep.stepLeg': ['Page des légendes…', 'Legend page…'],
@@ -194,7 +194,7 @@ const STR = {
   'pdf.legLh': ['Fiche communauté', 'Community sheet'],
 };
 
-// ── Légendes (fenêtres et page du PDF) — **gras** ───────────────────────────
+// ── Légendes (fenêtres et page du PDF) - **gras** ───────────────────────────
 export function LEGEND() {
   const fr = lang !== 'en';
   return {
@@ -269,7 +269,7 @@ export function LEGEND() {
 
 // ── HTML statique (anglais ; le français est lu dans index.html) ───────────
 const EN_STATIC = {
-  'hdr.title': 'Predisposition of communities to forest fires — version 2.0 (beta)',
+  'hdr.title': 'Predisposition of communities to forest fires - version 2.0 (beta)',
   'loading': 'Loading data…',
   'tab.intro': 'Introduction', 'tab.explore': 'Explore', 'tab.res': 'Useful resources',
   'pop.title': 'Welcome: predisposition of communities to forest fires',
@@ -283,7 +283,7 @@ const EN_STATIC = {
       <p>3. Click a <strong>community</strong> (on the map or in the menu) to display <strong>INFO-COMMUNITY</strong>, then adjust the buffer zone.</p>
       <p>4. The <strong>Generate a PDF report</strong> button produces a territory sheet, one sheet per checked community and a legend page.</p>
       <p>The map shows a green-to-red background indicating the forest fire predisposition index (standardized index from 0 to 1, 5-km pixels). The higher the index, the more the territory is predisposed to fires. Hover over the map to read the index value; the mean and standard deviation of the selected territory are shown in the panel.</p>
-      <p><strong>Note</strong>: this study relies on scientific data to assess the predisposition of Québec and Indigenous communities to forest fires at two scales of analysis: regional and local. To consider concrete actions to protect communities, contact the competent authorities — see the <span class="lien-onglet" data-goto="ressources">USEFUL RESOURCES</span> tab.</p>
+      <p><strong>Note</strong>: this study relies on scientific data to assess the predisposition of Québec and Indigenous communities to forest fires at two scales of analysis: regional and local. To consider concrete actions to protect communities, contact the competent authorities - see the <span class="lien-onglet" data-goto="ressources">USEFUL RESOURCES</span> tab.</p>
       <p>For more details, see the <span class="lien-onglet" data-goto="intro">INTRODUCTION</span> tab.</p>`,
   'btn.close': 'Close',
   'rep.title': 'PDF report',
@@ -291,7 +291,7 @@ const EN_STATIC = {
   'rep.all': 'Check all', 'rep.none': 'Uncheck all', 'rep.filter': 'Filter…',
   'rep.terrPage': 'Include the territory page (RCM / area)',
   'rep.cancel': 'Cancel', 'rep.go': '⬇ Generate the PDF',
-  'intro.body': `<p>In Québec, forest fires are a potentially significant threat to people and infrastructure. The exceptional 2023 season, which burned more than 4.2 million hectares, marked a turning point because of the major pressures it created, including the evacuation of thousands of people — among them several Indigenous communities — and significant property damage. As climate change is expected to intensify these phenomena, it is essential to better prepare communities to face them.</p>
+  'intro.body': `<p>In Québec, forest fires are a potentially significant threat to people and infrastructure. The exceptional 2023 season, which burned more than 4.2 million hectares, marked a turning point because of the major pressures it created, including the evacuation of thousands of people - among them several Indigenous communities - and significant property damage. As climate change is expected to intensify these phenomena, it is essential to better prepare communities to face them.</p>
         <p>Forest fire activity varies by region and depends on three main factors. Vegetation type influences fire intensity; landscape fragmentation (water bodies, roads, agricultural and urban areas) limits risk. Weather conditions (heat, drought and wind) increase flammability and rate of spread. Finally, ignition sources differ depending on whether fires are human-caused or caused by lightning.</p>
         <p>This study by the Regional Observatory for Boreal Forest Research assesses the predisposition of non-Indigenous and Indigenous communities in Québec to be affected by forest fires. The index reflects the long-term probability that a populated place is threatened or reached by a forest fire, based on its location, fire history, regional climate and vegetation (fuels).</p>
         <p>To make scientific knowledge on forest fires available to the public, the Observatory produced this application as an interactive map for the regional county municipalities (RCMs) and communities of Québec and Indigenous territories.</p>
@@ -328,11 +328,11 @@ const EN_STATIC = {
   'btn.report': '⬇ Generate a PDF report',
   'res.intro1': 'Prepare to face a forest fire: know what to do to ensure your safety and that of your loved ones, and to protect your home and property.',
   'res.intro2': 'In collaboration with the Société de protection des forêts contre le feu (SOPFEU), the Ministère de la Sécurité intérieure du Québec (MSI) and the Ministère des Ressources naturelles et des Forêts du Québec (MRNF).',
-  'res.gov': 'Government of Québec — Forest fires (quebec.ca, in French)',
+  'res.gov': 'Government of Québec - Forest fires (quebec.ca, in French)',
   'res.g1': 'Mitigating forest fire risks', 'res.g2': 'Preparing for a forest fire', 'res.g3': 'Protecting your home and property',
   'res.g4': 'Safety instructions during a forest fire', 'res.g5': 'Protecting your health from smoke',
   'res.g6': 'Returning home safely after a forest fire',
-  'res.sopfeu': 'SOPFEU — Forest fire protection agency (in French)',
+  'res.sopfeu': 'SOPFEU - Forest fire protection agency (in French)',
   'res.sub': 'See the following links to learn about:',
   'res.s1': 'Preventing forest fires', 'res.s2': 'Fire danger and current restrictions', 'res.s3': 'Protecting your home',
   'res.go': '→ Consult',
@@ -345,5 +345,5 @@ const EN_STATIC = {
   'ly.comb': 'Fuels 2025', 'ly.pot': 'Fire intensity and spread potential',
   'ly.rasterNote': 'Fuels and potential are mapped within 50 km of populated places.',
   'fiche.title': 'Sheet',
-  'leg.mrcTitle': 'Legend — Regional sheet', 'leg.lhTitle': 'Legend — Community sheet',
+  'leg.mrcTitle': 'Legend - Regional sheet', 'leg.lhTitle': 'Legend - Community sheet',
 };
