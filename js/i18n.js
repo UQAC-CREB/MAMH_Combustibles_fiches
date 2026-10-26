@@ -78,10 +78,10 @@ const STR = {
   'err.copy': ['Copier le rapport d’erreur', 'Copy the error report'],
   'err.copied': ['✓ Rapport copié', '✓ Report copied'],
   // Carte
-  'tt.fireStart': ['Départ de feu — {d}', 'Fire start — {d}'],
+  'tt.fireStart': ['Départ de feu <b>{d}</b>', 'Fire start <b>{d}</b>'],
   'tt.cause': ['Cause : {c}', 'Cause: {c}'],
   'cause.h': ['humaine', 'human'], 'cause.f': ['foudre', 'lightning'],
-  'tt.fire': ['Feu de forêt — {y}', 'Forest fire — {y}'],
+  'tt.fire': ['Feu de forêt <b>{y}</b>', 'Forest fire <b>{y}</b>'],
   'tt.unitIdx': ['Indice moyen de la MRC : {m} ± {s}', 'RCM mean index: {m} ± {s}'],
   'tt.index': ['Indice de prédisposition : <b>{v}</b>', 'Predisposition index: <b>{v}</b>'],
   'tt.comb': ['Combustible : <b>{a}</b>{l}', 'Fuel: <b>{a}</b>{l}'],
