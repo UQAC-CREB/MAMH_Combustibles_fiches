@@ -194,9 +194,9 @@
       <hr class="divider" />
 
       <!-- Indice de prédisposition -->
-      <div class="box has-tip" id="expo-box" tabindex="0">
-        <span class="panel-label" data-i18n="idx.label">Indice de prédisposition aux feux ℹ</span>
-        <div class="tooltip-info" id="idx-tip"></div>
+      <div class="box" id="expo-box">
+        <div class="label-row"><span class="panel-label" data-i18n="idx.label">Indice de prédisposition aux feux</span>
+          <button class="info-btn" id="btn-idx-info" data-i18n-title="title.idxInfo" title="Qu'est-ce que l'indice de prédisposition ?">i</button></div>
         <div class="legend-bar"><div class="band" id="expo-band"></div><div class="marker" id="expo-marker"></div></div>
         <div class="legend-labels"><span>0</span><span data-i18n="lowHigh">Faible → Élevé</span><span>1</span></div>
         <div id="expo-value"></div>
@@ -263,6 +263,7 @@
 
     <!-- Panneau des couches -->
     <div id="layers-panel">
+      <div class="lp-resize" id="lp-resize" data-i18n-title="title.lpResize" title="Glisser pour ajuster la largeur du panneau"></div>
       <div class="lp-head" id="lp-toggle"><span data-i18n="lp.title">☰ Couches</span><span id="lp-arrow">▾</span></div>
       <div class="lp-body">
         <div class="lyr" style="border-top:none;padding-top:0">
@@ -323,6 +324,14 @@
       </span>
     </div>
     <div class="modal-body" id="fiche-body"></div>
+  </div>
+</div>
+
+<!-- ═══ Indice de prédisposition (contenu généré : js/i18n.js → LEGEND) ═══ -->
+<div id="modal-idx" class="modal modal-top">
+  <div class="modal-box" style="width:min(92vw,640px)">
+    <div class="modal-head"><h2 data-i18n="leg.idxTitle">Indice de prédisposition aux feux de forêt</h2><button class="modal-close" data-close-self>✕</button></div>
+    <div class="modal-body leg-body" id="idx-body"></div>
   </div>
 </div>
 

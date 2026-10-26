@@ -421,6 +421,25 @@ function bindLayerPanel() {
     $('layers-panel').classList.toggle('collapsed');
     $('lp-arrow').textContent = $('layers-panel').classList.contains('collapsed') ? '▸' : '▾';
   });
+  initLayersResize();
+}
+
+/** Largeur du panneau des couches ajustable par son bord gauche (mémorisée dans le navigateur). */
+function initLayersResize() {
+  const lp = $('layers-panel'), KEY = 'mamh-lp-width';
+  const clamp = (w) => Math.round(Math.min(Math.max(w, 260), S.map.getContainer().clientWidth * 0.7));
+  try { const w = +localStorage.getItem(KEY); if (w) lp.style.width = `${clamp(w)}px`; } catch (e) { /* stockage indisponible */ }
+  let x0 = null, w0 = 0;
+  $('lp-resize').addEventListener('pointerdown', (e) => {
+    x0 = e.clientX; w0 = lp.offsetWidth; lp.classList.add('resizing'); document.body.style.userSelect = 'none';
+    e.target.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  $('lp-resize').addEventListener('pointermove', (e) => { if (x0 !== null) lp.style.width = `${clamp(w0 + x0 - e.clientX)}px`; });
+  $('lp-resize').addEventListener('pointerup', () => {
+    if (x0 === null) return;
+    x0 = null; lp.classList.remove('resizing'); document.body.style.userSelect = '';
+    try { localStorage.setItem(KEY, lp.offsetWidth); } catch (e) { /* stockage indisponible */ }
+  });
 }
 
 /** Coche / décoche une couche du panneau (mêmes effets qu'un clic). */
@@ -825,7 +844,7 @@ export function idxVarsHTML(L) {
 
 function buildLegends() {
   const L = LEGEND();
-  $('idx-tip').innerHTML = `${L.idxConcept}<br><br><b>${L.idxVarsTitle}</b>${idxVarsHTML(L)}${L.idxVarsNote}<br><br>${L.idxScale}`;
+  $('idx-body').innerHTML = `<p>${L.idxConcept}</p><p><b>${L.idxVarsTitle}</b></p>${idxVarsHTML(L)}<p>${L.idxVarsNote}</p><p>${L.idxScale}</p>`;
   const row = (hex, txt) => `<div class="leg-row"><div class="leg-swatch" style="background:${hex}"></div><span>${txt}</span></div>`;
   const block = (b, extra = '') => `<div class="leg-block"><div class="leg-sub">${b.h}</div>${b.p.map(p => `<p>${mdBold(p)}</p>`).join('')}${extra}</div>`;
   $('leg-mrc-body').innerHTML = L.mrc.map(b => block(b,
@@ -956,6 +975,7 @@ function bindUI() {
   buildLegends();
   const openLegend = (k) => $(`modal-leg-${k}`).classList.add('open');
   document.querySelectorAll('[data-legend]').forEach(b => b.addEventListener('click', () => openLegend(b.dataset.legend)));
+  $('btn-idx-info').addEventListener('click', () => $('modal-idx').classList.add('open'));
   $('fiche-legend').addEventListener('click', () => openLegend($('fiche-legend').dataset.kind || 'mrc'));
   document.querySelectorAll('[data-close-self]').forEach(b => b.addEventListener('click', () => b.closest('.modal').classList.remove('open')));
 

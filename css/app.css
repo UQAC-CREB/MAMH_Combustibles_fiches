@@ -79,6 +79,12 @@ body {
   font-family: 'Oswald', sans-serif; font-size: 10px; letter-spacing: 1.4px;
   text-transform: uppercase; color: var(--text-muted);
 }
+.label-row { display: flex; align-items: center; gap: 6px; position: relative; }
+.info-btn {
+  width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--accent); color: #fff; cursor: pointer;
+  font: italic 700 12.5px/1 Georgia, serif; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.info-btn:hover { background: var(--accent-dark); }
 .divider { border: none; border-top: 1px solid var(--panel-border); flex-shrink: 0; }
 
 .box {
@@ -339,7 +345,13 @@ body {
   position: absolute; top: 10px; right: 10px; z-index: 30; width: 380px; max-width: calc(100% - 20px); max-height: calc(100% - 130px);
   overflow-y: auto; background: rgba(255,255,255,0.97); border: 1px solid var(--panel-border);
   border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.14); font-size: 12.5px;
+  opacity: 0.82; transition: opacity 0.15s;
 }
+/* légère transparence hors survol ; opaque au survol, au clavier et pendant le redimensionnement */
+#layers-panel:hover, #layers-panel:focus-within, #layers-panel.resizing { opacity: 1; }
+@media (hover: none) { #layers-panel { opacity: 1; } }
+#layers-panel .lp-resize { position: absolute; top: 0; bottom: 0; left: 0; width: 7px; cursor: ew-resize; z-index: 1; }
+#layers-panel .lp-resize:hover, #layers-panel.resizing .lp-resize { background: rgba(41,128,185,0.25); }
 #layers-panel .lp-head {
   display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; cursor: pointer;
   font-family: 'Oswald', sans-serif; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--navy);
@@ -394,7 +406,7 @@ body {
 .vars-list { margin: 4px 0 6px 18px; padding: 0; }
 .vars-list li { margin-bottom: 2px; }
 .vars-p { font-size: 0.9em; opacity: 0.8; white-space: nowrap; }
-#idx-tip .vars-list { margin: 4px 0 6px 16px; }
+#idx-body .vars-list { margin: 4px 0 6px 16px; }
 
 /* Bandeau d'erreur */
 #err-banner {
